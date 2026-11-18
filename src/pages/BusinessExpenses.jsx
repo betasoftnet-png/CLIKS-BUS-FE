@@ -70,9 +70,9 @@ const BusinessExpenses = ({ defaultTab }) => {
         }
     };
 
-    // Validate input to allow only whole positive integers (>= 1)
+    // Validate input to allow only whole positive integers (>= 1, max 10 digits)
     const handleBudgetChange = (e) => {
-        const val = e.target.value;
+        let val = e.target.value.replace(/\D/g, '');
 
         if (val === '') {
             setNewBudget(prev => ({ ...prev, budget_limit: '' }));
@@ -80,9 +80,14 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
-        if (val.includes('.') || val.includes('-')) {
-            setBudgetError('Decimal fractions and negative budgets are not allowed.');
-            return;
+        // Limit leading zeroes (e.g. 000500 -> 500)
+        if (val.length > 1 && val.startsWith('0')) {
+            val = val.replace(/^0+/, '');
+        }
+
+        // Field restriction: max 10 digits (up to ₹999 Crore)
+        if (val.length > 10) {
+            val = val.slice(0, 10);
         }
 
         const intVal = parseInt(val, 10);
@@ -116,9 +121,9 @@ const BusinessExpenses = ({ defaultTab }) => {
         }
     };
 
-    // Validate input to allow only whole positive integers (>= 1)
+    // Validate input to allow only whole positive integers (>= 1, max 10 digits)
     const handleSpendingAmountChange = (e) => {
-        const val = e.target.value;
+        let val = e.target.value.replace(/\D/g, '');
 
         if (val === '') {
             setRecordSpendingForm(prev => ({ ...prev, amount: '' }));
@@ -126,16 +131,23 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
-        if (val.includes('.')) {
-            setRecordSpendingForm(prev => ({ ...prev, amount: val }));
-            setSpendingAmountError('Float / decimal amounts (e.g. 0.01) are not allowed.');
-            return;
+        // Limit leading zeroes (e.g. 000500 -> 500)
+        if (val.length > 1 && val.startsWith('0')) {
+            val = val.replace(/^0+/, '');
+        }
+
+        // Field restriction: max 10 digits (up to ₹999 Crore)
+        if (val.length > 10) {
+            val = val.slice(0, 10);
         }
 
         const num = parseInt(val, 10);
         if (isNaN(num) || num < 1) {
             setRecordSpendingForm(prev => ({ ...prev, amount: val }));
             setSpendingAmountError('Amount spent must be a positive whole integer of at least ₹1.');
+        } else if (num > 9999999999) {
+            setRecordSpendingForm(prev => ({ ...prev, amount: String(num) }));
+            setSpendingAmountError('Amount cannot exceed ₹999 Crore.');
         } else {
             setRecordSpendingForm(prev => ({ ...prev, amount: String(num) }));
             setSpendingAmountError('');

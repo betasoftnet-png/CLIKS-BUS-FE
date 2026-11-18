@@ -43,22 +43,31 @@ export default function RecordDepartmentSpendingModal({
   const handleAmountChange = (e) => {
     const val = e.target.value;
 
-    if (val === '') {
+    let cleanVal = val.replace(/\D/g, '');
+
+    if (cleanVal === '') {
       setAmountSpent('');
       setAmountError('');
       return;
     }
 
-    if (val.includes('.')) {
-      setAmountSpent(val);
-      setAmountError('Float / decimal amounts (e.g. 0.01) are not allowed.');
-      return;
+    // Strip leading zeroes (e.g. 000500 -> 500)
+    if (cleanVal.length > 1 && cleanVal.startsWith('0')) {
+      cleanVal = cleanVal.replace(/^0+/, '');
     }
 
-    const num = parseInt(val, 10);
+    // Max 10 digits limit
+    if (cleanVal.length > 10) {
+      cleanVal = cleanVal.slice(0, 10);
+    }
+
+    const num = parseInt(cleanVal, 10);
     if (isNaN(num) || num < 1) {
-      setAmountSpent(val);
+      setAmountSpent(cleanVal);
       setAmountError('Amount spent must be a positive whole integer of at least ₹1.');
+    } else if (num > 9999999999) {
+      setAmountSpent(String(num));
+      setAmountError('Amount cannot exceed ₹999 Crore.');
     } else {
       setAmountSpent(String(num));
       setAmountError('');

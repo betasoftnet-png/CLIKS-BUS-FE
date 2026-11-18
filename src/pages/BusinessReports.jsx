@@ -1259,23 +1259,38 @@ const BusinessReports = () => {
             </div>
 
             {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                {[
-                    { label: 'Total Sales Revenue', value: summary?.total_sales ? formatCurrency(summary.total_sales) : formatCurrency(0), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? formatCurrency(summary.total_purchases) : formatCurrency(0), icon: Package, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? formatCurrency(summary.total_expenses) : formatCurrency(0), icon: FileText, color: '#EF4444', bg: '#FEF2F2' }
-                ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
-                        </div>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={20} />
-                        </div>
+            {(() => {
+                const formatSafeStatValue = (val) => {
+                    if (val === null || val === undefined || isNaN(val)) return formatCurrency(0);
+                    const num = parseFloat(val);
+                    if (!isFinite(num)) return formatCurrency(0);
+                    // Prevent astronomical or corrupted overflow numbers (> 100 Lakh Crore)
+                    if (Math.abs(num) > 100000000000000) {
+                        return formatCurrency(0);
+                    }
+                    return formatCurrency(num);
+                };
+
+                return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                        {[
+                            { label: 'Total Sales Revenue', value: formatSafeStatValue(summary?.total_sales), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                            { label: 'Total Purchasing Cost', value: formatSafeStatValue(summary?.total_purchases), icon: Package, color: '#3B82F6', bg: '#EFF6FF' },
+                            { label: 'Total Operating Expenses', value: formatSafeStatValue(summary?.total_expenses), icon: FileText, color: '#EF4444', bg: '#FEF2F2' }
+                        ].map((stat, idx) => (
+                            <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', minWidth: 0, overflow: 'hidden' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0, overflow: 'hidden', flex: 1, marginRight: '0.75rem' }}>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.label}</p>
+                                    <h3 title={String(stat.value)} style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{stat.value}</h3>
+                                </div>
+                                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                                    <stat.icon size={20} />
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                );
+            })()}
 
             {/* Category Switcher */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
@@ -1541,18 +1556,67 @@ const BusinessReports = () => {
                                     )}
 
                                     {selectedReport.id === 11 && (
-                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Total Business Assets</span>
-                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.assets ? Object.values(reportDetails.assets).reduce((a, b) => a + b, 0) : 0)}</span>
+                                        <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                            {/* Assets Section */}
+                                            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '0.75rem 1rem', border: '1px solid #E2E8F0' }}>
+                                                <div style={{ fontSize: '0.72rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Assets Breakdown</div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ fontWeight: '600', color: '#475569' }}>Bank Balances</span>
+                                                        <span style={{ fontWeight: '800', color: '#2563EB' }}>{formatCurrency(reportDetails?.assets?.bank || 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ fontWeight: '600', color: '#475569' }}>Accounts Receivable (Unpaid Invoices)</span>
+                                                        <span style={{ fontWeight: '800', color: '#0D9488' }}>{formatCurrency(reportDetails?.assets?.receivables || 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ fontWeight: '600', color: '#475569' }}>Cash in Hand</span>
+                                                        <span style={{ fontWeight: '800', color: '#16A34A' }}>{formatCurrency(reportDetails?.assets?.cash || 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ fontWeight: '600', color: '#475569' }}>Inventory Stock Valuation</span>
+                                                        <span style={{ fontWeight: '800', color: '#7C3AED' }}>{formatCurrency(reportDetails?.assets?.inventory || 0)}</span>
+                                                    </div>
+                                                    {parseFloat(reportDetails?.assets?.fixed_assets || 0) > 0 && (
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                            <span style={{ fontWeight: '600', color: '#475569' }}>Fixed Assets</span>
+                                                            <span style={{ fontWeight: '800', color: '#D97706' }}>{formatCurrency(reportDetails?.assets?.fixed_assets || 0)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', borderTop: '1px dashed #CBD5E1', paddingTop: '0.45rem', marginTop: '0.15rem' }}>
+                                                        <span style={{ fontWeight: '800', color: '#0F172A' }}>Total Business Assets</span>
+                                                        <span style={{ fontWeight: '900', color: '#0F172A' }}>{formatCurrency(reportDetails?.assets ? Object.values(reportDetails.assets).reduce((a, b) => a + (parseFloat(b) || 0), 0) : 0)}</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Total Business Liabilities</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.liabilities ? Object.values(reportDetails.liabilities).reduce((a, b) => a + b, 0) : 0)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #DBEAFE' }}>
-                                                <span style={{ fontWeight: '800', color: '#1E3A8A', fontSize: '0.85rem' }}>{"Owner's Equity Contribution"}</span>
-                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.equity)}</span>
+
+                                            {/* Liabilities & Equity Section */}
+                                            <div style={{ background: '#F8FAFC', borderRadius: '10px', padding: '0.75rem 1rem', border: '1px solid #E2E8F0' }}>
+                                                <div style={{ fontSize: '0.72rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Liabilities & Equity</div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ fontWeight: '600', color: '#475569' }}>Accounts Payable (Suppliers)</span>
+                                                        <span style={{ fontWeight: '800', color: '#DC2626' }}>{formatCurrency(reportDetails?.liabilities?.payables || 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                        <span style={{ fontWeight: '600', color: '#475569' }}>GST Tax Liability</span>
+                                                        <span style={{ fontWeight: '800', color: '#DC2626' }}>{formatCurrency(reportDetails?.liabilities?.gst_payable || 0)}</span>
+                                                    </div>
+                                                    {parseFloat(reportDetails?.liabilities?.loans || 0) > 0 && (
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                                                            <span style={{ fontWeight: '600', color: '#475569' }}>Loans & Borrowings</span>
+                                                            <span style={{ fontWeight: '800', color: '#DC2626' }}>{formatCurrency(reportDetails?.liabilities?.loans || 0)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', borderTop: '1px dashed #CBD5E1', paddingTop: '0.45rem', marginTop: '0.15rem' }}>
+                                                        <span style={{ fontWeight: '800', color: '#991B1B' }}>Total Liabilities</span>
+                                                        <span style={{ fontWeight: '900', color: '#991B1B' }}>{formatCurrency(reportDetails?.liabilities ? Object.values(reportDetails.liabilities).reduce((a, b) => a + (parseFloat(b) || 0), 0) - (parseFloat(reportDetails?.liabilities?.equity || reportDetails?.equity || 0)) : 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', background: '#EFF6FF', borderRadius: '6px', padding: '0.4rem 0.6rem', border: '1px solid #DBEAFE', marginTop: '0.2rem' }}>
+                                                        <span style={{ fontWeight: '800', color: '#1E3A8A' }}>{"Owner's Net Equity"}</span>
+                                                        <span style={{ fontWeight: '900', color: '#1E3A8A' }}>{formatCurrency(reportDetails?.equity || reportDetails?.liabilities?.equity || 0)}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     )}

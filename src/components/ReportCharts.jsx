@@ -697,14 +697,23 @@ export const StockPieChart = ({
         }
 
         if (isBalanceSheet) {
+            const rawCash = Math.max(0, parseFloat(reportData?.assets?.cash || 0));
+            const rawBank = Math.max(0, parseFloat(reportData?.assets?.bank || 0));
+            const rawInventory = Math.max(0, parseFloat(reportData?.assets?.inventory || 0));
+            const rawReceivables = Math.max(0, parseFloat(reportData?.assets?.receivables || 0));
+            const rawFixed = Math.max(0, parseFloat(reportData?.assets?.fixed_assets || 0));
+
             const list = [
-                { label: 'Cash in Hand', value: parseFloat(reportData.assets.cash || 0), displayVal: formatCurrency(reportData.assets.cash || 0), color: '#10B981' },
-                { label: 'Bank Balances', value: parseFloat(reportData.assets.bank || 0), displayVal: formatCurrency(reportData.assets.bank || 0), color: '#3B82F6' },
-                { label: 'Inventory', value: parseFloat(reportData.assets.inventory || 0), displayVal: formatCurrency(reportData.assets.inventory || 0), color: '#8B5CF6' },
-                { label: 'Accounts Receivable', value: parseFloat(reportData.assets.receivables || 0), displayVal: formatCurrency(reportData.assets.receivables || 0), color: '#14B8A6' },
-                { label: 'Fixed Assets', value: parseFloat(reportData.assets.fixed_assets || 0), displayVal: formatCurrency(reportData.assets.fixed_assets || 0), color: '#F59E0B' }
-            ].filter(x => x.value > 0);
-            return list.length > 0 ? list : [{ label: 'No Assets', value: 1, displayVal: '₹0' }];
+                { label: 'Bank Balances', value: rawBank, displayVal: formatCurrency(rawBank), color: '#3B82F6' },
+                { label: 'Accounts Receivable', value: rawReceivables, displayVal: formatCurrency(rawReceivables), color: '#14B8A6' },
+                { label: 'Cash in Hand', value: rawCash, displayVal: formatCurrency(rawCash), color: '#10B981' },
+                { label: 'Inventory', value: rawInventory, displayVal: formatCurrency(rawInventory), color: '#8B5CF6' }
+            ];
+            if (rawFixed > 0) {
+                list.push({ label: 'Fixed Assets', value: rawFixed, displayVal: formatCurrency(rawFixed), color: '#F59E0B' });
+            }
+            const activeList = list.filter(x => x.value > 0);
+            return activeList.length > 0 ? activeList : [{ label: 'No Assets Recorded', value: 1, displayVal: '₹0', color: '#CBD5E1' }];
         }
 
         if (isWarehouse) {
@@ -761,6 +770,16 @@ export const StockPieChart = ({
 
     const slices = processPieData();
     const totalVal = slices.reduce((sum, s) => sum + s.value, 0);
+
+    const balanceSheetLegend = isBalanceSheet ? [
+        { label: 'Bank Balances', value: Math.max(0, parseFloat(reportData?.assets?.bank || 0)), color: '#3B82F6', displayVal: formatCurrency(reportData?.assets?.bank || 0) },
+        { label: 'Accounts Receivable', value: Math.max(0, parseFloat(reportData?.assets?.receivables || 0)), color: '#14B8A6', displayVal: formatCurrency(reportData?.assets?.receivables || 0) },
+        { label: 'Cash in Hand', value: Math.max(0, parseFloat(reportData?.assets?.cash || 0)), color: '#10B981', displayVal: formatCurrency(reportData?.assets?.cash || 0) },
+        { label: 'Inventory', value: Math.max(0, parseFloat(reportData?.assets?.inventory || 0)), color: '#8B5CF6', displayVal: formatCurrency(reportData?.assets?.inventory || 0) }
+    ].concat(parseFloat(reportData?.assets?.fixed_assets || 0) > 0 ? [{ label: 'Fixed Assets', value: parseFloat(reportData.assets.fixed_assets), color: '#F59E0B', displayVal: formatCurrency(reportData.assets.fixed_assets) }] : [])
+    : null;
+
+    const displayLegendItems = balanceSheetLegend || slices;
 
     const size = 180;
     const center = size / 2;
@@ -841,17 +860,20 @@ export const StockPieChart = ({
                     alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
                 }}>
                     <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
-                        {selectedReport?.id === 8 ? 'Suppliers' : (selectedReport?.id === 7 ? 'Customers' : (isParty ? 'Parties' : (isSalesData ? 'Contributors' : (isWarehouse ? 'Warehouses' : 'Segments'))))}
+                        {isBalanceSheet ? 'Total Assets' : (selectedReport?.id === 8 ? 'Suppliers' : (selectedReport?.id === 7 ? 'Customers' : (isParty ? 'Parties' : (isSalesData ? 'Contributors' : (isWarehouse ? 'Warehouses' : 'Segments')))))}
                     </span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#0F172A' }}>
-                        {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : (reportData?.length || slices.length)}
+                    <span style={{ fontSize: '0.92rem', fontWeight: '900', color: '#0F172A', textAlign: 'center', padding: '0 4px', whiteSpace: 'nowrap' }}>
+                        {isBalanceSheet 
+                            ? (hoveredIndex !== null ? displayLegendItems[hoveredIndex]?.label?.slice(0, 10) : formatIndianAxisNumber(totalVal)) 
+                            : (hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : (reportData?.length || slices.length))
+                        }
                     </span>
                 </div>
             </div>
 
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
-                {slices.map((s, idx) => {
-                    const pct = totalVal > 0 ? ((s.value / totalVal) * 100).toFixed(1) : (100 / slices.length).toFixed(1);
+                {displayLegendItems.map((s, idx) => {
+                    const pct = totalVal > 0 ? ((s.value / totalVal) * 100).toFixed(1) : (100 / displayLegendItems.length).toFixed(1);
                     const isHovered = hoveredIndex === idx;
 
                     return (

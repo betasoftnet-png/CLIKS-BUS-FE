@@ -49,27 +49,33 @@ export default function AddRecurringSubscriptionModal({
     }
   };
 
-  // 2. Validate amount to allow only whole positive integers (no floats / decimals)
+  // 2. Validate amount to allow only whole positive integers (max 10 digits, no floats / decimals)
   const handleAmountChange = (e) => {
-    const val = e.target.value;
+    let cleanVal = e.target.value.replace(/\D/g, '');
 
-    if (val === '') {
+    if (cleanVal === '') {
       setAmount('');
       setAmountError('');
       return;
     }
 
-    // Check if user pasted a decimal value or <= 0
-    if (val.includes('.')) {
-      setAmount(val);
-      setAmountError('Decimal / float amounts are not allowed. Please enter a whole amount.');
-      return;
+    // Strip leading zeroes (e.g. 000500 -> 500)
+    if (cleanVal.length > 1 && cleanVal.startsWith('0')) {
+      cleanVal = cleanVal.replace(/^0+/, '');
     }
 
-    const num = parseInt(val, 10);
+    // Field restriction: max 10 digits
+    if (cleanVal.length > 10) {
+      cleanVal = cleanVal.slice(0, 10);
+    }
+
+    const num = parseInt(cleanVal, 10);
     if (isNaN(num) || num < 1) {
-      setAmount(val);
+      setAmount(cleanVal);
       setAmountError('Amount must be a whole number of at least ₹1.');
+    } else if (num > 9999999999) {
+      setAmount(String(num));
+      setAmountError('Amount cannot exceed ₹999 Crore.');
     } else {
       setAmount(String(num));
       setAmountError('');
