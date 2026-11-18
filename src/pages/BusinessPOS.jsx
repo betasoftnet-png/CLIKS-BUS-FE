@@ -3006,17 +3006,36 @@ const BusinessPOS = () => {
         return true;
     }, [loyaltyProgramSettings, activeConfig]);
 
-    const ptsFor1Rs = loyaltyProgramSettings?.loyaltyPointsPer1Rs !== undefined ? loyaltyProgramSettings.loyaltyPointsPer1Rs : (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100);
-    const rsPer1Point = loyaltyProgramSettings?.loyaltyRsPer1Point !== undefined ? loyaltyProgramSettings.loyaltyRsPer1Point : (activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100);
-    const maxClaimPct = loyaltyProgramSettings?.loyaltyMaxClaimPercent !== undefined ? loyaltyProgramSettings.loyaltyMaxClaimPercent : (activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50);
+    const rsPer1Point = loyaltyProgramSettings?.loyaltyRsPer1Point !== undefined 
+        ? Number(loyaltyProgramSettings.loyaltyRsPer1Point) 
+        : (activeConfig?.loyaltyRsPer1Point !== undefined ? Number(activeConfig.loyaltyRsPer1Point) : 100);
+    const maxClaimPct = loyaltyProgramSettings?.loyaltyMaxClaimPercent !== undefined 
+        ? Number(loyaltyProgramSettings.loyaltyMaxClaimPercent) 
+        : (activeConfig?.loyaltyMaxClaimPercent !== undefined ? Number(activeConfig.loyaltyMaxClaimPercent) : 50);
+
+    // Value in currency per 1 redeemed loyalty point (e.g. 1 point = ₹1.00)
+    const rawPointVal = loyaltyProgramSettings?.pointValueCurrency !== undefined
+        ? Number(loyaltyProgramSettings.pointValueCurrency)
+        : (loyaltyProgramSettings?.point_value_currency !== undefined
+            ? Number(loyaltyProgramSettings.point_value_currency)
+            : (activeConfig?.pointValueCurrency !== undefined
+                ? Number(activeConfig.pointValueCurrency)
+                : (activeConfig?.point_value_currency !== undefined
+                    ? Number(activeConfig.point_value_currency)
+                    : (loyaltyProgramSettings?.loyaltyPointsPer1Rs && Number(loyaltyProgramSettings.loyaltyPointsPer1Rs) !== 100
+                        ? (1 / Number(loyaltyProgramSettings.loyaltyPointsPer1Rs))
+                        : (activeConfig?.loyaltyPointsPer1Rs && Number(activeConfig.loyaltyPointsPer1Rs) !== 100
+                            ? (1 / Number(activeConfig.loyaltyPointsPer1Rs))
+                            : 1.0)))));
+    const pointValueCurrency = (!isNaN(rawPointVal) && rawPointVal > 0) ? rawPointVal : 1.0;
 
     const availableCustomerPoints = selectedCustomerObj ? getCustomerLtp(selectedCustomerObj) : 0;
     const maxClaimablePoints = Math.floor(availableCustomerPoints * (maxClaimPct / 100));
-    const maxPointsForBill = ptsFor1Rs > 0 ? Math.floor((discountedTotal + effectiveTax) * ptsFor1Rs) : 0;
+    const maxPointsForBill = pointValueCurrency > 0 ? Math.floor((discountedTotal + effectiveTax) / pointValueCurrency) : 0;
     const maxRedeemablePoints = loyaltyEnabled ? Math.min(maxClaimablePoints, maxPointsForBill) : 0;
 
     const effectivePointsRedeemed = (loyaltyEnabled && selectedCustomerObj) ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
-    const loyaltyDiscountAmount = (loyaltyEnabled && ptsFor1Rs > 0) ? (effectivePointsRedeemed / ptsFor1Rs) : 0;
+    const loyaltyDiscountAmount = (loyaltyEnabled && pointValueCurrency > 0) ? Math.round(effectivePointsRedeemed * pointValueCurrency * 100) / 100 : 0;
 
     // Cross-Branch Store Credit Redemption calculation
     const availableStoreCredit = selectedCustomerObj ? (parseFloat(selectedCustomerObj.store_credit) || 0) : 0;

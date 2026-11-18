@@ -540,7 +540,7 @@ const BusinessCRM = () => {
     const currentPointValueCurrency = Number(
         activeConfig.pointValueCurrency !== undefined
             ? activeConfig.pointValueCurrency
-            : (activeConfig.loyaltyPointsPer1Rs ? (1 / activeConfig.loyaltyPointsPer1Rs) : 0.10)
+            : (activeConfig.loyaltyPointsPer1Rs && Number(activeConfig.loyaltyPointsPer1Rs) !== 100 ? (1 / Number(activeConfig.loyaltyPointsPer1Rs)) : 1.0)
     );
     const currentPointsPer1Rs = Number(
         activeConfig.pointsPerRs ??

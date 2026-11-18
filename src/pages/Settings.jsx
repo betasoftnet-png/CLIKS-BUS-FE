@@ -23,7 +23,7 @@ const Settings = () => {
         loyaltyEnabled: true,
         loyalty: true,
         loyaltyRsPer1Point: 100,
-        loyaltyPointsPer1Rs: 100,
+        loyaltyPointsPer1Rs: 1,
         loyaltyMaxClaimPercent: 50
     });
 
@@ -243,7 +243,7 @@ const Settings = () => {
                         <SettingInputItem
                             label="Points per ₹1 discount"
                             description="Number of points required to get a ₹1 discount."
-                            value={localSettings.loyaltyPointsPer1Rs !== undefined ? localSettings.loyaltyPointsPer1Rs : 100}
+                            value={localSettings.loyaltyPointsPer1Rs !== undefined ? localSettings.loyaltyPointsPer1Rs : 1}
                             onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyPointsPer1Rs: Number(e.target.value) }))}
                             addon="pts"
                         />
