@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency, useAuth, useBranch } from '../context';
@@ -61,7 +62,8 @@ import {
     Minimize,
     Loader2,
     Scale,
-    Image as ImageIcon
+    Image as ImageIcon,
+    FileText
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -87,6 +89,7 @@ import { ScannableBarcodeModal } from '../components/common/ScannableBarcodeModa
 import { ProductBarcodeGraphic } from '../components/common/ProductBarcodeGraphic';
 
 const BusinessPOS = () => {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
@@ -3365,48 +3368,18 @@ const BusinessPOS = () => {
 
                 {/* Header: Search & Summary Widget */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
-                    <div className="pos-header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="pos-header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flexShrink: 0 }}>
                             <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)', flexShrink: 0 }}>
                                 <ShoppingBag size={20} />
                             </div>
                             <div>
                                 <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>POS System</h1>
-                                {/* <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-
-                                    {(user?.is_sub_id && (user?.branch_name || user?.branchName)) ? (
-                                        <span style={{ fontSize: '0.74rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                                            <Building size={12} className="text-emerald-600" />
-                                            {user?.branch_name || user?.branchName}
-                                        </span>
-                                    ) : posBranches.length > 1 ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '1px 8px', borderRadius: '6px' }}>
-                                            <Building size={12} className="text-emerald-600" />
-                                            <select
-                                                value={selectedPosBranch?.id || ''}
-                                                onChange={(e) => {
-                                                    const found = posBranches.find(b => String(b.id) === e.target.value);
-                                                    if (found) setSelectedPosBranch(found);
-                                                }}
-                                                style={{ fontSize: '0.74rem', fontWeight: '800', color: '#0F172A', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer' }}
-                                            >
-                                                {posBranches.map(b => (
-                                                    <option key={b.id} value={b.id}>📍 {b.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    ) : (
-                                        <span style={{ fontSize: '0.74rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                                            <Building size={12} className="text-emerald-600" />
-                                            {selectedPosBranch?.name || posBranches[0]?.name || user?.branch_name || user?.branchName || 'Main Branch'}
-                                        </span>
-                                    )}
-                                </div> */}
                             </div>
                         </div>
 
                         {/* Action buttons on the same row */}
-                        <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexShrink: 0 }}>
+                        <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 1, minWidth: 0 }}>
                             <button
                                 onClick={() => setIsAddProductModalOpen(true)}
                                 style={{
@@ -3445,7 +3418,8 @@ const BusinessPOS = () => {
                                         borderRadius: '10px', 
                                         height: '36px', 
                                         boxSizing: 'border-box',
-                                        flexShrink: 0,
+                                        flexShrink: 1,
+                                        minWidth: 0,
                                         cursor: 'default'
                                     }} 
                                     title={`Today Orders: ${todaySummary.total_orders || 0} • Total Sales: ${formatCurrency(todaySummary.total_sales || 0)}`}
@@ -3457,7 +3431,7 @@ const BusinessPOS = () => {
                                     <div style={{ width: '1px', height: '18px', background: '#A7F3D0' }} />
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                         <span style={{ fontSize: '0.52rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', lineHeight: 1 }}>Total Sales</span>
-                                        <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#065F46', lineHeight: 1.2 }}>{formatCurrency(todaySummary.total_sales || 0)}</span>
+                                        <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#065F46', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{formatCurrency(todaySummary.total_sales || 0)}</span>
                                     </div>
                                 </div>
                             )}
@@ -3524,7 +3498,7 @@ const BusinessPOS = () => {
                                         color: 'white',
                                         border: 'none',
                                         height: '36px',
-                                        padding: '0 0.75rem',
+                                        padding: '0 0.85rem',
                                         borderRadius: '10px',
                                         fontWeight: '800',
                                         fontSize: '0.78rem',
@@ -3556,9 +3530,9 @@ const BusinessPOS = () => {
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         gap: '0.4rem',
-                                        padding: '0.45rem 0.9rem',
-                                        borderRadius: '12px',
-                                        border: '1.5px solid #000000',
+                                        padding: '0 0.85rem',
+                                        borderRadius: '10px',
+                                        border: '1.5px solid #CBD5E1',
                                         background: '#FFFFFF',
                                         color: '#0F172A',
                                         fontSize: '0.82rem',
@@ -3567,7 +3541,8 @@ const BusinessPOS = () => {
                                         outline: 'none',
                                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                                         minWidth: '130px',
-                                        height: '100%'
+                                        height: '40px',
+                                        boxSizing: 'border-box'
                                     }}
                                 >
                                     <span>
@@ -3591,7 +3566,7 @@ const BusinessPOS = () => {
                                         border: '1px solid #E2E8F0',
                                         borderRadius: '14px',
                                         boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
-                                        zIndex: 50,
+                                        zIndex: 70,
                                         minWidth: '200px',
                                         maxWidth: '280px',
                                         padding: '0.5rem',
@@ -3665,9 +3640,9 @@ const BusinessPOS = () => {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '0.45rem',
-                                    padding: '0.45rem 0.95rem',
-                                    borderRadius: '12px',
-                                    border: selectedCategory !== 'All' ? '1.5px solid #10B981' : '1.5px solid #000000',
+                                    padding: '0 0.85rem',
+                                    borderRadius: '10px',
+                                    border: selectedCategory !== 'All' ? '1.5px solid #10B981' : '1.5px solid #CBD5E1',
                                     background: selectedCategory !== 'All' ? '#ECFDF5' : '#FFFFFF',
                                     color: selectedCategory !== 'All' ? '#047857' : '#0F172A',
                                     fontSize: '0.82rem',
@@ -3675,8 +3650,9 @@ const BusinessPOS = () => {
                                     cursor: 'pointer',
                                     transition: 'all 0.15s ease',
                                     whiteSpace: 'nowrap',
-                                    height: '100%',
-                                    boxShadow: isCategoryDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none'
+                                    height: '40px',
+                                    boxSizing: 'border-box',
+                                    boxShadow: isCategoryDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : '0 1px 3px rgba(0,0,0,0.05)'
                                 }}
                                 title="Filter Catalog by Category"
                             >
@@ -3720,7 +3696,7 @@ const BusinessPOS = () => {
                                     border: '1px solid #E2E8F0',
                                     borderRadius: '14px',
                                     boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                                    zIndex: 60,
+                                    zIndex: 70,
                                     minWidth: '220px',
                                     maxWidth: '300px',
                                     padding: '0.5rem',
@@ -3837,8 +3813,8 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Search Box */}
-                        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '140px' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '140px', height: '40px' }}>
+                            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input
                                 type="text"
                                 placeholder={
@@ -3862,9 +3838,9 @@ const BusinessPOS = () => {
                                         }
                                     }
                                 }}
-                                style={{ width: '100%', padding: '0.75rem 2.2rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
+                                style={{ width: '100%', height: '40px', padding: '0 2.2rem 0 2.4rem', boxSizing: 'border-box', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none', background: '#F8FAFC', fontSize: '0.85rem', fontWeight: 500, transition: 'border-color 0.2s' }}
                                 onFocus={(e) => e.target.style.borderColor = '#10B981'}
-                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
                             />
                             {searchTerm && (
                                 <button
@@ -3893,34 +3869,6 @@ const BusinessPOS = () => {
                             )}
                         </div>
 
-                        {/* Supermarket Barcode / QR Scanner Trigger */}
-                        {/* <button
-                            type="button"
-                            onClick={() => setIsCameraScannerOpen(true)}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '0 0.85rem',
-                                height: '42px',
-                                borderRadius: '12px',
-                                border: '1.5px solid #10B981',
-                                background: '#ECFDF5',
-                                color: '#047857',
-                                fontSize: '0.82rem',
-                                fontWeight: '800',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.15s ease',
-                                boxShadow: '0 1px 2px rgba(16, 185, 129, 0.08)'
-                            }}
-                            title="Open Supermarket Camera / Barcode Gun Station"
-                        >
-                            <Barcode size={18} color="#059669" />
-                            <span>Scan QR / Barcode</span>
-                        </button> */}
-
-
                         {/* Product Filter & Sort / List Dropdown (Icon Only) */}
                         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
                             <button
@@ -3930,18 +3878,19 @@ const BusinessPOS = () => {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    padding: '0.55rem',
+                                    padding: 0,
                                     minWidth: '40px',
                                     width: '40px',
                                     height: '40px',
-                                    borderRadius: '12px',
-                                    border: (productSort !== 'default' || searchTarget !== 'all') ? '1.5px solid #10B981' : '1.5px solid #000000',
+                                    borderRadius: '10px',
+                                    border: (productSort !== 'default' || searchTarget !== 'all') ? '1.5px solid #10B981' : '1.5px solid #CBD5E1',
                                     background: (productSort !== 'default' || searchTarget !== 'all') ? '#ECFDF5' : '#FFFFFF',
                                     color: (productSort !== 'default' || searchTarget !== 'all') ? '#047857' : '#0F172A',
                                     cursor: 'pointer',
                                     transition: 'all 0.15s ease',
-                                    boxShadow: isSortFilterDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none',
-                                    position: 'relative'
+                                    boxShadow: isSortFilterDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : '0 1px 3px rgba(0,0,0,0.05)',
+                                    position: 'relative',
+                                    boxSizing: 'border-box'
                                 }}
                                 title={
                                     productSort === 'alphabet_asc'
@@ -3983,14 +3932,15 @@ const BusinessPOS = () => {
                                 <div style={{
                                     position: 'absolute',
                                     top: '100%',
-                                    right: 0,
+                                    left: 0,
+                                    right: 'auto',
                                     marginTop: '6px',
                                     background: '#FFFFFF',
                                     border: '1px solid #E2E8F0',
                                     borderRadius: '14px',
                                     boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                                    zIndex: 60,
-                                    minWidth: '270px',
+                                    zIndex: 80,
+                                    minWidth: '280px',
                                     maxWidth: '320px',
                                     padding: '0.65rem',
                                     display: 'flex',
@@ -4326,6 +4276,7 @@ const BusinessPOS = () => {
                                                 flexDirection: 'column',
                                                 gap: '0.6rem',
                                                 position: 'relative',
+                                                zIndex: activeProductMenuId === prod.id ? 40 : 1,
                                                 opacity: isOutOfStock ? 0.6 : 1,
                                                 transition: 'all 0.2s ease',
                                                 boxShadow: isUnlimited ? '0 4px 12px rgba(37, 99, 235, 0.06)' : '0 2px 4px rgba(0,0,0,0.02)'
@@ -4413,8 +4364,8 @@ const BusinessPOS = () => {
                                                                     background: '#FFFFFF',
                                                                     border: '1px solid #E2E8F0',
                                                                     borderRadius: '10px',
-                                                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
-                                                                    zIndex: 50,
+                                                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18), 0 8px 10px -6px rgba(0,0,0,0.12)',
+                                                                    zIndex: 60,
                                                                     minWidth: '160px',
                                                                     padding: '0.35rem 0',
                                                                     overflow: 'hidden'
@@ -4850,17 +4801,180 @@ const BusinessPOS = () => {
                                         marginTop: '6px',
                                         background: '#FFFFFF',
                                         border: '1px solid #E2E8F0',
-                                        borderRadius: '10px',
-                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
-                                        zIndex: 40,
-                                        minWidth: '150px',
-                                        padding: '0.35rem 0',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                        zIndex: 60,
+                                        minWidth: '220px',
+                                        padding: '0.4rem 0',
                                         overflow: 'hidden'
                                     }}
                                 >
-                                    <div style={{ padding: '0.45rem 0.75rem', fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
-                                        Orders Options
+                                    <div style={{ padding: '0.4rem 0.85rem 0.35rem', fontSize: '0.68rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #F1F5F9' }}>
+                                        Order Actions
                                     </div>
+
+                                    {/* 1. POS Order History */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowHistoryModal(true);
+                                            setIsOrdersDropdownOpen(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '0.55rem 0.85rem',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <History size={15} color="#2563EB" />
+                                            <div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1E293B' }}>POS Order History</div>
+                                                <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Past invoices & receipts</div>
+                                            </div>
+                                        </div>
+                                        {todaySummary?.total_orders > 0 && (
+                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DBEAFE', color: '#1E40AF', padding: '1px 6px', borderRadius: '8px' }}>
+                                                {todaySummary.total_orders}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* 2. Hold Current Cart */}
+                                    <button
+                                        type="button"
+                                        disabled={cart.length === 0}
+                                        onClick={() => {
+                                            holdCart();
+                                            setIsOrdersDropdownOpen(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '0.55rem 0.85rem',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
+                                            opacity: cart.length === 0 ? 0.5 : 1,
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => { if (cart.length > 0) e.currentTarget.style.background = '#F8FAFC'; }}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <Clock size={15} color="#D97706" />
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1E293B' }}>Hold Current Cart</div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Park sale to serve next customer</div>
+                                        </div>
+                                    </button>
+
+                                    {/* 3. Held / Parked Carts */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsHeldCartsDropdownOpen(true);
+                                            setIsOrdersDropdownOpen(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '0.55rem 0.85rem',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ShoppingCart size={15} color="#059669" />
+                                            <div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1E293B' }}>Held Orders</div>
+                                                <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Resume parked orders</div>
+                                            </div>
+                                        </div>
+                                        {heldCarts.length > 0 && (
+                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#FEF3C7', color: '#B45309', padding: '1px 6px', borderRadius: '8px' }}>
+                                                {heldCarts.length}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* 4. Start New Order */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            startNewCart();
+                                            setIsOrdersDropdownOpen(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '0.55rem 0.85rem',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <RotateCcw size={15} color="#64748B" />
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1E293B' }}>Start New Sale</div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Clear cart and start fresh</div>
+                                        </div>
+                                    </button>
+
+                                    <div style={{ height: '1px', background: '#F1F5F9', margin: '0.25rem 0' }} />
+
+                                    {/* 5. Invoices & Sales Management */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigate('/business-invoices');
+                                            setIsOrdersDropdownOpen(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '0.55rem 0.85rem',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <FileText size={15} color="#7C3AED" />
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1E293B' }}>All Invoices & Sales</div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Open full enterprise invoices</div>
+                                        </div>
+                                    </button>
                                 </div>
                             )}
                         </div>
