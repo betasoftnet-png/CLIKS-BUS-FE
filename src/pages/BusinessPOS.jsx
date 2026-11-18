@@ -2390,22 +2390,38 @@ const BusinessPOS = () => {
         fetchProductAnalytics(prod, productSalesRange, productSalesFromDate, productSalesToDate);
     };
 
-    // Derived Categories
-    const categories = React.useMemo(() => ['All', ...new Set(inventory.map(i => i.category).filter(Boolean))], [inventory]);
+    // Derived Categories - Case-insensitively deduplicated & sorted
+    const categories = React.useMemo(() => {
+        const raw = inventory.map(i => i.category).filter(Boolean);
+        const map = new Map();
+        raw.forEach(cat => {
+            const trimmed = String(cat).trim();
+            if (!trimmed) return;
+            const lower = trimmed.toLowerCase();
+            if (!map.has(lower)) {
+                const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+                map.set(lower, formatted);
+            }
+        });
+        const unique = Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+        return ['All', ...unique];
+    }, [inventory]);
 
     const categoryCounts = React.useMemo(() => {
         const counts = { All: inventory.length };
         inventory.forEach(i => {
-            if (i.category) {
-                counts[i.category] = (counts[i.category] || 0) + 1;
-            }
+            const cat = String(i.category || '').trim();
+            if (!cat) return;
+            const lower = cat.toLowerCase();
+            const matched = categories.find(c => c.toLowerCase() === lower) || cat;
+            counts[matched] = (counts[matched] || 0) + 1;
         });
         return counts;
-    }, [inventory]);
+    }, [inventory, categories]);
 
     const filteredCategories = React.useMemo(() => {
         if (!categorySearchQuery.trim()) return categories;
-        const q = categorySearchQuery.toLowerCase();
+        const q = categorySearchQuery.toLowerCase().trim();
         return categories.filter(cat => cat.toLowerCase().includes(q));
     }, [categories, categorySearchQuery]);
 
@@ -2453,7 +2469,7 @@ const BusinessPOS = () => {
                 });
             }
 
-            const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+            const matchesCategory = selectedCategory === 'All' || (prod.category && String(prod.category).trim().toLowerCase() === selectedCategory.toLowerCase());
 
             // Alphabet Letter Filter (e.g. from A-Z jump bar)
             let matchesLetter = true;
@@ -2863,11 +2879,21 @@ const BusinessPOS = () => {
     }, [customerEmail, selectedCustomerObj?.id]);
 
     // Calculations
-    const subtotal = cart.reduce((acc, item) => acc + item.total, 0);
+    const subtotal = Math.max(0, cart.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0));
 
-    const discountAmount = discountType === 'percentage'
-        ? (subtotal * (parseFloat(discountVal) || 0) / 100)
-        : (parseFloat(discountVal) || 0);
+    // Hardened Discount Field Restrictions
+    const rawDiscountInput = Math.max(0, parseFloat(discountVal) || 0);
+
+    // Percentage discount capped strictly at 100%, Flat discount capped strictly at subtotal
+    const effectiveDiscountVal = discountType === 'percentage'
+        ? Math.min(100, rawDiscountInput)
+        : (subtotal > 0 ? Math.min(subtotal, rawDiscountInput) : 0);
+
+    const discountAmount = subtotal > 0
+        ? (discountType === 'percentage'
+            ? (subtotal * effectiveDiscountVal / 100)
+            : effectiveDiscountVal)
+        : 0;
 
     // Showroom-Specific Promotion Discount (Strictly for this branch showroom)
     const showroomPromoDiscount = React.useMemo(() => {
@@ -2899,16 +2925,20 @@ const BusinessPOS = () => {
         return 0;
     }, [appliedShowroomPromo, subtotal, cart, inventory]);
 
-    const totalDiscountAmount = discountAmount + showroomPromoDiscount;
+    // Total discount can never exceed subtotal
+    const totalDiscountAmount = subtotal > 0 ? Math.min(subtotal, Math.max(0, discountAmount + showroomPromoDiscount)) : 0;
     const discountedTotal = Math.max(0, subtotal - totalDiscountAmount);
-    const discountPercent = subtotal > 0 ? (totalDiscountAmount / subtotal) : 0;
 
-    const calculatedTax = cart.reduce((acc, item) => {
+    // discountPercent strictly clamped between 0 and 1
+    const discountPercent = subtotal > 0 ? Math.min(1, Math.max(0, totalDiscountAmount / subtotal)) : 0;
+
+    // Calculated tax strictly non-negative
+    const calculatedTax = Math.max(0, cart.reduce((acc, item) => {
         const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
-        const discountedItemTotal = item.total * (1 - discountPercent);
+        const discountedItemTotal = Math.max(0, (parseFloat(item.total) || 0) * (1 - discountPercent));
         const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
         return acc + (discountedItemTotal * (itemTaxRate / 100));
-    }, 0);
+    }, 0));
 
     // Effective tax: owner's custom override or auto-calculated from items
     const effectiveTax = isTaxManuallyEdited && customTaxAmount !== null
@@ -3722,27 +3752,58 @@ const BusinessPOS = () => {
                                         )}
                                     </div>
 
-                                    {categories.length > 8 && (
-                                        <div style={{ padding: '0.2rem 0.2rem 0.4rem' }}>
+                                    {/* Category Search Input (Always available for manual search) */}
+                                    <div style={{ padding: '0.2rem 0.2rem 0.4rem' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                                             <input
                                                 type="text"
                                                 placeholder="Search categories..."
                                                 value={categorySearchQuery}
                                                 onChange={(e) => setCategorySearchQuery(e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
                                                 autoFocus
                                                 style={{
                                                     width: '100%',
                                                     boxSizing: 'border-box',
-                                                    padding: '0.4rem 0.6rem',
+                                                    padding: '0.4rem 1.6rem 0.4rem 1.7rem',
                                                     borderRadius: '8px',
-                                                    border: '1px solid #E2E8F0',
+                                                    border: '1px solid #CBD5E1',
                                                     fontSize: '0.78rem',
                                                     outline: 'none',
                                                     background: '#F8FAFC'
                                                 }}
+                                                onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                                                onBlur={(e) => e.target.style.borderColor = '#CBD5E1'}
                                             />
+                                            {categorySearchQuery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCategorySearchQuery('');
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        right: '6px',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        color: '#94A3B8',
+                                                        padding: '2px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                    title="Clear search"
+                                                >
+                                                    <X size={12} strokeWidth={2.5} />
+                                                </button>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
 
                                     <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                         {filteredCategories.length > 0 ? (
@@ -5745,35 +5806,101 @@ const BusinessPOS = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.28rem', justifyContent: 'flex-start' }}>
 
                                     {/* Discount Row */}
-                                    <div style={{ background: '#FFFFFF', padding: '0.3rem 0.45rem', borderRadius: '7px', border: '1px solid #E2E8F0' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
+                                    <div style={{ background: '#FFFFFF', padding: '0.35rem 0.5rem', borderRadius: '7px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                                Discount {discountType === 'percentage' ? '(%)' : '(Flat)'}
+                                            </span>
                                             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setDiscountType('percentage')}
+                                                    onClick={() => {
+                                                        setDiscountType('percentage');
+                                                        if (discountVal > 100) setDiscountVal(100);
+                                                    }}
                                                     style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.62rem', fontWeight: discountType === 'percentage' ? '800' : '500', color: discountType === 'percentage' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}
+                                                    title="Percentage Discount (0% - 100%)"
                                                 >
                                                     %
                                                 </button>
                                                 <span style={{ fontSize: '0.6rem', color: '#CBD5E1' }}>|</span>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setDiscountType('flat')}
+                                                    onClick={() => {
+                                                        setDiscountType('flat');
+                                                        if (subtotal > 0 && discountVal > subtotal) setDiscountVal(subtotal);
+                                                    }}
                                                     style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.62rem', fontWeight: discountType === 'flat' ? '800' : '500', color: discountType === 'flat' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}
+                                                    title={`Flat Amount Discount (Max ${formatCurrency(subtotal)})`}
                                                 >
                                                     Flat
                                                 </button>
                                             </div>
                                         </div>
-                                        <input
-                                            type="number"
-                                            placeholder="0"
-                                            min="0"
-                                            value={discountVal || ''}
-                                            onChange={(e) => setDiscountVal(Math.max(0, parseFloat(e.target.value) || 0))}
-                                            style={{ width: '100%', padding: '0.2rem 0.4rem', boxSizing: 'border-box', borderRadius: '5px', border: '1px solid #E2E8F0', fontSize: '0.78rem', fontWeight: '750', outline: 'none' }}
-                                        />
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                disabled={subtotal <= 0}
+                                                placeholder={subtotal > 0 ? "0" : "Cart is empty"}
+                                                value={subtotal <= 0 ? '' : (discountVal || '')}
+                                                onChange={(e) => {
+                                                    if (subtotal <= 0) return;
+                                                    // Sanitize input: allow only digits and at most one decimal point
+                                                    let raw = e.target.value.replace(/[^0-9.]/g, '');
+                                                    const parts = raw.split('.');
+                                                    if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+                                                    if (!raw) {
+                                                        setDiscountVal(0);
+                                                        return;
+                                                    }
+                                                    const num = parseFloat(raw);
+                                                    if (isNaN(num)) {
+                                                        setDiscountVal(0);
+                                                        return;
+                                                    }
+                                                    if (discountType === 'percentage') {
+                                                        // Max 100%
+                                                        const clamped = Math.min(100, Math.max(0, num));
+                                                        setDiscountVal(clamped);
+                                                    } else {
+                                                        // Max subtotal
+                                                        const clamped = Math.min(subtotal, Math.max(0, num));
+                                                        setDiscountVal(clamped);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (['e', 'E', '+', '-'].includes(e.key)) {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.22rem 0.45rem',
+                                                    boxSizing: 'border-box',
+                                                    borderRadius: '5px',
+                                                    border: '1px solid #E2E8F0',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: '750',
+                                                    outline: 'none',
+                                                    background: subtotal <= 0 ? '#F8FAFC' : '#FFFFFF',
+                                                    color: subtotal <= 0 ? '#94A3B8' : '#0F172A',
+                                                    cursor: subtotal <= 0 ? 'not-allowed' : 'text'
+                                                }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px', fontSize: '0.56rem', color: '#94A3B8' }}>
+                                            <span>{discountType === 'percentage' ? 'Max: 100%' : (subtotal > 0 ? `Max: ${formatCurrency(subtotal)}` : 'Cart empty')}</span>
+                                            {discountVal > 0 && subtotal > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDiscountVal(0)}
+                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.56rem', fontWeight: '750', cursor: 'pointer', padding: 0 }}
+                                                >
+                                                    Reset
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Loyalty Points: Available, Redeemed, Earned (Moved to Left Side Below Discount) */}
@@ -6031,9 +6158,9 @@ const BusinessPOS = () => {
                                         </div>
 
                                         {/* Discount if any */}
-                                        {discountAmount > 0 && (
+                                        {discountAmount > 0 && subtotal > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#EF4444', fontWeight: '600' }}>
-                                                <span>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
+                                                <span>Discount ({discountType === 'percentage' ? `${effectiveDiscountVal}%` : 'Flat'})</span>
                                                 <span>-{formatCurrency(discountAmount)}</span>
                                             </div>
                                         )}
