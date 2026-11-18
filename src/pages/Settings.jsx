@@ -16,7 +16,7 @@ const Settings = () => {
     const [localSettings, setLocalSettings] = useState({
         notifications: true,
         emailDigest: false,
-        darkMode: false,
+        darkMode: typeof window !== 'undefined' ? (localStorage.getItem('cliks_dark_mode') === 'true' || document.documentElement.getAttribute('data-theme') === 'dark') : false,
         language: 'EN-US',
         twoFactor: true,
         dataSharing: false,
@@ -92,6 +92,7 @@ const Settings = () => {
                 updated.loyaltyEnabled = updated.loyalty;
             }
             if (key === 'darkMode') {
+                localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
                 if (updated.darkMode) {
                     document.documentElement.setAttribute('data-theme', 'dark');
                     document.documentElement.classList.add('dark-theme', 'dark');
@@ -101,6 +102,8 @@ const Settings = () => {
                     document.documentElement.classList.remove('dark-theme', 'dark');
                     document.body.classList.remove('dark-theme', 'dark');
                 }
+                window.dispatchEvent(new Event('cliksConfigUpdated'));
+                window.dispatchEvent(new Event('storage'));
             }
             return updated;
         });

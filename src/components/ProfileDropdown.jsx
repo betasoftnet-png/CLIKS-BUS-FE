@@ -911,7 +911,7 @@ export function ProfileDropdown({
                                     <div style={{
                                         fontSize: '12px',
                                         color: '#6b7280',
-                                        marginBottom: '4px',
+                                        marginBottom: '12px',
                                         maxWidth: '100%',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
@@ -919,22 +919,6 @@ export function ProfileDropdown({
                                         fontWeight: '500'
                                     }}>
                                         {displayEmail}
-                                    </div>
-
-                                    {/* Primary Account Label */}
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        justifyContent: 'center',
-                                        fontSize: '12px',
-                                        fontWeight: '700',
-                                        color: '#16A34A',
-                                        marginTop: '2px',
-                                        marginBottom: '10px'
-                                    }}>
-                                        <CheckCircle2 size={13} color="#16A34A" />
-                                        <span>{t ? t('activeAccount', 'Active Account') : 'Active Account'}</span>
                                     </div>
 
                                     {/* Manage Account Button */}

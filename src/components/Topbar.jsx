@@ -16,6 +16,7 @@ import { useAuth, useLanguage } from '../context';
 import { apiClient } from '../api/client';
 import logoPng from '../assets/cliks6.png'; // Final branding
 import accessKitPng from '../assets/ACCESS_KIT.png';
+import bitTool2Png from '../assets/BIT-TOOL-2.png';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ProfileDropdown } from './ProfileDropdown';
@@ -931,31 +932,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                     );
                 })()}
 
-                {/* Theme Toggle (Light / Dark Mode) */}
-                <button
-                    type="button"
-                    onClick={toggleTheme}
-                    title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '11px',
-                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        cursor: 'pointer',
-                        color: isDarkMode ? '#FCD34D' : '#FFFFFF',
-                        outline: 'none',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.22)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.08)'}
-                >
-                    {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
-                </button>
-
                 {/* Notification Bell Button */}
                 <div style={{ position: 'relative' }}>
                     <NotificationBell
@@ -1014,18 +990,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                     >
                         <Briefcase size={16} color={location.pathname.startsWith('/ca') ? '#93C5FD' : '#FFFFFF'} style={{ flexShrink: 0 }} />
                         <span className="topbar-finpro-text">FIN-PRO</span>
-                        <span className="topbar-finpro-badge" style={{
-                            fontSize: '9.5px',
-                            padding: '1px 6px',
-                            borderRadius: '999px',
-                            backgroundColor: '#10B981',
-                            color: '#FFFFFF',
-                            fontWeight: '800',
-                            letterSpacing: '0.4px',
-                            marginLeft: '2px'
-                        }}>
-                            VERIFIED
-                        </span>
                     </button>
                 )}
 
@@ -1384,7 +1348,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                             : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.1)');
                     }}
                 >
-                    <Sliders size={18} />
+                    <img 
+                        src={bitTool2Png} 
+                        alt="Toolbar" 
+                        style={{ 
+                            width: '20px', 
+                            height: '20px', 
+                            objectFit: 'contain', 
+                            display: 'block' 
+                        }} 
+                    />
                 </button>
             </div>
         </header>
