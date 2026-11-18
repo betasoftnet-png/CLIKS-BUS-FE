@@ -1268,6 +1268,42 @@ const BusinessPOS = () => {
     };
     const activePrinterConfig = PRINTER_CONFIGS[receiptPrinterSize] || PRINTER_CONFIGS['3inch'];
 
+    const computeRecommendedPrinterSize = (items, totalAmt) => {
+        let list = [];
+        try {
+            if (Array.isArray(items)) {
+                list = items;
+            } else if (typeof items === 'string') {
+                list = JSON.parse(items);
+            }
+        } catch {
+            list = [];
+        }
+        const itemCount = Array.isArray(list) ? list.length : 0;
+        const numericAmt = parseFloat(totalAmt) || 0;
+        const hasLongName = Array.isArray(list) && list.some(it => ((it?.name || it?.item_name || '').length > 18));
+
+        if (itemCount >= 6 || numericAmt >= 50000 || (hasLongName && itemCount >= 4)) {
+            return {
+                size: '4inch',
+                label: '4" (100mm)',
+                reason: `Recommended: 4" (100mm) Wide for ${itemCount} items (${numericAmt >= 50000 ? 'High Value' : 'Multi-Item'} order)`
+            };
+        } else if (itemCount >= 3 || numericAmt >= 5000 || hasLongName) {
+            return {
+                size: '3inch',
+                label: '3" (80mm)',
+                reason: `Recommended: 3" (80mm) Standard for ${itemCount} items & clean itemized billing`
+            };
+        } else {
+            return {
+                size: '2inch',
+                label: '2" (58mm)',
+                reason: `Recommended: 2" (58mm) Mini for compact ${itemCount || 1}-item quick receipt`
+            };
+        }
+    };
+
     // Profile query for business & shop defaults
     const { data: profileData } = useQuery({
         queryKey: ['profile'],
@@ -1754,6 +1790,12 @@ const BusinessPOS = () => {
         mutationFn: posService.checkout,
         onSuccess: (data) => {
             const fallbackBilledBy = user?.name || user?.full_name || user?.business_name || user?.email || 'Cashier';
+            const orderPayloadItems = data?.items || cart;
+            const orderPayloadTotal = data?.total_amount || data?.payable_amount || totalPayable || 0;
+            const recCfg = computeRecommendedPrinterSize(orderPayloadItems, orderPayloadTotal);
+            if (recCfg?.size) {
+                setLocalReceiptPrinterSize(recCfg.size);
+            }
             setLastOrderData(data ? {
                 shop_name: resolvedShopDetails.shopName,
                 shop_address: resolvedShopDetails.address,
@@ -2548,10 +2590,12 @@ const BusinessPOS = () => {
         const isDec = isDecimalUnit(prodUnit);
         const isWeighted = isProductWeighted(prod);
         const isUnlimited = Boolean(prod.isUnlimited === true || prod.is_unlimited === true || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.stock) >= 999000));
+        const stockQty = parseFloat(prod.quantity ?? prod.stock ?? 0) || 0;
+        const maxLimit = isUnlimited ? 99999 : (stockQty > 0 ? stockQty : 99999);
 
         const cartItem = cart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
         const currentCartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
-        const availableStock = isUnlimited ? Infinity : ((parseFloat(prod.quantity) || 0) - currentCartQty);
+        const availableStock = isUnlimited ? Infinity : (stockQty - currentCartQty);
 
         if (!isUnlimited && availableStock <= 0) {
             alert('This item is out of stock!');
@@ -2572,8 +2616,8 @@ const BusinessPOS = () => {
                     newQty = existing.quantity + 1;
                 }
 
-                if (!isUnlimited && newQty > prod.quantity) {
-                    alert('Cannot add more than available stock!');
+                if (newQty > maxLimit) {
+                    alert(!isUnlimited ? `Cannot add more than available stock (${stockQty})!` : 'Maximum single item quantity limit is 99,999!');
                     return prevCart;
                 }
 
@@ -2587,6 +2631,11 @@ const BusinessPOS = () => {
             const initialQty = (customQuantityOrWeight !== null && customQuantityOrWeight !== undefined && customQuantityOrWeight > 0)
                 ? customQuantityOrWeight
                 : (isWeighted ? 1.000 : 1);
+
+            if (initialQty > maxLimit) {
+                alert(!isUnlimited ? `Cannot add more than available stock (${stockQty})!` : 'Maximum single item quantity limit is 99,999!');
+                return prevCart;
+            }
             const extractedTaxRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
             const price = parseFloat(prod.price) || 0;
 
@@ -2734,7 +2783,8 @@ const BusinessPOS = () => {
 
             const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
             const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited === true || invProd?.is_unlimited === true || (parseFloat(invProd?.quantity) >= 999000) || (parseFloat(invProd?.stock) >= 999000));
-            const maxStock = isUnlimited ? Infinity : (invProd ? invProd.quantity : Infinity);
+            const stockQty = parseFloat(invProd?.quantity ?? invProd?.stock ?? 0) || 0;
+            const maxLimit = isUnlimited ? 99999 : (stockQty > 0 ? stockQty : 99999);
             const isDec = isDecimalUnit(existing.unit);
 
             let newQty = (parseFloat(existing.quantity) || 0) + delta;
@@ -2748,8 +2798,8 @@ const BusinessPOS = () => {
                 return prevCart.filter(item => item.id !== id);
             }
 
-            if (!isUnlimited && newQty > maxStock) {
-                alert('Cannot add more than available stock!');
+            if (newQty > maxLimit) {
+                alert(!isUnlimited ? `Cannot add more than available stock (${stockQty})!` : 'Maximum single item quantity limit is 99,999!');
                 return prevCart;
             }
 
@@ -2773,7 +2823,8 @@ const BusinessPOS = () => {
 
             const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
             const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited === true || invProd?.is_unlimited === true || (parseFloat(invProd?.quantity) >= 999000) || (parseFloat(invProd?.stock) >= 999000));
-            const maxStock = isUnlimited ? Infinity : (invProd ? invProd.quantity : Infinity);
+            const stockQty = parseFloat(invProd?.quantity ?? invProd?.stock ?? 0) || 0;
+            const maxLimit = isUnlimited ? 99999 : (stockQty > 0 ? stockQty : 99999);
             const isDec = isDecimalUnit(existing.unit);
 
             let parsed = parseFloat(rawVal);
@@ -2785,9 +2836,9 @@ const BusinessPOS = () => {
                 parsed = Math.floor(parsed);
             }
 
-            if (!isUnlimited && parsed > maxStock) {
-                alert('Cannot add more than available stock!');
-                return prevCart;
+            if (parsed > maxLimit) {
+                alert(!isUnlimited ? `Quantity cannot exceed available stock (${stockQty})!` : 'Maximum single item quantity limit is 99,999!');
+                parsed = maxLimit;
             }
 
             const newTotal = Math.round(parsed * (existing.price || 0) * 100) / 100;
@@ -4651,17 +4702,24 @@ const BusinessPOS = () => {
                                                     </div>
                                                 </div>
                                                 {cartQty > 0 && (
-                                                    <span style={{
-                                                        fontSize: '0.65rem',
-                                                        fontWeight: '800',
-                                                        color: '#FFFFFF',
-                                                        background: '#FF5722',
-                                                        padding: '0.35rem 0.65rem',
-                                                        borderRadius: '10px',
-                                                        whiteSpace: 'nowrap',
-                                                        display: 'inline-block'
-                                                    }}>
-                                                        {cartQty} In Cart
+                                                    <span
+                                                        title={`${cartQty} In Cart`}
+                                                        style={{
+                                                            fontSize: '0.65rem',
+                                                            fontWeight: '800',
+                                                            color: '#FFFFFF',
+                                                            background: '#FF5722',
+                                                            padding: '0.28rem 0.55rem',
+                                                            borderRadius: '10px',
+                                                            whiteSpace: 'nowrap',
+                                                            display: 'inline-block',
+                                                            maxWidth: '90px',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            flexShrink: 0
+                                                        }}
+                                                    >
+                                                        {cartQty > 999 ? '999+ In Cart' : `${cartQty} In Cart`}
                                                     </span>
                                                 )}
                                             </div>
@@ -5645,9 +5703,14 @@ const BusinessPOS = () => {
                                                                     type="number"
                                                                     step="0.001"
                                                                     min="0.001"
+                                                                    max="99999"
                                                                     placeholder="0.000"
                                                                     value={item.quantity}
-                                                                    onChange={(e) => updateCartDirectQty(item.id, e.target.value)}
+                                                                    onChange={(e) => {
+                                                                        const v = e.target.value;
+                                                                        if (v && v.length > 7) return;
+                                                                        updateCartDirectQty(item.id, v);
+                                                                    }}
                                                                     style={{ width: '58px', border: 'none', background: 'transparent', fontWeight: '900', fontSize: '0.84rem', color: '#15803D', textAlign: 'center', outline: 'none' }}
                                                                 />
                                                                 <span style={{ fontSize: '0.68rem', fontWeight: '850', color: '#15803D', paddingLeft: '2px' }}>
@@ -5725,10 +5788,15 @@ const BusinessPOS = () => {
                                                             type="number"
                                                             step={isDecimalUnit(item.unit) ? "any" : "1"}
                                                             min="0.001"
+                                                            max="99999"
                                                             value={item.quantity}
-                                                            onChange={(e) => updateCartDirectQty(item.id, e.target.value)}
+                                                            onChange={(e) => {
+                                                                const v = e.target.value;
+                                                                if (v && v.length > 6) return;
+                                                                updateCartDirectQty(item.id, v);
+                                                            }}
                                                             style={{
-                                                                width: isDecimalUnit(item.unit) ? '54px' : '32px',
+                                                                width: isDecimalUnit(item.unit) ? '54px' : '40px',
                                                                 textAlign: 'center',
                                                                 fontSize: '0.82rem',
                                                                 fontWeight: '800',
@@ -6646,11 +6714,13 @@ const BusinessPOS = () => {
                             background: 'white',
                             width: activePrinterConfig.modalWidth,
                             maxWidth: '96vw',
+                            maxHeight: 'calc(100vh - 28px)',
                             borderRadius: '20px',
                             position: 'relative',
                             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                             display: 'flex',
                             flexDirection: 'column',
+                            overflow: 'hidden',
                             transition: 'width 0.2s ease'
                         }}
                     >
@@ -6702,60 +6772,103 @@ const BusinessPOS = () => {
                         </button>
 
                         {/* Modal Header */}
-                        <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.25rem 1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
-                            <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.5rem' }}>
-                                <Check size={22} strokeWidth={3} />
+                        <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1rem 1.25rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0', flexShrink: 0 }}>
+                            <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.4rem' }}>
+                                <Check size={20} strokeWidth={3} />
                             </div>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>Payment Successful!</h3>
-                            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
+                            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900' }}>Payment Successful!</h3>
+                            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
                         </div>
 
                         {/* Business Owner Print Preferences Controls (Screen-only, never printed) */}
                         <div className="no-print" style={{ 
                             display: 'flex', 
                             flexDirection: 'column',
-                            gap: '8px', 
-                            padding: '10px 14px', 
+                            gap: '6px', 
+                            padding: '8px 12px', 
                             background: '#F8FAFC', 
                             borderBottom: '1px solid #E2E8F0', 
                             fontSize: '0.74rem', 
-                            color: '#334155'
+                            color: '#334155',
+                            flexShrink: 0
                         }}>
-                            {/* Row 1: Customizable Thermal Printer Size (2 inch, 3 inch, 4 inch) */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    🖨️ Printer Size:
-                                </span>
-                                <div style={{ display: 'inline-flex', background: '#E2E8F0', padding: '2px', borderRadius: '8px', gap: '2px' }}>
-                                    {Object.entries(PRINTER_CONFIGS).map(([key, cfg]) => {
-                                        const isSelected = receiptPrinterSize === key;
-                                        return (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                onClick={() => {
-                                                    setLocalReceiptPrinterSize(key);
-                                                    updateLoyaltySettingsMutation.mutate({ receipt_printer_size: key });
-                                                }}
-                                                title={cfg.desc}
-                                                style={{
-                                                    border: 'none',
-                                                    padding: '3px 9px',
-                                                    borderRadius: '6px',
-                                                    fontSize: '0.72rem',
-                                                    fontWeight: isSelected ? '800' : '600',
-                                                    background: isSelected ? '#10B981' : 'transparent',
-                                                    color: isSelected ? '#FFFFFF' : '#475569',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                {cfg.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                            {/* Row 1: Customizable Thermal Printer Size with Smart Recommendations */}
+                            {(() => {
+                                const rawItems = lastOrderData?.items || [];
+                                const totalAmt = parseFloat(lastOrderData?.total_amount || lastOrderData?.payable_amount || lastOrderData?.grand_total || 0);
+                                const rec = computeRecommendedPrinterSize(rawItems, totalAmt);
+                                return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                🖨️ Printer Size:
+                                            </span>
+                                            <div style={{ display: 'inline-flex', background: '#E2E8F0', padding: '2px', borderRadius: '8px', gap: '2px' }}>
+                                                {Object.entries(PRINTER_CONFIGS).map(([key, cfg]) => {
+                                                    const isSelected = receiptPrinterSize === key;
+                                                    const isRec = rec?.size === key;
+                                                    return (
+                                                        <button
+                                                            key={key}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setLocalReceiptPrinterSize(key);
+                                                                updateLoyaltySettingsMutation.mutate({ receipt_printer_size: key });
+                                                            }}
+                                                            title={`${cfg.desc}${isRec ? ` (${rec.reason})` : ''}`}
+                                                            style={{
+                                                                border: isRec && !isSelected ? '1px dashed #059669' : 'none',
+                                                                padding: '3px 8px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: isSelected ? '800' : '600',
+                                                                background: isSelected ? '#10B981' : (isRec ? '#ECFDF5' : 'transparent'),
+                                                                color: isSelected ? '#FFFFFF' : (isRec ? '#047857' : '#475569'),
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '3px',
+                                                                transition: 'all 0.15s ease'
+                                                            }}
+                                                        >
+                                                            <span>{cfg.label}</span>
+                                                            {isRec && (
+                                                                <span style={{
+                                                                    fontSize: '0.58rem',
+                                                                    fontWeight: '850',
+                                                                    background: isSelected ? 'rgba(255,255,255,0.25)' : '#10B981',
+                                                                    color: '#FFFFFF',
+                                                                    padding: '1px 4px',
+                                                                    borderRadius: '4px'
+                                                                }}>
+                                                                    ★ Rec
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        {rec?.reason && (
+                                            <div style={{
+                                                fontSize: '0.67rem',
+                                                color: '#065F46',
+                                                background: '#ECFDF5',
+                                                border: '1px solid #A7F3D0',
+                                                borderRadius: '6px',
+                                                padding: '3px 8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                lineHeight: 1.2
+                                            }}>
+                                                <span>💡</span>
+                                                <span style={{ fontWeight: '600' }}>{rec.reason}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             {/* Row 2: Print Toggles for Separate GST, Loyalty, and Credit */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', paddingTop: '2px', borderTop: '1px dashed #CBD5E1' }}>
@@ -6854,9 +6967,9 @@ const BusinessPOS = () => {
                             style={{ 
                                 padding: receiptPrinterSize === '2inch' ? '0.75rem 0.5rem' : '1.25rem', 
                                 background: '#FFFFFF', 
-                                flex: 1, 
+                                flex: '1 1 auto', 
+                                minHeight: 0,
                                 overflowY: 'auto', 
-                                maxHeight: '420px',
                                 width: activePrinterConfig.cssWidth,
                                 maxWidth: '100%',
                                 margin: '0 auto',
@@ -7164,13 +7277,13 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Action Footer */}
-                        <div className="no-print" style={{ padding: '1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', borderRadius: '0 0 20px 20px' }}>
+                        <div className="no-print" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', borderRadius: '0 0 20px 20px', background: '#FFFFFF', flexShrink: 0, boxShadow: '0 -4px 12px rgba(0,0,0,0.03)' }}>
                             <button
                                 onClick={printReceipt}
                                 className="no-print"
                                 style={{
                                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                    padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0',
+                                    padding: '0.7rem', borderRadius: '12px', border: '1px solid #E2E8F0',
                                     background: 'white', color: '#1E293B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer'
                                 }}
                             >
@@ -7180,7 +7293,7 @@ const BusinessPOS = () => {
                                 onClick={() => setShowReceiptModal(false)}
                                 className="no-print"
                                 style={{
-                                    flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none',
+                                    flex: 1, padding: '0.7rem', borderRadius: '12px', border: 'none',
                                     background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer'
                                 }}
                             >
@@ -7539,6 +7652,10 @@ const BusinessPOS = () => {
                                                         </div>
                                                         <button
                                                             onClick={() => {
+                                                                const recPast = computeRecommendedPrinterSize(order.items, order.total_amount || order.grand_total || order.total || 0);
+                                                                if (recPast?.size) {
+                                                                    setLocalReceiptPrinterSize(recPast.size);
+                                                                }
                                                                 setLastOrderData({
                                                                     shop_name: order.shop_name || resolvedShopDetails.shopName,
                                                                     shop_address: order.shop_address || resolvedShopDetails.address,
