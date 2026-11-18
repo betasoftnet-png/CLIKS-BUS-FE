@@ -324,12 +324,6 @@ const BusinessReports = () => {
                     return supp?.data || supp || [];
                 }
 
-                // Sales Commission / Rewards Module
-                if (id === 13) {
-                    const salesData = await reportsService.getSales();
-                    return salesData?.data || salesData || [];
-                }
-
                 // Cash Flow Engine (Consolidates Sales vs Expenses)
                 if (id === 20) {
                     try {
@@ -1074,7 +1068,6 @@ const BusinessReports = () => {
         { id: 30, title: 'Bill-wise Profit', desc: 'Margin calculation and profitability breakdown per invoice.', category: 'sales', icon: ArrowUpRight },
         { id: 35, title: 'Discount Report', desc: 'Overall audit of bill-level discounts disbursed.', category: 'sales', icon: DollarSign },
         { id: 36, title: 'Item-wise Discount', desc: 'Audit of discounts assigned per inventory line item.', category: 'sales', icon: PieChart },
-        { id: 13, title: 'Sales Agent Commissions', desc: 'Track performance and payouts for agents.', category: 'sales', icon: ArrowUpRight },
         { id: 14, title: 'Sales Returns Analysis', desc: 'Audit of product returns and refund ratios.', category: 'sales', icon: ArrowDownRight },
 
         // Purchase Reports
@@ -2200,37 +2193,6 @@ const BusinessReports = () => {
                                         </table>
                                     )}
 
-                                    {/* Sales Agent Commissions Module */}
-                                    {selectedReport.id === 13 && (
-                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                            <thead style={{ background: '#F8FAFC' }}>
-                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Order Reference</th>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Order Value</th>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Assigned Agent</th>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Commission (5%)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => {
-                                                    const val = parseFloat(row.amount || row.total || 0);
-                                                    return (
-                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || row.order_id || `INV-${100 + idx}`}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{formatCurrency(val)}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1D4ED8', fontSize: '0.85rem' }}>{row.agent_name || 'Senior Field Executive'}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(val * 0.05)}</td>
-                                                        </tr>
-                                                    );
-                                                }) : (
-                                                    <tr>
-                                                        <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No recent agent sales activities registered.</td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    )}
-
                                     {/* Liquid Cash Flow Reconciliation Module */}
                                     {selectedReport.id === 20 && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -2521,7 +2483,7 @@ const BusinessReports = () => {
                                     )}
 
                                     {/* Global Intelligent Fallback */}
-                                    {![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43].includes(selectedReport.id) && (
+                                    {![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43].includes(selectedReport.id) && (
                                         <div style={{ padding: '3.5rem 2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #E2E8F0' }}>
                                             <div style={{ marginBottom: '0.5rem', fontWeight: '850', color: '#0F172A' }}>Live Engine Connection Acknowledged</div>
                                             <div style={{ fontSize: '0.82rem', color: '#64748B', maxWidth: '400px', margin: '0 auto', lineHeight: '1.5' }}>

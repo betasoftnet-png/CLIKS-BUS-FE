@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCurrency } from '../context';
-import { BarChart3, PieChart, TrendingUp, Calendar, Layers } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Calendar, Layers, Info } from 'lucide-react';
 
 /**
  * Format numbers according to Indian Financial System (Crore, Lakh, Thousand)
@@ -30,6 +30,105 @@ export const formatIndianAxisNumber = (val) => {
         return `${sign}₹${Math.round(abs).toLocaleString('en-IN')}`;
     }
     return `${sign}₹${Math.round(abs)}`;
+};
+
+/**
+ * Concise and educational description of each chart to clarify its meaning,
+ * metric sources, and how to interpret the visualization.
+ */
+export const getChartInsightDescription = (selectedReport = null, chartType = 'bar', title = '') => {
+    const id = selectedReport?.id;
+    const cat = selectedReport?.category;
+
+    if (id === 1) {
+        return "Tracks realized billing turnover from confirmed customer sales invoices across accounting periods. Bars highlight monthly revenue volume and seasonal peaks.";
+    }
+    if (id === 2) {
+        return "Ranks catalog items by sales turnover and units sold to identify top revenue generators versus slow-moving products.";
+    }
+    if (id === 3) {
+        return "Breaks down total revenue across client accounts, highlighting customer concentration and your highest-spending trade buyers.";
+    }
+    if (id === 30) {
+        return "Calculates transaction-level profitability by deducting direct product cost of goods (COGS) from invoice totals to determine realized gross profit margins.";
+    }
+    if (id === 35) {
+        return "Audits overall discounts disbursed at invoice level to evaluate pricing concessions against gross sales margins.";
+    }
+    if (id === 36) {
+        return "Tracks product-level promotional markdowns and item discounts applied across individual inventory categories.";
+    }
+    if (id === 14) {
+        return "Monitors customer product returns, credit notes, and refund ratios to assess catalog quality and return rates.";
+    }
+    if (id === 24) {
+        return "Chronological register of inward procurement spend across vendor purchase invoices and procurement vouchers.";
+    }
+    if (id === 25) {
+        return "Breaks down procurement expenditure per supplier, highlighting vendor concentration and volume purchasing.";
+    }
+    if (id === 26) {
+        return "Details outward bank payouts and settlements disbursed to clear supplier purchase balances.";
+    }
+    if (id === 4 || id === 5 || id === 16 || id === 38) {
+        return "Visualizes current stock valuation and warehouse quantities, highlighting capital allocation and low-stock replenishment alerts.";
+    }
+    if (id === 15) {
+        return "Maps storage capacity utilization across warehouse facilities to optimize bin placement and stock footprint.";
+    }
+    if (id === 7) {
+        return "Visualizes client receivables and pending balances across registered customer accounts to streamline collection priority.";
+    }
+    if (id === 8) {
+        return "Monitors outstanding vendor credit and purchase obligations across active suppliers to maintain healthy trade liquidity.";
+    }
+    if (id === 9) {
+        return "Categorizes overdue receivables into 30, 60, and 90+ day aging brackets to monitor credit default exposure.";
+    }
+    if (id === 10) {
+        return "Contrasts gross revenue against procurement cost of goods (COGS) and operational overheads to calculate net operating profit.";
+    }
+    if (id === 11) {
+        return "Categorizes enterprise assets across liquid bank accounts, client receivables, inventory stock, and cash in hand.";
+    }
+    if (id === 20) {
+        return "Monitors liquidity flow by comparing inward customer collections against outward procurement and overhead payouts.";
+    }
+    if (id === 12 || id === 21 || id === 22 || id === 23) {
+        return "Summarizes outward GST liability, claimable input tax credits (ITC), and statutory tax balance offsets for period filing.";
+    }
+    if (id === 19) {
+        return "Categorizes operational expenditure across rent, utilities, payroll, and maintenance overhead accounts.";
+    }
+    if (id === 32) {
+        return "Summarizes double-entry compliance by mapping debit and credit balances across all active ledger accounts.";
+    }
+    if (id === 33 || id === 37) {
+        return "Tracks open purchase orders and categorized supplier procurement allocations.";
+    }
+    if (cat === 'sales') {
+        return "Tracks billing revenue across confirmed customer sales invoices within your selected accounting period.";
+    }
+    if (cat === 'purchase') {
+        return "Audits inward procurement expenditures and supplier payout commitments.";
+    }
+    if (cat === 'inventory') {
+        return "Visualizes inventory asset valuation, stock quantity health, and warehouse placement.";
+    }
+    if (cat === 'parties') {
+        return "Details pending balances and credit distribution across registered counter-parties.";
+    }
+    if (cat === 'accounting') {
+        return "Audits financial statements, double-entry ledgers, and statutory tax reconciliation.";
+    }
+
+    if (chartType === 'pie') {
+        return "Displays proportional share across segments; each slice shows relative contribution to the total.";
+    }
+    if (chartType === 'line') {
+        return "Plots turnover progression and momentum trajectory over time, highlighting seasonal trends.";
+    }
+    return "Shows metric distribution across accounting periods. Hover over any bar to inspect exact figures.";
 };
 
 /**
@@ -192,6 +291,7 @@ export const MonthlySalesBarChart = ({
     fullReportData,
     startDate = '',
     endDate = '',
+    selectedReport = null,
     title = 'Monthly Sales Performance', 
     subtitle = 'Monthly compilation of metric records and trends', 
     isSales = true,
@@ -387,6 +487,24 @@ export const MonthlySalesBarChart = ({
                 </div>
             </div>
             {chartBody}
+            <div style={{
+                marginTop: '1rem',
+                padding: '0.65rem 0.85rem',
+                background: '#F8FAFC',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+            }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Info size={12} />
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.45, fontWeight: '500' }}>
+                    <strong style={{ color: '#0F172A', fontWeight: '750' }}>About this chart: </strong>
+                    {getChartInsightDescription(selectedReport, 'bar', title)}
+                </div>
+            </div>
         </div>
     );
 };
@@ -399,6 +517,7 @@ export const MonthlySalesLineChart = ({
     fullReportData,
     startDate = '',
     endDate = '',
+    selectedReport = null,
     title = 'Sales Trend Analysis', 
     subtitle = 'Smooth line progression and turnover trajectory', 
     isSales = true,
@@ -591,6 +710,24 @@ export const MonthlySalesLineChart = ({
                 </div>
             </div>
             {chartBody}
+            <div style={{
+                marginTop: '1rem',
+                padding: '0.65rem 0.85rem',
+                background: '#F8FAFC',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+            }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Info size={12} />
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.45, fontWeight: '500' }}>
+                    <strong style={{ color: '#0F172A', fontWeight: '750' }}>About this chart: </strong>
+                    {getChartInsightDescription(selectedReport, 'line', title)}
+                </div>
+            </div>
         </div>
     );
 };
@@ -921,6 +1058,24 @@ export const StockPieChart = ({
                 </div>
             </div>
             {chartBody}
+            <div style={{
+                marginTop: '1rem',
+                padding: '0.65rem 0.85rem',
+                background: '#F8FAFC',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+            }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Info size={12} />
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.45, fontWeight: '500' }}>
+                    <strong style={{ color: '#0F172A', fontWeight: '750' }}>About this chart: </strong>
+                    {getChartInsightDescription(selectedReport, 'pie', title)}
+                </div>
+            </div>
         </div>
     );
 };
@@ -1021,6 +1176,7 @@ export const UniversalReportChart = ({
                     fullReportData={fullReportData}
                     startDate={startDate}
                     endDate={endDate}
+                    selectedReport={selectedReport}
                     title={title} 
                     subtitle={subtitle} 
                     isSales={isSales} 
@@ -1034,6 +1190,7 @@ export const UniversalReportChart = ({
                     fullReportData={fullReportData}
                     startDate={startDate}
                     endDate={endDate}
+                    selectedReport={selectedReport}
                     title={title} 
                     subtitle={subtitle} 
                     isSales={isSales} 
@@ -1051,6 +1208,36 @@ export const UniversalReportChart = ({
                     hideContainer={true} 
                 />
             )}
+
+            {/* Short Educational / Explanatory Description */}
+            <div style={{
+                marginTop: '1rem',
+                padding: '0.65rem 0.85rem',
+                background: '#F8FAFC',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+            }}>
+                <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: '#EFF6FF',
+                    color: '#2563EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                }}>
+                    <Info size={12} />
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.45, fontWeight: '500' }}>
+                    <strong style={{ color: '#0F172A', fontWeight: '750' }}>About this chart: </strong>
+                    {getChartInsightDescription(selectedReport, chartType, title)}
+                </div>
+            </div>
         </div>
     );
 };
