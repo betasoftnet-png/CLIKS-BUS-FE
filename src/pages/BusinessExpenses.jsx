@@ -245,7 +245,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         queryFn: () => expensesService.getBudgets()
     });
 
-    const { data: dbClaims = [] } = useQuery({
+    const { data: dbClaims = [], refetch: refetchClaims } = useQuery({
         queryKey: ['claimsList'],
         queryFn: () => expensesService.getClaims()
     });
@@ -370,28 +370,94 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const approveClaimMutation = useMutation({
         mutationFn: (id) => expensesService.approveClaim(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
-            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Approved' } : item);
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, id) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Approved' } : item);
+            });
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            refetchClaims();
             alert('Claim approved successfully!');
+        },
+        onError: (err, _id, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
+            console.error('Approve claim error:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to approve claim';
+            alert(`Approval failed: ${msg}`);
         }
     });
 
     const rejectClaimMutation = useMutation({
         mutationFn: ({ id, reason }) => expensesService.rejectClaim(id, { reason }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+        onMutate: async ({ id }) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Rejected' } : item);
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, { id }) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Rejected' } : item);
+            });
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            refetchClaims();
             alert('Claim rejected successfully!');
+        },
+        onError: (err, _vars, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
+            console.error('Reject claim error:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to reject claim';
+            alert(`Rejection failed: ${msg}`);
         }
     });
 
     const payClaimMutation = useMutation({
         mutationFn: ({ id, data }) => expensesService.payClaim(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
-            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+        onMutate: async ({ id }) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Paid' } : item);
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, { id }) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Paid' } : item);
+            });
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
             setIsPaymentModalOpen(false);
+            refetchClaims();
             alert('Claim marked as Paid and reimbursed successfully!');
+        },
+        onError: (err, _vars, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
+            console.error('Pay claim error:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to process payment';
+            alert(`Payment failed: ${msg}`);
         }
     });
 
@@ -2657,7 +2723,26 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
-                                        <input required type="date" value={newClaim.date} onChange={(e) => setNewClaim({ ...newClaim, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                        <input 
+                                            required 
+                                            type="date" 
+                                            value={newClaim.date} 
+                                            max={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                const todayStr = new Date().toISOString().split('T')[0];
+                                                if (val && val > todayStr) {
+                                                    setNewClaim({ ...newClaim, date: todayStr });
+                                                    alert('Claim date cannot be in the future. Expense must already have occurred.');
+                                                    return;
+                                                }
+                                                setNewClaim({ ...newClaim, date: val });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                        />
+                                        <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontWeight: '600', marginTop: '0.2rem', display: 'block' }}>
+                                            Past or today only (No future dates)
+                                        </span>
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Time</label>

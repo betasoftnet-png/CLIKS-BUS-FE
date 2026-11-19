@@ -460,7 +460,7 @@ const BusinessStaffing = () => {
     });
 
     // Query for claims list
-    const { data: dbClaims = [] } = useQuery({
+    const { data: dbClaims = [], refetch: refetchClaims } = useQuery({
         queryKey: ['claimsList'],
         queryFn: () => expensesService.getClaims()
     });
@@ -522,13 +522,29 @@ const BusinessStaffing = () => {
 
     const approveClaimMutation = useMutation({
         mutationFn: (id) => expensesService.approveClaim(id),
-        onSuccess: async () => {
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Approved' } : item);
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, id) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Approved' } : item);
+            });
             await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
             await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
-            await queryClient.refetchQueries({ queryKey: ['claimsList'] });
+            refetchClaims();
             alert('Claim approved successfully!');
         },
-        onError: (err) => {
+        onError: (err, _id, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
             console.error('Approve claim error:', err);
             const msg = err.response?.data?.message || err.message || 'Failed to approve claim';
             alert(`Approval failed: ${msg}`);
@@ -537,12 +553,28 @@ const BusinessStaffing = () => {
 
     const rejectClaimMutation = useMutation({
         mutationFn: ({ id, reason }) => expensesService.rejectClaim(id, { reason }),
-        onSuccess: async () => {
+        onMutate: async ({ id }) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Rejected' } : item);
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, { id }) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Rejected' } : item);
+            });
             await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
-            await queryClient.refetchQueries({ queryKey: ['claimsList'] });
+            refetchClaims();
             alert('Claim rejected successfully!');
         },
-        onError: (err) => {
+        onError: (err, _vars, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
             console.error('Reject claim error:', err);
             const msg = err.response?.data?.message || err.message || 'Failed to reject claim';
             alert(`Rejection failed: ${msg}`);
@@ -551,14 +583,30 @@ const BusinessStaffing = () => {
 
     const payClaimMutation = useMutation({
         mutationFn: ({ id, data }) => expensesService.payClaim(id, data),
-        onSuccess: async () => {
+        onMutate: async ({ id }) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Paid' } : item);
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, { id }) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Paid' } : item);
+            });
             await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
             await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
-            await queryClient.refetchQueries({ queryKey: ['claimsList'] });
             setIsPaymentModalOpen(false);
+            refetchClaims();
             alert('Claim marked as Paid and reimbursed successfully!');
         },
-        onError: (err) => {
+        onError: (err, _vars, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
             console.error('Pay claim error:', err);
             const msg = err.response?.data?.message || err.message || 'Failed to process payment';
             alert(`Payment failed: ${msg}`);

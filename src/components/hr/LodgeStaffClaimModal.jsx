@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { apiClient } from '../../api/client';
 
+const getTodayLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted, staffList = [] }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [staffId, setStaffId] = useState('');
   const [description, setDescription] = useState('');
-  const [claimDate, setClaimDate] = useState(new Date().toISOString().split('T')[0]);
+  const [claimDate, setClaimDate] = useState(getTodayLocalDate());
   const [claimTime, setClaimTime] = useState('12:00');
   const [claimAmount, setClaimAmount] = useState('');
   const [amountError, setAmountError] = useState('');
@@ -41,6 +49,12 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
   const handleSubmitClaim = async (e) => {
     e?.preventDefault();
     setErrorMessage('');
+
+    const todayStr = getTodayLocalDate();
+    if (claimDate && claimDate > todayStr) {
+      setErrorMessage('Claim date cannot be in the future. Expenses must already have occurred.');
+      return;
+    }
 
     const effectiveStaffId = staffId || staffList[0]?.id || staffList[0]?.employee_id || '';
     if (!effectiveStaffId) {
@@ -219,9 +233,24 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
               <input
                 type="date"
                 value={claimDate}
-                onChange={(e) => setClaimDate(e.target.value)}
+                max={getTodayLocalDate()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const todayStr = getTodayLocalDate();
+                  if (val && val > todayStr) {
+                    setClaimDate(todayStr);
+                    setErrorMessage('Claim date cannot be in the future.');
+                    return;
+                  }
+                  setErrorMessage('');
+                  setClaimDate(val);
+                }}
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800"
+                required
               />
+              <span className="text-[10px] text-gray-400 font-semibold mt-1 block">
+                Today or past dates only (No future dates)
+              </span>
             </div>
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
