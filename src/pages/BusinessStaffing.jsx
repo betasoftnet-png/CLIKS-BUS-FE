@@ -167,11 +167,27 @@ const BusinessStaffing = () => {
         custom_weekly_off: ''
     });
 
-    // 1. Calculate Yesterday's Date as max limit (blocks today & future dates)
-    const maxDobDate = useMemo(() => {
+    // Helpers for precise local calendar dates (prevents UTC date shifts)
+    const getTodayLocalDate = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const getYesterdayLocalDate = () => {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday.toISOString().split('T')[0];
+        const year = yesterday.getFullYear();
+        const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const day = String(yesterday.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // 1. Calculate Yesterday's Date as max limit (blocks today & future dates)
+    const maxDobDate = useMemo(() => {
+        return getYesterdayLocalDate();
     }, []);
 
     // 2. Dynamic Age Calculator Helper
@@ -224,7 +240,7 @@ const BusinessStaffing = () => {
 
     // Interactive attendance marking states
     const [showMarkModal, setShowMarkModal] = useState(false);
-    const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+    const [attendanceDate, setAttendanceDate] = useState(getTodayLocalDate());
     const [attendanceStatus, setAttendanceStatus] = useState('Present');
     const [attendanceNote, setAttendanceNote] = useState('');
     const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -3688,73 +3704,124 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     
                                     {/* Two Column Grid */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.25rem', minWidth: 0 }}>
                                         
                                         {/* Personal Info Card */}
-                                        <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                        <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9', minWidth: 0, overflow: 'hidden' }}>
                                             <h4 style={{ fontSize: '0.88rem', fontWeight: '850', color: '#475569', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#FCE7F3', color: '#DB2777', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <User size={14} />
                                                 </div>
                                                 Personal Info
                                             </h4>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Employee ID</span> <span style={{ fontWeight: '800', color: '#0F172A' }}>{currentSelectedEmployee.employee_code}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}>
-                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Date of Birth</span>
-                                                    <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem', minWidth: 0 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Employee ID</span> 
+                                                    <span style={{ fontWeight: '800', color: '#0F172A', textAlign: 'right', minWidth: 0, wordBreak: 'break-all' }}>{currentSelectedEmployee.employee_code}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Date of Birth</span>
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem', textAlign: 'right', minWidth: 0 }}>
                                                         {currentSelectedEmployee.date_of_birth}
                                                         {calculateAge(currentSelectedEmployee.date_of_birth) !== null && (
-                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.05rem 0.35rem', borderRadius: '4px', flexShrink: 0 }}>
                                                                 Age: {calculateAge(currentSelectedEmployee.date_of_birth)} yrs
                                                             </span>
                                                         )}
                                                     </span>
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Gender</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.gender}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Blood Group</span> <span style={{ fontWeight: '800', color: '#E11D48' }}>{currentSelectedEmployee.blood_group}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Phone</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.phone_number}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Email</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.email}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Gender</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0 }}>{currentSelectedEmployee.gender}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Blood Group</span> 
+                                                    <span style={{ fontWeight: '800', color: '#E11D48', textAlign: 'right', minWidth: 0 }}>{currentSelectedEmployee.blood_group}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Phone</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, wordBreak: 'break-all' }}>{currentSelectedEmployee.phone_number}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Email</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, wordBreak: 'break-all' }}>{currentSelectedEmployee.email}</span>
+                                                </div>
                                             </div>
                                         </div>
                                         
                                         {/* Job Details Card */}
-                                        <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                        <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9', minWidth: 0, overflow: 'hidden' }}>
                                             <h4 style={{ fontSize: '0.88rem', fontWeight: '850', color: '#475569', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#EFF6FF', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <Briefcase size={14} />
                                                 </div>
                                                 Job Details
                                             </h4>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Joined Date</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.joining_date}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Employment Type</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.employment_type}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Manager</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.reporting_manager}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Work Shift</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.shift_name}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Performance</span> <span style={{ fontWeight: '800', color: '#F59E0B' }}>⭐ {currentSelectedEmployee.performance_rating} / 5.0</span></div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem', minWidth: 0 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Joined Date</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0 }}>{currentSelectedEmployee.joining_date}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Employment Type</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0 }}>{currentSelectedEmployee.employment_type}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Manager</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.reporting_manager}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Work Shift</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.shift_name}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Performance</span> 
+                                                    <span style={{ fontWeight: '800', color: '#F59E0B', textAlign: 'right', minWidth: 0 }}>⭐ {currentSelectedEmployee.performance_rating} / 5.0</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                     
                                     {/* Payroll & Financials Card */}
-                                    <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                    <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9', minWidth: 0, overflow: 'hidden' }}>
                                         <h4 style={{ fontSize: '0.88rem', fontWeight: '850', color: '#475569', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#F5F3FF', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <CreditCard size={14} />
                                             </div>
                                             Payroll & Financials
                                         </h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', fontSize: '0.85rem' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Basic Salary</span> <span style={{ fontWeight: '850', color: '#064E3B' }}>{formatCurrency(currentSelectedEmployee.basic_salary)}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>PAN Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.pan_number || '-'}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>PF Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.pf_number || '-'}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>ESI Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.esi_number || '-'}</span></div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.5rem', fontSize: '0.85rem', minWidth: 0 }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', minWidth: 0, overflow: 'hidden' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Basic Salary</span> 
+                                                    <span style={{ fontWeight: '850', color: '#064E3B', textAlign: 'right', minWidth: 0 }}>{formatCurrency(currentSelectedEmployee.basic_salary)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0, minWidth: '85px' }}>PAN Number</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.pan_number || '-'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0, minWidth: '85px' }}>PF Number</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.pf_number || '-'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0, minWidth: '85px' }}>ESI Number</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.esi_number || '-'}</span>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Bank Name</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.bank_name || '-'}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Account Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.account_number || '-'}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Bank IFSC</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.ifsc_code || '-'}</span></div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', minWidth: 0, overflow: 'hidden' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0, minWidth: '85px' }}>Bank Name</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.bank_name || '-'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0, minWidth: '85px' }}>Account Number</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.account_number || '-'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0, gap: '0.5rem' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0, minWidth: '85px' }}>Bank IFSC</span> 
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{currentSelectedEmployee.ifsc_code || '-'}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -3772,7 +3839,7 @@ const BusinessStaffing = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setAttendanceDate(new Date().toISOString().split('T')[0]);
+                                                        setAttendanceDate(getTodayLocalDate());
                                                         setAttendanceStatus('Present');
                                                         setAttendanceNote('');
                                                         setAllowOverwrite(false);
@@ -3836,17 +3903,31 @@ const BusinessStaffing = () => {
                                         const existingRecordForDate = currentEmpLogs.find(r => r.date === attendanceDate);
                                         const isAlreadyMarked = Boolean(existingRecordForDate);
 
+                                        const todayDateStr = getTodayLocalDate();
+                                        const yesterdayDateStr = getYesterdayLocalDate();
+                                        const currentYear = new Date().getFullYear();
+                                        let minAttendanceDate = `${currentYear}-01-01`;
+                                        if (currentSelectedEmployee?.joining_date) {
+                                            const joinStr = currentSelectedEmployee.joining_date;
+                                            if (joinStr && joinStr <= todayDateStr) {
+                                                minAttendanceDate = joinStr;
+                                            }
+                                        }
+                                        if (minAttendanceDate > todayDateStr) {
+                                            minAttendanceDate = todayDateStr;
+                                        }
+
                                         return (
-                                            <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
-                                                <div style={{ background: 'white', borderRadius: '20px', maxWidth: '380px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', position: 'relative' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
-                                                        <h5 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>
+                                            <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+                                                <div style={{ background: 'white', borderRadius: '24px', maxWidth: '420px', width: '100%', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', border: '1px solid #E2E8F0' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.85rem', marginBottom: '1.15rem' }}>
+                                                        <h5 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>
                                                             Log Attendance: {currentSelectedEmployee.first_name} {currentSelectedEmployee.last_name}
                                                         </h5>
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowMarkModal(false)}
-                                                            style={{ border: 'none', background: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
+                                                            style={{ border: 'none', background: '#F1F5F9', color: '#64748B', cursor: 'pointer', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}
                                                         >
                                                             ✕
                                                         </button>
@@ -3855,6 +3936,12 @@ const BusinessStaffing = () => {
                                                     <form onSubmit={async (e) => {
                                                         e.preventDefault();
                                                         const empId = currentSelectedEmployee.employee_id;
+
+                                                        if (attendanceDate < minAttendanceDate || attendanceDate > todayDateStr) {
+                                                            alert(`Please select an attendance date between ${minAttendanceDate} and ${todayDateStr}.`);
+                                                            return;
+                                                        }
+
                                                         const currentLogs = getEmployeeAttendance(empId);
                                                         const alreadyLogged = currentLogs.find(r => r.date === attendanceDate);
 
@@ -3891,15 +3978,60 @@ const BusinessStaffing = () => {
                                                         } finally {
                                                             setAttendanceLoading(false);
                                                         }
-                                                    }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', textAlign: 'left' }}>
+                                                    }} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', textAlign: 'left' }}>
                                                         <div>
-                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                                                                Date
-                                                            </label>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                                                    Attendance Date *
+                                                                </label>
+                                                                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setAttendanceDate(todayDateStr);
+                                                                            setAllowOverwrite(false);
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '0.15rem 0.5rem',
+                                                                            borderRadius: '6px',
+                                                                            fontSize: '0.68rem',
+                                                                            fontWeight: '750',
+                                                                            border: '1px solid #CBD5E1',
+                                                                            background: attendanceDate === todayDateStr ? '#E2E8F0' : '#FFFFFF',
+                                                                            color: '#0F172A',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        Today
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (yesterdayDateStr >= minAttendanceDate) {
+                                                                                setAttendanceDate(yesterdayDateStr);
+                                                                                setAllowOverwrite(false);
+                                                                            }
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '0.15rem 0.5rem',
+                                                                            borderRadius: '6px',
+                                                                            fontSize: '0.68rem',
+                                                                            fontWeight: '750',
+                                                                            border: '1px solid #CBD5E1',
+                                                                            background: attendanceDate === yesterdayDateStr ? '#E2E8F0' : '#FFFFFF',
+                                                                            color: '#0F172A',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        Yesterday
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                             <input
                                                                 type="date"
                                                                 value={attendanceDate}
-                                                                max={new Date().toISOString().split('T')[0]}
+                                                                min={minAttendanceDate}
+                                                                max={todayDateStr}
                                                                 onChange={(e) => {
                                                                     setAttendanceDate(e.target.value);
                                                                     setAllowOverwrite(false);
@@ -3907,6 +4039,22 @@ const BusinessStaffing = () => {
                                                                 style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
                                                                 required
                                                             />
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.3rem', fontSize: '0.7rem', color: '#64748B' }}>
+                                                                <span>📅 {(() => {
+                                                                    if (!attendanceDate) return 'No date selected';
+                                                                    try {
+                                                                        const parts = attendanceDate.split('-');
+                                                                        if (parts.length === 3) {
+                                                                            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                                                                            return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                                                                        }
+                                                                        return attendanceDate;
+                                                                    } catch (e) {
+                                                                        return attendanceDate;
+                                                                    }
+                                                                })()}</span>
+                                                                <span style={{ fontSize: '0.65rem', color: '#94A3B8' }}>Valid: {minAttendanceDate} to {todayDateStr}</span>
+                                                            </div>
                                                         </div>
 
                                                         {isAlreadyMarked && (
@@ -4033,18 +4181,23 @@ const BusinessStaffing = () => {
                                     })()}
                                     
                                     {/* Contact Details Card */}
-                                    <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                    <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9', minWidth: 0, overflow: 'hidden' }}>
                                         <h4 style={{ fontSize: '0.88rem', fontWeight: '850', color: '#475569', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <MapPin size={14} />
                                             </div>
                                             Contact & Emergency Info
                                         </h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Residential Address</span> <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', maxWidth: '380px' }}>{[currentSelectedEmployee.address_line_1, currentSelectedEmployee.city, currentSelectedEmployee.state].filter(Boolean).join(', ')}{currentSelectedEmployee.pincode ? ` - ${currentSelectedEmployee.pincode}` : ''}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.15rem' }}>
-                                                <span style={{ color: '#64748B', fontWeight: '600' }}>Emergency Contact</span> 
-                                                <span style={{ fontWeight: '750', color: '#E11D48', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem', minWidth: 0 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6', minWidth: 0, gap: '0.75rem' }}>
+                                                <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Residential Address</span> 
+                                                <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                                    {[currentSelectedEmployee.address_line_1, currentSelectedEmployee.city, currentSelectedEmployee.state].filter(Boolean).join(', ')}{currentSelectedEmployee.pincode ? ` - ${currentSelectedEmployee.pincode}` : ''}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.15rem', minWidth: 0, gap: '0.75rem' }}>
+                                                <span style={{ color: '#64748B', fontWeight: '600', flexShrink: 0 }}>Emergency Contact</span> 
+                                                <span style={{ fontWeight: '750', color: '#E11D48', textAlign: 'right', minWidth: 0, flex: 1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                                                     {currentSelectedEmployee.emergency_contact_name} ({currentSelectedEmployee.emergency_contact_number})
                                                 </span>
                                             </div>
