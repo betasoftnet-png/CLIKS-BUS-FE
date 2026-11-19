@@ -735,6 +735,12 @@ const BusinessPOS = () => {
         showGstBadge: false,
         showOutOfStock: false,
         showCategories: true,
+        showSpecialOffersTab: true,
+        specialOffersTabTitle: 'Special Offers',
+        specialOffersEmoji: '🔥',
+        specialOffersBannerText: 'Special in-store offers and promotional deals available today!',
+        specialOffersCriteria: 'all_promos', // 'all_promos' | 'discounted' | 'custom'
+        specialOfferProductIds: [],
         orderTypeSelection: true, // Dine-in vs Takeaway
         requirePhone: false,
         requireName: false,
@@ -841,7 +847,8 @@ const BusinessPOS = () => {
     const [mobileActiveTab, setMobileActiveTab] = useState('catalog'); // 'catalog' | 'cart'
     const [kioskInactivitySeconds, setKioskInactivitySeconds] = useState(0);
     const [kioskSuccessCountdown, setKioskSuccessCountdown] = useState(null);
-    const [kioskSettingsSubTab, setKioskSettingsSubTab] = useState('branding'); // 'branding' | 'catalog' | 'flow' | 'payment' | 'security'
+    const [kioskSettingsSubTab, setKioskSettingsSubTab] = useState('branding'); // 'branding' | 'catalog' | 'offers' | 'flow' | 'payment' | 'security'
+    const [kioskOfferProductSearch, setKioskOfferProductSearch] = useState('');
     const [kioskCustomerPaymentMethod, setKioskCustomerPaymentMethod] = useState('upi'); // 'upi' | 'gateway' | 'counter'
     const [kioskPaymentProcessingModal, setKioskPaymentProcessingModal] = useState(null); // null | 'upi_qr' | 'gateway_checkout'
     const [kioskGatewayForm, setKioskGatewayForm] = useState({ cardNum: '', expiry: '', cvv: '', name: '', method: 'card', bank: 'HDFC Bank' });
@@ -2467,7 +2474,31 @@ const BusinessPOS = () => {
         return categories.filter(cat => cat.toLowerCase().includes(q));
     }, [categories, categorySearchQuery]);
 
-    // Kiosk Categories with item counts
+    // Check if product qualifies as a special offer
+    const isProdSpecialOffer = useCallback((prod) => {
+        if (!prod) return false;
+        const customIds = Array.isArray(kioskConfig.specialOfferProductIds) ? kioskConfig.specialOfferProductIds : [];
+        const isCustomMatch = customIds.length > 0 && (customIds.includes(prod.id) || customIds.includes(String(prod.id)));
+        
+        if (kioskConfig.specialOffersCriteria === 'custom') {
+            return isCustomMatch;
+        }
+        if (isCustomMatch) return true;
+
+        // Price discount check
+        const price = parseFloat(prod.price || prod.sale_price || 0);
+        const mrp = parseFloat(prod.mrp || prod.market_price || prod.rawProduct?.mrp || 0);
+        if (mrp > price && price > 0) return true;
+
+        const discountVal = parseFloat(prod.discount || prod.discount_percentage || prod.discount_percent || 0);
+        if (discountVal > 0) return true;
+
+        if (prod.is_offer || prod.isOffer || prod.is_featured || prod.isSpecial || prod.special_offer) return true;
+
+        return false;
+    }, [kioskConfig.specialOffersCriteria, kioskConfig.specialOfferProductIds]);
+
+    // Kiosk Categories with item counts (including Special Offers)
     const kioskCategoriesWithCounts = React.useMemo(() => {
         const rawCategories = Array.from(new Set(inventory.map(p => p.category).filter(Boolean)));
         const counts = { ALL: inventory.length, All: inventory.length };
@@ -2476,11 +2507,27 @@ const BusinessPOS = () => {
                 counts[p.category] = (counts[p.category] || 0) + 1;
             }
         });
+
+        let specialOffersCount = 0;
+        inventory.forEach(p => {
+            if (isProdSpecialOffer(p)) {
+                specialOffersCount += 1;
+            }
+        });
+        counts['SPECIAL_OFFERS'] = specialOffersCount;
+
+        const catList = ['ALL'];
+        if (kioskConfig.showSpecialOffersTab !== false) {
+            catList.push('SPECIAL_OFFERS');
+        }
+        rawCategories.forEach(c => catList.push(c));
+
         return {
-            categories: ['ALL', ...rawCategories],
-            counts
+            categories: catList,
+            counts,
+            specialOffersCount
         };
-    }, [inventory]);
+    }, [inventory, isProdSpecialOffer, kioskConfig.showSpecialOffersTab]);
 
     // Filtered & Sorted Products Catalog
     const filteredProducts = React.useMemo(() => {
@@ -3439,6 +3486,17 @@ const BusinessPOS = () => {
 
     return (
         <div className="pos-billing-layout">
+            {/* Suppress tiny native browser number spinners for custom touch-friendly steppers */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                .pos-no-spinners::-webkit-inner-spin-button,
+                .pos-no-spinners::-webkit-outer-spin-button {
+                    -webkit-appearance: none !important;
+                    margin: 0 !important;
+                }
+                .pos-no-spinners {
+                    -moz-appearance: textfield !important;
+                }
+            `}} />
 
             {/* Mobile View Switcher Tab Bar (Visible on mobile/tablet <= 992px) */}
             <div className="pos-mobile-nav">
@@ -5731,16 +5789,39 @@ const BusinessPOS = () => {
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                                                             {/* Main Branch vs Sub Branch Price */}
                                                             {isMainBranch ? (
-                                                                <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid #86EFAC', borderRadius: '6px', padding: '1px 5px', gap: '3px' }} title="Main Branch Price Authority: Edit price per KG">
+                                                                <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid #86EFAC', borderRadius: '7px', padding: '2px 4px', gap: '2px' }} title="Main Branch Price Authority: Edit price per KG">
                                                                     <span style={{ fontSize: '0.66rem', color: '#15803D', fontWeight: '800' }}>Rate: ₹</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const cur = parseFloat(item.price) || 0;
+                                                                            updateCartItemPrice(item.id, Math.max(0, +(cur - 1).toFixed(2)));
+                                                                        }}
+                                                                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: '1px solid #86EFAC', background: '#DCFCE7', color: '#166534', fontWeight: '900', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                                                        title="Decrease Rate by ₹1"
+                                                                    >
+                                                                        −
+                                                                    </button>
                                                                     <input
                                                                         type="number"
                                                                         min="0"
                                                                         step="any"
                                                                         value={item.price}
                                                                         onChange={(e) => updateCartItemPrice(item.id, e.target.value)}
-                                                                        style={{ width: '48px', border: 'none', background: 'transparent', fontWeight: '850', fontSize: '0.78rem', color: '#0F172A', textAlign: 'right', outline: 'none' }}
+                                                                        className="pos-no-spinners"
+                                                                        style={{ width: '46px', border: 'none', background: 'transparent', fontWeight: '850', fontSize: '0.82rem', color: '#0F172A', textAlign: 'center', outline: 'none' }}
                                                                     />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const cur = parseFloat(item.price) || 0;
+                                                                            updateCartItemPrice(item.id, +(cur + 1).toFixed(2));
+                                                                        }}
+                                                                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: '1px solid #86EFAC', background: '#DCFCE7', color: '#166534', fontWeight: '900', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                                                        title="Increase Rate by ₹1"
+                                                                    >
+                                                                        +
+                                                                    </button>
                                                                     <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '700' }}>/{item.unit || 'KG'}</span>
                                                                     <span style={{ fontSize: '0.6rem', color: '#10B981' }} title="Main Branch rate control">👑</span>
                                                                 </div>
@@ -5763,7 +5844,19 @@ const BusinessPOS = () => {
                                                             <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
                                                                 Weight:
                                                             </span>
-                                                            <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #16A34A', borderRadius: '7px', padding: '2px 5px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #16A34A', borderRadius: '7px', padding: '2px 4px', gap: '2px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const cur = parseFloat(item.quantity) || 0;
+                                                                        const step = cur > 1 ? 0.5 : 0.25;
+                                                                        updateCartDirectQty(item.id, Math.max(0.001, +(cur - step).toFixed(3)));
+                                                                    }}
+                                                                    style={{ width: '24px', height: '24px', borderRadius: '5px', border: '1px solid #86EFAC', background: '#DCFCE7', color: '#15803D', fontWeight: '900', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                                                    title="Decrease Weight"
+                                                                >
+                                                                    −
+                                                                </button>
                                                                 <input
                                                                     type="number"
                                                                     step="0.001"
@@ -5776,8 +5869,21 @@ const BusinessPOS = () => {
                                                                         if (v && v.length > 7) return;
                                                                         updateCartDirectQty(item.id, v);
                                                                     }}
-                                                                    style={{ width: '58px', border: 'none', background: 'transparent', fontWeight: '900', fontSize: '0.84rem', color: '#15803D', textAlign: 'center', outline: 'none' }}
+                                                                    className="pos-no-spinners"
+                                                                    style={{ width: '56px', border: 'none', background: 'transparent', fontWeight: '900', fontSize: '0.88rem', color: '#15803D', textAlign: 'center', outline: 'none' }}
                                                                 />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const cur = parseFloat(item.quantity) || 0;
+                                                                        const step = cur >= 1 ? 0.5 : 0.25;
+                                                                        updateCartDirectQty(item.id, +(cur + step).toFixed(3));
+                                                                    }}
+                                                                    style={{ width: '24px', height: '24px', borderRadius: '5px', border: '1px solid #86EFAC', background: '#DCFCE7', color: '#15803D', fontWeight: '900', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                                                    title="Increase Weight"
+                                                                >
+                                                                    +
+                                                                </button>
                                                                 <span style={{ fontSize: '0.68rem', fontWeight: '850', color: '#15803D', paddingLeft: '2px' }}>
                                                                     {item.unit || 'KG'}
                                                                 </span>
@@ -5840,13 +5946,14 @@ const BusinessPOS = () => {
                                                     </div>
 
                                                     {/* Quantity Selectors */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px', flexShrink: 0 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '10px', padding: '2px 4px', gap: '3px', flexShrink: 0 }}>
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)}
-                                                            style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                                            style={{ width: '32px', height: '32px', borderRadius: '7px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F172A', boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}
+                                                            title="Decrease Quantity"
                                                         >
-                                                            <Minus size={13} />
+                                                            <Minus size={16} strokeWidth={2.5} />
                                                         </button>
 
                                                         <input
@@ -5860,27 +5967,29 @@ const BusinessPOS = () => {
                                                                 if (v && v.length > 6) return;
                                                                 updateCartDirectQty(item.id, v);
                                                             }}
+                                                            className="pos-no-spinners"
                                                             style={{
-                                                                width: isDecimalUnit(item.unit) ? '54px' : '40px',
+                                                                width: isDecimalUnit(item.unit) ? '54px' : '44px',
                                                                 textAlign: 'center',
-                                                                fontSize: '0.82rem',
-                                                                fontWeight: '800',
-                                                                color: '#1E293B',
+                                                                fontSize: '0.92rem',
+                                                                fontWeight: '900',
+                                                                color: '#0F172A',
                                                                 border: 'none',
                                                                 background: 'transparent',
                                                                 outline: 'none'
                                                             }}
                                                         />
-                                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', paddingRight: '4px' }}>
+                                                        <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#64748B', paddingRight: '2px' }}>
                                                             {item.unit || 'PCS'}
                                                         </span>
 
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? 0.25 : 1)}
-                                                            style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                                            style={{ width: '32px', height: '32px', borderRadius: '7px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F172A', boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}
+                                                            title="Increase Quantity"
                                                         >
-                                                            <Plus size={13} />
+                                                            <Plus size={16} strokeWidth={2.5} />
                                                         </button>
                                                     </div>
 
@@ -9567,6 +9676,7 @@ const BusinessPOS = () => {
                                         {[
                                             { id: 'branding', label: '🎨 Branding & Theme' },
                                             { id: 'catalog', label: '🗂️ Catalog & Layout' },
+                                            { id: 'offers', label: '🔥 Special Offers' },
                                             { id: 'flow', label: '🛎️ Order Flow' },
                                             { id: 'payment', label: '💳 Payment & UPI' },
                                             { id: 'security', label: '🔒 Security & Timers' }
@@ -9906,6 +10016,195 @@ const BusinessPOS = () => {
                                                         onChange={(e) => handleUpdateKioskConfig({ showOutOfStock: !e.target.checked })}
                                                         style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
                                                     />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* SUB-TAB: SPECIAL OFFERS CUSTOMIZATION */}
+                                    {kioskSettingsSubTab === 'offers' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {/* Enable Special Offers Tab Toggle */}
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.86rem', fontWeight: '850', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span>🔥</span> Display Special Offers Tab in Customer Kiosk
+                                                    </div>
+                                                    <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '2px' }}>
+                                                        Shows a dedicated, high-visibility promotional category tab next to 'All Products'
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={kioskConfig.showSpecialOffersTab !== false}
+                                                    onChange={(e) => handleUpdateKioskConfig({ showSpecialOffersTab: e.target.checked })}
+                                                    style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#EA580C' }}
+                                                />
+                                            </div>
+
+                                            {/* Tab Title & Emoji */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                        Tab Emoji / Icon
+                                                    </label>
+                                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                        {['🔥', '⭐', '🏷️', '🎁', '⚡', '🛍️', '🍕'].map(em => (
+                                                            <button
+                                                                key={em}
+                                                                type="button"
+                                                                onClick={() => handleUpdateKioskConfig({ specialOffersEmoji: em })}
+                                                                style={{
+                                                                    width: '34px',
+                                                                    height: '34px',
+                                                                    borderRadius: '8px',
+                                                                    border: (kioskConfig.specialOffersEmoji || '🔥') === em ? '2px solid #EA580C' : '1px solid #CBD5E1',
+                                                                    background: (kioskConfig.specialOffersEmoji || '🔥') === em ? '#FFEDD5' : '#FFFFFF',
+                                                                    fontSize: '1.1rem',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center'
+                                                                }}
+                                                            >
+                                                                {em}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                        Custom Tab Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={kioskConfig.specialOffersTabTitle || 'Special Offers'}
+                                                        onChange={(e) => handleUpdateKioskConfig({ specialOffersTabTitle: e.target.value })}
+                                                        placeholder="e.g. Special Offers, Today's Deals, Chef's Specials"
+                                                        style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', fontWeight: '700' }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Promotional Announcement Banner Text */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                    Promotional Announcement Banner (Shown on Kiosk Offers screen)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={kioskConfig.specialOffersBannerText !== undefined ? kioskConfig.specialOffersBannerText : 'Special in-store offers and promotional deals available today!'}
+                                                    onChange={(e) => handleUpdateKioskConfig({ specialOffersBannerText: e.target.value })}
+                                                    placeholder="e.g. 🔥 Exclusive Showroom Offers! Limited-time festive discounts valid today."
+                                                    style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem' }}
+                                                />
+                                            </div>
+
+                                            {/* Selection Mode / Criteria */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '6px' }}>
+                                                    Offer Product Qualification Rules
+                                                </label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                                    {[
+                                                        { id: 'all_promos', title: '🏷️ Auto-Detect Discounted & Promos', desc: 'Automatically includes all products where MRP > Selling Price or active promotion is applied' },
+                                                        { id: 'custom', title: '✨ Custom Picked Products', desc: 'Strictly display the specific products selected from the inventory checklist below' }
+                                                    ].map(mode => {
+                                                        const isSel = (kioskConfig.specialOffersCriteria || 'all_promos') === mode.id;
+                                                        return (
+                                                            <div
+                                                                key={mode.id}
+                                                                onClick={() => handleUpdateKioskConfig({ specialOffersCriteria: mode.id })}
+                                                                style={{
+                                                                    border: isSel ? '2px solid #EA580C' : '1px solid #CBD5E1',
+                                                                    background: isSel ? '#FFF7ED' : '#FAFAFA',
+                                                                    borderRadius: '10px',
+                                                                    padding: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '0.82rem', fontWeight: '850', color: isSel ? '#C2410C' : '#1E293B' }}>{mode.title}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px', lineHeight: 1.35 }}>{mode.desc}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Hand-Pick Products for Special Offers Checklist */}
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.84rem', fontWeight: '850', color: '#1E293B' }}>Select Products for Special Offers</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                                            {kioskConfig.specialOffersCriteria === 'custom'
+                                                                ? 'Only these selected products will appear under Special Offers'
+                                                                : 'These items are featured in Special Offers alongside any discounted inventory'}
+                                                        </div>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.74rem', fontWeight: '850', color: '#C2410C', background: '#FFEDD5', padding: '3px 9px', borderRadius: '6px' }}>
+                                                        {(kioskConfig.specialOfferProductIds || []).length} Selected
+                                                    </span>
+                                                </div>
+
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search catalog by name or SKU to select..."
+                                                    value={kioskOfferProductSearch}
+                                                    onChange={(e) => setKioskOfferProductSearch(e.target.value)}
+                                                    style={{ width: '100%', boxSizing: 'border-box', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+                                                />
+
+                                                <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '8px', padding: '0.5rem' }}>
+                                                    {inventory
+                                                        .filter(p => !kioskOfferProductSearch.trim() || String(p.name || '').toLowerCase().includes(kioskOfferProductSearch.toLowerCase().trim()) || String(p.sku || '').toLowerCase().includes(kioskOfferProductSearch.toLowerCase().trim()))
+                                                        .slice(0, 100)
+                                                        .map(p => {
+                                                            const isChecked = (kioskConfig.specialOfferProductIds || []).includes(p.id) || (kioskConfig.specialOfferProductIds || []).includes(String(p.id));
+                                                            return (
+                                                                <label
+                                                                    key={p.id}
+                                                                    style={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'space-between',
+                                                                        padding: '0.4rem 0.6rem',
+                                                                        borderRadius: '6px',
+                                                                        background: isChecked ? '#FFF7ED' : 'transparent',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.78rem',
+                                                                        userSelect: 'none'
+                                                                    }}
+                                                                >
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={isChecked}
+                                                                            onChange={(e) => {
+                                                                                const cur = kioskConfig.specialOfferProductIds || [];
+                                                                                const next = e.target.checked
+                                                                                    ? [...cur, p.id]
+                                                                                    : cur.filter(id => id !== p.id && id !== String(p.id));
+                                                                                handleUpdateKioskConfig({ specialOfferProductIds: next });
+                                                                            }}
+                                                                            style={{ accentColor: '#EA580C', cursor: 'pointer' }}
+                                                                        />
+                                                                        <span style={{ fontWeight: isChecked ? '850' : '650', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                            {p.name}
+                                                                        </span>
+                                                                        {p.category && (
+                                                                            <span style={{ fontSize: '0.66rem', color: '#64748B', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                                {p.category}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span style={{ fontWeight: '850', color: '#EA580C', paddingLeft: '8px', flexShrink: 0 }}>
+                                                                        {formatCurrency(p.price)}
+                                                                    </span>
+                                                                </label>
+                                                            );
+                                                        })}
                                                 </div>
                                             </div>
                                         </div>
@@ -10590,6 +10889,11 @@ const BusinessPOS = () => {
                                                 {kioskCategoriesWithCounts.categories.map(cat => {
                                                     const isSel = kioskCategoryFilter === cat;
                                                     const count = kioskCategoriesWithCounts.counts[cat] ?? 0;
+                                                    const isSpecialOffersTab = cat === 'SPECIAL_OFFERS';
+                                                    const tabLabel = isSpecialOffersTab
+                                                        ? `${kioskConfig.specialOffersEmoji || '🔥'} ${kioskConfig.specialOffersTabTitle || 'Special Offers'}`
+                                                        : (cat === 'ALL' ? '🌟 All Items' : cat);
+
                                                     return (
                                                         <button
                                                             key={cat}
@@ -10600,26 +10904,34 @@ const BusinessPOS = () => {
                                                                 justifyContent: 'space-between',
                                                                 padding: '0.65rem 0.85rem',
                                                                 borderRadius: '10px',
-                                                                border: isSel ? `1.5px solid ${accent}` : '1px solid transparent',
-                                                                background: isSel ? `${accent}15` : '#FFFFFF',
-                                                                color: isSel ? accent : '#334155',
+                                                                border: isSel
+                                                                    ? (isSpecialOffersTab ? '1.5px solid #EA580C' : `1.5px solid ${accent}`)
+                                                                    : (isSpecialOffersTab ? '1px solid #FED7AA' : '1px solid transparent'),
+                                                                background: isSel
+                                                                    ? (isSpecialOffersTab ? '#FFF7ED' : `${accent}15`)
+                                                                    : (isSpecialOffersTab ? '#FFFDF9' : '#FFFFFF'),
+                                                                color: isSel
+                                                                    ? (isSpecialOffersTab ? '#C2410C' : accent)
+                                                                    : (isSpecialOffersTab ? '#EA580C' : '#334155'),
                                                                 fontSize: '0.82rem',
-                                                                fontWeight: isSel ? '800' : '650',
+                                                                fontWeight: isSel ? '850' : '650',
                                                                 cursor: 'pointer',
                                                                 textAlign: 'left',
                                                                 transition: 'all 0.15s ease',
-                                                                boxShadow: isSel ? `0 2px 8px ${accent}20` : 'none'
+                                                                boxShadow: isSel ? (isSpecialOffersTab ? '0 2px 8px rgba(234, 88, 12, 0.2)' : `0 2px 8px ${accent}20`) : 'none'
                                                             }}
                                                         >
                                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '8px' }}>
-                                                                {cat === 'ALL' ? '🌟 All Items' : cat}
+                                                                {tabLabel}
                                                             </span>
                                                             <span style={{
                                                                 fontSize: '0.68rem',
                                                                 padding: '2px 7px',
                                                                 borderRadius: '10px',
-                                                                background: isSel ? accent : '#F1F5F9',
-                                                                color: isSel ? '#FFFFFF' : '#64748B',
+                                                                background: isSel
+                                                                    ? (isSpecialOffersTab ? '#EA580C' : accent)
+                                                                    : (isSpecialOffersTab ? '#FFEDD5' : '#F1F5F9'),
+                                                                color: isSel ? '#FFFFFF' : (isSpecialOffersTab ? '#C2410C' : '#64748B'),
                                                                 fontWeight: '800',
                                                                 flexShrink: 0
                                                             }}>
@@ -10708,9 +11020,13 @@ const BusinessPOS = () => {
                                                     >
                                                         {kioskCategoriesWithCounts.categories.map(cat => {
                                                             const count = kioskCategoriesWithCounts.counts[cat] ?? 0;
+                                                            const isSpecialOffersTab = cat === 'SPECIAL_OFFERS';
+                                                            const tabLabel = isSpecialOffersTab
+                                                                ? `${kioskConfig.specialOffersEmoji || '🔥'} ${kioskConfig.specialOffersTabTitle || 'Special Offers'}`
+                                                                : (cat === 'ALL' ? '🌟 All Categories' : cat);
                                                             return (
                                                                 <option key={cat} value={cat}>
-                                                                    {cat === 'ALL' ? `🌟 All Categories (${count})` : `${cat} (${count})`}
+                                                                    {`${tabLabel} (${count})`}
                                                                 </option>
                                                             );
                                                         })}
@@ -10725,6 +11041,11 @@ const BusinessPOS = () => {
                                                     {kioskCategoriesWithCounts.categories.map(cat => {
                                                         const isSel = kioskCategoryFilter === cat;
                                                         const count = kioskCategoriesWithCounts.counts[cat] ?? 0;
+                                                        const isSpecialOffersTab = cat === 'SPECIAL_OFFERS';
+                                                        const tabLabel = isSpecialOffersTab
+                                                            ? `${kioskConfig.specialOffersEmoji || '🔥'} ${kioskConfig.specialOffersTabTitle || 'Special Offers'}`
+                                                            : (cat === 'ALL' ? '🌟 All Products' : cat);
+
                                                         return (
                                                             <button
                                                                 key={cat}
@@ -10732,9 +11053,13 @@ const BusinessPOS = () => {
                                                                 style={{
                                                                     padding: '0.4rem 0.85rem',
                                                                     borderRadius: '20px',
-                                                                    border: isSel ? `1.5px solid ${accent}` : '1px solid #CBD5E1',
-                                                                    background: isSel ? accent : '#FFFFFF',
-                                                                    color: isSel ? '#FFFFFF' : '#475569',
+                                                                    border: isSel
+                                                                        ? (isSpecialOffersTab ? '1.5px solid #EA580C' : `1.5px solid ${accent}`)
+                                                                        : (isSpecialOffersTab ? '1.5px solid #FDBA74' : '1px solid #CBD5E1'),
+                                                                    background: isSel
+                                                                        ? (isSpecialOffersTab ? 'linear-gradient(135deg, #EA580C 0%, #DC2626 100%)' : accent)
+                                                                        : (isSpecialOffersTab ? '#FFF7ED' : '#FFFFFF'),
+                                                                    color: isSel ? '#FFFFFF' : (isSpecialOffersTab ? '#C2410C' : '#475569'),
                                                                     fontSize: '0.78rem',
                                                                     fontWeight: '750',
                                                                     cursor: 'pointer',
@@ -10742,16 +11067,17 @@ const BusinessPOS = () => {
                                                                     display: 'flex',
                                                                     alignItems: 'center',
                                                                     gap: '6px',
-                                                                    transition: 'all 0.15s ease'
+                                                                    transition: 'all 0.15s ease',
+                                                                    boxShadow: isSel && isSpecialOffersTab ? '0 2px 8px rgba(234, 88, 12, 0.3)' : 'none'
                                                                 }}
                                                             >
-                                                                <span>{cat === 'ALL' ? '🌟 All Products' : cat}</span>
+                                                                <span>{tabLabel}</span>
                                                                 <span style={{
                                                                     fontSize: '0.68rem',
                                                                     padding: '1px 5px',
                                                                     borderRadius: '8px',
-                                                                    background: isSel ? 'rgba(255,255,255,0.25)' : '#F1F5F9',
-                                                                    color: isSel ? '#FFFFFF' : '#64748B',
+                                                                    background: isSel ? 'rgba(255,255,255,0.25)' : (isSpecialOffersTab ? '#FFEDD5' : '#F1F5F9'),
+                                                                    color: isSel ? '#FFFFFF' : (isSpecialOffersTab ? '#9A3412' : '#64748B'),
                                                                     fontWeight: '800'
                                                                 }}>
                                                                     {count}
@@ -10767,7 +11093,12 @@ const BusinessPOS = () => {
                                         <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
                                 {(() => {
                                     const filtered = inventory.filter(p => {
-                                        const matchesCat = kioskCategoryFilter === 'ALL' || String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
+                                        let matchesCat = true;
+                                        if (kioskCategoryFilter === 'SPECIAL_OFFERS') {
+                                            matchesCat = isProdSpecialOffer(p);
+                                        } else if (kioskCategoryFilter !== 'ALL') {
+                                            matchesCat = String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
+                                        }
                                         const q = kioskSearchQuery.toLowerCase().trim();
                                         const matchesQ = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q));
                                         
@@ -10781,6 +11112,34 @@ const BusinessPOS = () => {
                                     });
 
                                     if (filtered.length === 0) {
+                                        if (kioskCategoryFilter === 'SPECIAL_OFFERS') {
+                                            return (
+                                                <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#94A3B8' }}>
+                                                    <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>{kioskConfig.specialOffersEmoji || '🔥'}</div>
+                                                    <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#475569' }}>
+                                                        No {kioskConfig.specialOffersTabTitle || 'Special Offers'} Found
+                                                    </div>
+                                                    <div style={{ fontSize: '0.82rem', marginTop: '4px', maxWidth: '380px', margin: '4px auto 1rem', color: '#64748B' }}>
+                                                        There are currently no items marked for this promotion. Check back soon or browse our full store collection!
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setKioskCategoryFilter('ALL')}
+                                                        style={{
+                                                            padding: '0.55rem 1.25rem',
+                                                            borderRadius: '10px',
+                                                            background: accent,
+                                                            color: '#FFFFFF',
+                                                            border: 'none',
+                                                            fontSize: '0.82rem',
+                                                            fontWeight: '800',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        🌟 Browse All Products
+                                                    </button>
+                                                </div>
+                                            );
+                                        }
                                         return (
                                             <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#94A3B8' }}>
                                                 <Package size={48} strokeWidth={1.5} style={{ marginBottom: '0.75rem', opacity: 0.6 }} />
@@ -10795,34 +11154,91 @@ const BusinessPOS = () => {
                                     const accent = kioskConfig.accentColor || '#2563EB';
 
                                     return (
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}, 1fr))`,
-                                            gap: '1rem'
-                                        }}>
-                                            {filtered.map(prod => {
-                                                const cartItem = kioskCart.find(it => it.id === prod.id);
-                                                const inStock = prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.quantity || prod.stock || 0) > 0);
-                                                const price = parseFloat(prod.price || prod.sale_price || 0) || 0;
-                                                const gstRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? 0) || 0;
-                                                const showImg = kioskConfig.showImages !== false;
+                                        <div>
+                                            {/* Special Offers Promotional Announcement Banner */}
+                                            {kioskCategoryFilter === 'SPECIAL_OFFERS' && (
+                                                <div style={{
+                                                    background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
+                                                    border: '1.5px solid #FDBA74',
+                                                    borderRadius: '14px',
+                                                    padding: '0.85rem 1.25rem',
+                                                    marginBottom: '1.25rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    gap: '1rem',
+                                                    boxShadow: '0 2px 8px rgba(249, 115, 22, 0.08)'
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                                        <div style={{ fontSize: '1.6rem', width: '40px', height: '40px', borderRadius: '10px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }}>
+                                                            {kioskConfig.specialOffersEmoji || '🔥'}
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontSize: '0.98rem', fontWeight: '900', color: '#9A3412' }}>
+                                                                {kioskConfig.specialOffersTabTitle || 'Special Offers'}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.78rem', color: '#C2410C', marginTop: '2px', fontWeight: '650' }}>
+                                                                {kioskConfig.specialOffersBannerText || 'Special in-store offers and promotional deals available today!'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.74rem', fontWeight: '850', color: '#9A3412', background: '#FFFFFF', padding: '4px 10px', borderRadius: '20px', border: '1px solid #FDBA74', flexShrink: 0 }}>
+                                                        {filtered.length} Deals
+                                                    </span>
+                                                </div>
+                                            )}
 
-                                                return (
-                                                    <div
-                                                        key={prod.id}
-                                                        style={{
-                                                            background: '#FFFFFF',
-                                                            borderRadius: '14px',
-                                                            border: cartItem ? `2px solid ${accent}` : '1px solid #E2E8F0',
-                                                            padding: '1rem',
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            justifyContent: 'space-between',
-                                                            boxShadow: cartItem ? `0 4px 12px ${accent}25` : '0 1px 3px rgba(0,0,0,0.04)',
-                                                            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                                                            position: 'relative'
-                                                        }}
-                                                    >
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}, 1fr))`,
+                                                gap: '1rem'
+                                            }}>
+                                                {filtered.map(prod => {
+                                                    const cartItem = kioskCart.find(it => it.id === prod.id);
+                                                    const inStock = prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.quantity || prod.stock || 0) > 0);
+                                                    const price = parseFloat(prod.price || prod.sale_price || 0) || 0;
+                                                    const gstRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? 0) || 0;
+                                                    const showImg = kioskConfig.showImages !== false;
+
+                                                    return (
+                                                        <div
+                                                            key={prod.id}
+                                                            style={{
+                                                                background: '#FFFFFF',
+                                                                borderRadius: '14px',
+                                                                border: cartItem ? `2px solid ${accent}` : '1px solid #E2E8F0',
+                                                                padding: '1rem',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                justifyContent: 'space-between',
+                                                                boxShadow: cartItem ? `0 4px 12px ${accent}25` : '0 1px 3px rgba(0,0,0,0.04)',
+                                                                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                                                                position: 'relative'
+                                                            }}
+                                                        >
+                                                            {/* Special Deal Ribbon Badge */}
+                                                            {isProdSpecialOffer(prod) && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: '8px',
+                                                                    left: '8px',
+                                                                    background: 'linear-gradient(135deg, #EF4444 0%, #F97316 100%)',
+                                                                    color: '#FFFFFF',
+                                                                    padding: '2px 7px',
+                                                                    borderRadius: '5px',
+                                                                    fontSize: '0.64rem',
+                                                                    fontWeight: '900',
+                                                                    letterSpacing: '0.3px',
+                                                                    boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '3px',
+                                                                    zIndex: 2
+                                                                }}>
+                                                                    <span>{kioskConfig.specialOffersEmoji || '🔥'}</span>
+                                                                    <span>OFFER</span>
+                                                                </div>
+                                                            )}
                                                         <div>
                                                             {/* Product Image / Icon placeholder */}
                                                             {showImg && (() => {
@@ -10946,6 +11362,7 @@ const BusinessPOS = () => {
                                                 );
                                             })}
                                         </div>
+                                    </div>
                                     );
                                 })()}
                                         </div>
@@ -11032,10 +11449,56 @@ const BusinessPOS = () => {
                                                 <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{formatCurrency(item.price)} each</div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #CBD5E1' }}>
-                                                    <button onClick={() => handleKioskUpdateQty(item.id, -1)} style={{ padding: '2px 7px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '800' }}>-</button>
-                                                    <span style={{ fontSize: '0.82rem', fontWeight: '850', minWidth: '18px', textAlign: 'center' }}>{item.quantity}</span>
-                                                    <button onClick={() => handleKioskUpdateQty(item.id, 1)} style={{ padding: '2px 7px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '800' }}>+</button>
+                                                <div style={{ display: 'flex', alignItems: 'center', background: '#F8FAFC', borderRadius: '10px', border: '1.5px solid #CBD5E1', padding: '2px 3px', gap: '4px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleKioskUpdateQty(item.id, -1)}
+                                                        style={{
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            borderRadius: '7px',
+                                                            border: '1px solid #CBD5E1',
+                                                            background: '#FFFFFF',
+                                                            cursor: 'pointer',
+                                                            fontWeight: '900',
+                                                            fontSize: '1.15rem',
+                                                            color: '#1E293B',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            lineHeight: 1,
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                                        }}
+                                                        title="Decrease Quantity"
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '900', minWidth: '28px', textAlign: 'center', color: '#0F172A' }}>
+                                                        {item.quantity}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleKioskUpdateQty(item.id, 1)}
+                                                        style={{
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            borderRadius: '7px',
+                                                            border: 'none',
+                                                            background: accent,
+                                                            cursor: 'pointer',
+                                                            fontWeight: '900',
+                                                            fontSize: '1.15rem',
+                                                            color: '#FFFFFF',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            lineHeight: 1,
+                                                            boxShadow: `0 2px 6px ${accent}40`
+                                                        }}
+                                                        title="Increase Quantity"
+                                                    >
+                                                        +
+                                                    </button>
                                                 </div>
                                                 <span style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B', minWidth: '55px', textAlign: 'right' }}>
                                                     {formatCurrency(item.total || (item.price * item.quantity))}
@@ -11123,8 +11586,8 @@ const BusinessPOS = () => {
                                 if (isMultiPayment || kioskConfig.paymentMode === 'gateway') {
                                     paymentOptions.push({
                                         id: 'gateway',
-                                        title: kioskConfig.gatewayProvider ? `${kioskConfig.gatewayProvider.toUpperCase()} Gateway` : 'Payment Gateway',
-                                        subtitle: 'Cards, Net Banking & Wallets',
+                                        title: 'Cards & NetBanking',
+                                        subtitle: 'Credit/Debit Cards, Net Banking & Wallets',
                                         icon: CreditCard,
                                         accent: '#2563EB',
                                         bg: '#EFF6FF',
@@ -11169,7 +11632,7 @@ const BusinessPOS = () => {
                                 if (kioskCustomerPaymentMethod === 'upi') {
                                     submitBtnLabel = `Scan UPI QR & Pay ${formatCurrency(kGrandTotal)}`;
                                 } else if (kioskCustomerPaymentMethod === 'gateway') {
-                                    submitBtnLabel = `Pay via Gateway • ${formatCurrency(kGrandTotal)}`;
+                                    submitBtnLabel = `Pay Online • ${formatCurrency(kGrandTotal)}`;
                                 } else {
                                     submitBtnLabel = `Place Order (Pay at Counter) • ${formatCurrency(kGrandTotal)}`;
                                 }
@@ -11219,7 +11682,7 @@ const BusinessPOS = () => {
                                                 {kioskCustomerPaymentMethod === 'gateway' && <CreditCard size={15} color="#2563EB" />}
                                                 {kioskCustomerPaymentMethod === 'counter' && <Wallet size={15} color="#D97706" />}
                                                 <span style={{ fontSize: '0.74rem', fontWeight: '750', color: '#334155' }}>
-                                                    Payment: {kioskCustomerPaymentMethod === 'upi' ? 'Scan Dynamic UPI QR on next screen' : kioskCustomerPaymentMethod === 'gateway' ? 'Pay Online via Payment Gateway' : 'Pay at Cashier Counter'}
+                                                    Payment: {kioskCustomerPaymentMethod === 'upi' ? 'Scan Dynamic UPI QR on next screen' : kioskCustomerPaymentMethod === 'gateway' ? 'Pay Online (Cards & NetBanking)' : 'Pay at Cashier Counter'}
                                                 </span>
                                             </div>
                                         )}
@@ -11264,7 +11727,7 @@ const BusinessPOS = () => {
                                             {kioskCustomerPaymentMethod === 'upi'
                                                 ? 'Scan dynamic UPI QR code on screen with any UPI app'
                                                 : kioskCustomerPaymentMethod === 'gateway'
-                                                ? 'Instant authorization with 256-bit SSL encrypted gateway'
+                                                ? 'Instant authorization with 256-bit SSL encrypted checkout'
                                                 : 'Collect and pay for your items at the checkout counter'}
                                         </div>
                                     </div>
@@ -11452,10 +11915,7 @@ const BusinessPOS = () => {
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            {providerName} Payment Gateway
-                                            <span style={{ fontSize: '0.62rem', background: '#DCFCE7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: '800' }}>
-                                                {kioskConfig.gatewayMode === 'live' ? 'LIVE' : 'TEST MODE'}
-                                            </span>
+                                            Online Payment Checkout
                                         </div>
                                         <div style={{ fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             <ShieldCheck size={12} color="#16A34A" /> 256-bit SSL Secure In-Store Checkout
@@ -11625,7 +12085,7 @@ const BusinessPOS = () => {
                                 >
                                     {kioskPaymentVerifying ? (
                                         <>
-                                            <Loader2 size={18} className="animate-spin" /> Authorizing with {providerName}...
+                                            <Loader2 size={18} className="animate-spin" /> Securely Authorizing Payment...
                                         </>
                                     ) : (
                                         <>
