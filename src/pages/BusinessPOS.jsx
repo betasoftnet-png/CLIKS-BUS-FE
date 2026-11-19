@@ -2996,15 +2996,8 @@ const BusinessPOS = () => {
         ? Math.max(0, parseFloat(customTaxAmount) || 0)
         : calculatedTax;
 
-    // Master Config for Loyalty (sourced directly from Backend API: business_loyalty_settings & users.settings)
-    const loyaltyEnabled = React.useMemo(() => {
-        if (loyaltyProgramSettings?.loyaltyEnabled !== undefined) return Boolean(loyaltyProgramSettings.loyaltyEnabled);
-        if (loyaltyProgramSettings?.loyalty !== undefined) return Boolean(loyaltyProgramSettings.loyalty);
-        if (activeConfig?.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
-        if (activeConfig?.loyalty !== undefined) return Boolean(activeConfig.loyalty);
-        if (activeConfig?.loyalty_enabled !== undefined) return Boolean(activeConfig.loyalty_enabled && activeConfig.loyalty_enabled !== 0);
-        return true;
-    }, [loyaltyProgramSettings, activeConfig]);
+    // Customer loyalty points allocation is always active in POS billing
+    const loyaltyEnabled = true;
 
     const rsPer1Point = loyaltyProgramSettings?.loyaltyRsPer1Point !== undefined 
         ? Number(loyaltyProgramSettings.loyaltyRsPer1Point) 
@@ -3073,6 +3066,15 @@ const BusinessPOS = () => {
             const requestedQty = parseFloat(item.quantity) || 0;
             if (requestedQty > maxStock) {
                 alert(`Cannot complete checkout!\n\nRequested quantity (${requestedQty} ${item.unit || 'PCS'}) for "${item.name}" exceeds available stock (${maxStock} ${item.unit || 'PCS'}).`);
+                return;
+            }
+        }
+
+        // Strict guard: Walk-in customers cannot receive credit balance
+        if (mode === 'Credit') {
+            if (!selectedCustomerObj || !selectedCustomerObj.id || !customerName.trim() || customerName.trim().toLowerCase() === 'walk-in customer') {
+                alert('Credit balance cannot be given to a Walk-in Customer!\n\nPlease select an existing registered customer or click "+ Add" above to register a customer before completing a credit sale.');
+                setIsCustomerDropdownOpen(true);
                 return;
             }
         }
@@ -5196,13 +5198,11 @@ const BusinessPOS = () => {
                                                     );
                                                 })()} */}
                                             </div>
-                                            {loyaltyEnabled && (
-                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                        ⭐ LTP: {getCustomerLtp(cust)}
-                                                    </span>
-                                                </div>
-                                            )}
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                    ⭐ {getCustomerLtp(cust)} pts
+                                                </span>
+                                            </div>
                                         </div>
                                     ));
                                 })()}
@@ -5226,14 +5226,10 @@ const BusinessPOS = () => {
                                 <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem' }} title={selectedCustomerObj.email}>
                                     {selectedCustomerObj.email || selectedCustomerObj.phone_number || 'N/A'}
                                 </span>
-                                {loyaltyEnabled && (
-                                    <>
-                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                        <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                            ⭐ LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
-                                        </span>
-                                    </>
-                                )}
+                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
+                                    ⭐ Loyalty Points: <strong>{getCustomerLtp(selectedCustomerObj)} pts</strong>
+                                </span>
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
@@ -6040,63 +6036,59 @@ const BusinessPOS = () => {
                                         </div>
                                     </div>
 
-                                    {/* Loyalty Points: Available, Redeemed, Earned (Moved to Left Side Below Discount) */}
-                                    {loyaltyEnabled && (
-                                        <div style={{
-                                            background: '#F0FDF4',
-                                            padding: '0.3rem 0.45rem',
-                                            borderRadius: '7px',
-                                            border: '1px solid #BBF7D0',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '0.22rem'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                    <Tag size={10} /> Loyalty Points
-                                                </span>
-                                                <span style={{ fontSize: '0.58rem', fontWeight: '750', color: selectedCustomerObj ? '#166534' : '#94A3B8' }}>
-                                                    {selectedCustomerObj ? (selectedCustomerObj.name || customerName) : 'Walk-in Customer'}
-                                                </span>
-                                            </div>
+                                    {/* Loyalty Points: Available, Redeemed, Earned Allocation */}
+                                    <div style={{
+                                        background: '#F0FDF4',
+                                        padding: '0.35rem 0.5rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid #BBF7D0',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.25rem'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.64rem', fontWeight: '850', color: '#15803D', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Tag size={11} /> Points Allocation
+                                            </span>
+                                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: selectedCustomerObj ? '#166534' : '#B45309', background: selectedCustomerObj ? '#DCFCE7' : '#FEF3C7', padding: '1px 6px', borderRadius: '4px' }}>
+                                                {selectedCustomerObj ? (selectedCustomerObj.name || customerName) : 'Walk-in (Not Allocated)'}
+                                            </span>
+                                        </div>
 
-                                            {/* 3 Metric Summary: Available, Redeemed, Earned */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px', textAlign: 'center' }}>
-                                                <div style={{ background: '#FFFFFF', padding: '2px 3px', borderRadius: '4px', border: '1px solid #DCFCE7' }}>
-                                                    <div style={{ fontSize: '0.52rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', lineHeight: 1.1 }}>Available</div>
-                                                    <div style={{ fontSize: '0.74rem', color: '#15803D', fontWeight: '900', lineHeight: 1.2 }}>
-                                                        {availableCustomerPoints} <span style={{ fontSize: '0.48rem', fontWeight: '600' }}>pts</span>
-                                                    </div>
-                                                </div>
-                                                <div style={{ background: '#FFFFFF', padding: '2px 3px', borderRadius: '4px', border: '1px solid #DCFCE7' }}>
-                                                    <div style={{ fontSize: '0.52rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', lineHeight: 1.1 }}>Redeemed</div>
-                                                    <div style={{ fontSize: '0.74rem', color: effectivePointsRedeemed > 0 ? '#DC2626' : '#64748B', fontWeight: '900', lineHeight: 1.2 }}>
-                                                        {effectivePointsRedeemed > 0 ? `-${effectivePointsRedeemed}` : '0'} <span style={{ fontSize: '0.48rem', fontWeight: '600' }}>pts</span>
-                                                    </div>
-                                                </div>
-                                                <div style={{ background: '#FFFFFF', padding: '2px 3px', borderRadius: '4px', border: '1px solid #DCFCE7' }}>
-                                                    <div style={{ fontSize: '0.52rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', lineHeight: 1.1 }}>Earned</div>
-                                                    <div style={{ fontSize: '0.74rem', color: '#047857', fontWeight: '900', lineHeight: 1.2 }}>
-                                                        +{effectivePointsEarned} <span style={{ fontSize: '0.48rem', fontWeight: '600' }}>pts</span>
-                                                    </div>
+                                        {/* 3 Metric Summary: Available, Redeemed, Allocated */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', textAlign: 'center' }}>
+                                            <div style={{ background: '#FFFFFF', padding: '3px', borderRadius: '5px', border: '1px solid #DCFCE7' }}>
+                                                <div style={{ fontSize: '0.52rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', lineHeight: 1.1 }}>Available</div>
+                                                <div style={{ fontSize: '0.76rem', color: '#15803D', fontWeight: '900', lineHeight: 1.2 }}>
+                                                    {availableCustomerPoints} <span style={{ fontSize: '0.5rem', fontWeight: '600' }}>pts</span>
                                                 </div>
                                             </div>
+                                            <div style={{ background: '#FFFFFF', padding: '3px', borderRadius: '5px', border: '1px solid #DCFCE7' }}>
+                                                <div style={{ fontSize: '0.52rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', lineHeight: 1.1 }}>Redeemed</div>
+                                                <div style={{ fontSize: '0.76rem', color: effectivePointsRedeemed > 0 ? '#DC2626' : '#64748B', fontWeight: '900', lineHeight: 1.2 }}>
+                                                    {effectivePointsRedeemed > 0 ? `-${effectivePointsRedeemed}` : '0'} <span style={{ fontSize: '0.5rem', fontWeight: '600' }}>pts</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ background: '#FFFFFF', padding: '3px', borderRadius: '5px', border: '1px solid #DCFCE7' }}>
+                                                <div style={{ fontSize: '0.52rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', lineHeight: 1.1 }}>Allocated</div>
+                                                <div style={{ fontSize: '0.76rem', color: '#047857', fontWeight: '900', lineHeight: 1.2 }}>
+                                                    +{effectivePointsEarned} <span style={{ fontSize: '0.5rem', fontWeight: '600' }}>pts</span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                            {/* Compact Redeem Input & Max button */}
+                                        {/* Redeem Input or Walk-in Customer Notice */}
+                                        {selectedCustomerObj ? (
                                             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                                                 <input
                                                     type="number"
                                                     step="any"
                                                     min="0"
                                                     max={maxRedeemablePoints}
-                                                    placeholder={selectedCustomerObj && availableCustomerPoints > 0 ? `Redeem (Max ${maxRedeemablePoints} pts)` : (selectedCustomerObj ? '0 pts available' : 'Select customer to redeem')}
-                                                    disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
+                                                    placeholder={availableCustomerPoints > 0 ? `Redeem (Max ${maxRedeemablePoints} pts)` : '0 pts available'}
+                                                    disabled={maxRedeemablePoints <= 0}
                                                     value={loyaltyPointsRedeemed || ''}
                                                     onChange={(e) => {
-                                                        if (!selectedCustomerObj) {
-                                                            setLoyaltyPointsRedeemed(0);
-                                                            return;
-                                                        }
                                                         const rawVal = e.target.value;
                                                         let val = parseFloat(rawVal);
                                                         if (isNaN(val) || rawVal === '') val = 0;
@@ -6107,49 +6099,60 @@ const BusinessPOS = () => {
                                                     style={{
                                                         flex: 1,
                                                         minWidth: 0,
-                                                        padding: '0.2rem 0.4rem',
+                                                        padding: '0.22rem 0.45rem',
                                                         boxSizing: 'border-box',
                                                         borderRadius: '5px',
                                                         border: '1px solid #BBF7D0',
-                                                        background: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? '#F8FAFC' : 'white',
+                                                        background: maxRedeemablePoints <= 0 ? '#F8FAFC' : 'white',
                                                         fontSize: '0.72rem',
                                                         fontWeight: '750',
                                                         color: '#15803D',
                                                         outline: 'none',
-                                                        opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.6 : 1
+                                                        opacity: maxRedeemablePoints <= 0 ? 0.6 : 1
                                                     }}
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        if (!selectedCustomerObj || maxRedeemablePoints <= 0) return;
+                                                        if (maxRedeemablePoints <= 0) return;
                                                         setLoyaltyPointsRedeemed(maxRedeemablePoints);
                                                     }}
-                                                    disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
+                                                    disabled={maxRedeemablePoints <= 0}
                                                     style={{
-                                                        padding: '0.2rem 0.45rem',
+                                                        padding: '0.22rem 0.45rem',
                                                         borderRadius: '5px',
                                                         background: '#16A34A',
                                                         color: 'white',
                                                         border: 'none',
                                                         fontSize: '0.62rem',
                                                         fontWeight: '800',
-                                                        cursor: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 'not-allowed' : 'pointer',
-                                                        opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.5 : 1,
+                                                        cursor: maxRedeemablePoints <= 0 ? 'not-allowed' : 'pointer',
+                                                        opacity: maxRedeemablePoints <= 0 ? 0.5 : 1,
                                                         whiteSpace: 'nowrap'
                                                     }}
                                                 >
                                                     Max
                                                 </button>
                                             </div>
+                                        ) : (
+                                            <div style={{ fontSize: '0.62rem', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FFFFFF', padding: '3px 6px', borderRadius: '4px', border: '1px dashed #A7F3D0' }}>
+                                                <span>+{effectivePointsEarned} pts available on this bill</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCustomerDropdownOpen(true)}
+                                                    style={{ border: 'none', background: 'transparent', color: '#047857', fontWeight: '800', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                                                >
+                                                    Select customer
+                                                </button>
+                                            </div>
+                                        )}
 
-                                            {effectivePointsRedeemed > 0 && (
-                                                <div style={{ fontSize: '0.58rem', fontWeight: '750', color: '#166534', textAlign: 'right' }}>
-                                                    Redeemed Savings: -{formatCurrency(loyaltyDiscountAmount)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                        {effectivePointsRedeemed > 0 && (
+                                            <div style={{ fontSize: '0.58rem', fontWeight: '750', color: '#166534', textAlign: 'right' }}>
+                                                Redeemed Savings: -{formatCurrency(loyaltyDiscountAmount)}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {/* Selected Customer Credit Held / Outstanding Due */}
                                     {posAllowCredit && selectedCustomerObj && (() => {
@@ -6547,8 +6550,8 @@ const BusinessPOS = () => {
                                         </div>
                                     </div>
 
-                                    {/* Selected Customer Credit Held Summary */}
-                                    {selectedCustomerObj ? (() => {
+                                    {/* Selected Customer Credit Held Summary or Walk-in Warning */}
+                                    {selectedCustomerObj && selectedCustomerObj.name && selectedCustomerObj.name.trim().toLowerCase() !== 'walk-in customer' ? (() => {
                                         const prevHeld = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
                                         const curDue = Math.max(0, finalTotal - (parseFloat(creditReceivedAmount) || 0));
                                         const totalAfter = prevHeld + curDue;
@@ -6563,8 +6566,35 @@ const BusinessPOS = () => {
                                             </div>
                                         );
                                     })() : (
-                                        <div style={{ background: '#FFF7ED', border: '1px solid #FFEDD5', borderRadius: '8px', padding: '0.35rem 0.55rem', fontSize: '0.72rem', color: '#C2410C', fontWeight: '650' }}>
-                                            Notice: Select a customer above to track credit debt against their ledger account.
+                                        <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <CircleAlert size={16} color="#DC2626" style={{ flexShrink: 0 }} />
+                                                <div>
+                                                    <div style={{ fontSize: '0.74rem', color: '#991B1B', fontWeight: '850' }}>
+                                                        Credit Cannot Be Given to Walk-in Customer
+                                                    </div>
+                                                    <div style={{ fontSize: '0.66rem', color: '#B91C1C', marginTop: '1px' }}>
+                                                        Select or add a registered customer above to track credit debt.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAddCustomerModalOpen(true)}
+                                                style={{
+                                                    background: '#DC2626',
+                                                    color: '#FFFFFF',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    padding: '0.35rem 0.6rem',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '800',
+                                                    cursor: 'pointer',
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                            >
+                                                + Add Customer
+                                            </button>
                                         </div>
                                     )}
 
@@ -6572,32 +6602,44 @@ const BusinessPOS = () => {
                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                         <button
                                             type="button"
+                                            disabled={!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer'}
                                             onClick={() => setCreditReceivedAmount('0')}
-                                            style={{ padding: '0.3rem 0.5rem', borderRadius: '6px', border: '1px solid #FDE68A', background: '#FEF3C7', color: '#92400E', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer' }}
+                                            style={{
+                                                padding: '0.3rem 0.5rem',
+                                                borderRadius: '6px',
+                                                border: '1px solid #FDE68A',
+                                                background: (!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer') ? '#F1F5F9' : '#FEF3C7',
+                                                color: (!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer') ? '#94A3B8' : '#92400E',
+                                                fontSize: '0.68rem',
+                                                fontWeight: '800',
+                                                cursor: (!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer') ? 'not-allowed' : 'pointer'
+                                            }}
                                         >
                                             Full Credit (₹0)
                                         </button>
                                         <button
-                                            disabled={!hasValidCartItems || isCheckingOut}
+                                            disabled={!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer' || !hasValidCartItems || isCheckingOut}
                                             onClick={() => handleCheckout('Credit')}
                                             style={{
                                                 flex: 1,
                                                 padding: '0.45rem',
                                                 borderRadius: '8px',
                                                 border: 'none',
-                                                background: 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
+                                                background: (!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer') ? '#CBD5E1' : 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
                                                 color: '#FFFFFF',
                                                 fontWeight: '850',
                                                 fontSize: '0.78rem',
-                                                cursor: (!hasValidCartItems || isCheckingOut) ? 'not-allowed' : 'pointer',
-                                                boxShadow: '0 3px 8px rgba(234, 88, 12, 0.25)',
+                                                cursor: (!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer' || !hasValidCartItems || isCheckingOut) ? 'not-allowed' : 'pointer',
+                                                boxShadow: (!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer') ? 'none' : '0 3px 8px rgba(234, 88, 12, 0.25)',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: '4px'
                                             }}
                                         >
-                                            Confirm Credit Sale
+                                            {(!selectedCustomerObj || selectedCustomerObj.name.trim().toLowerCase() === 'walk-in customer')
+                                                ? 'Select Customer to Allow Credit'
+                                                : 'Confirm Credit Sale'}
                                         </button>
                                     </div>
                                 </div>
@@ -6697,6 +6739,11 @@ const BusinessPOS = () => {
                                         <button
                                             disabled={!hasValidCartItems || isCheckingOut}
                                             onClick={() => {
+                                                if (!selectedCustomerObj && (!customerName.trim() || customerName.trim().toLowerCase() === 'walk-in customer')) {
+                                                    alert('Credit balance cannot be given to a Walk-in Customer!\n\nPlease select an existing registered customer or click "+ Add" above to register a customer before providing credit.');
+                                                    setIsCustomerDropdownOpen(true);
+                                                    return;
+                                                }
                                                 setIsCreditMode(true);
                                                 setCreditReceivedAmount('0');
                                             }}
