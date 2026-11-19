@@ -625,6 +625,10 @@ const BusinessStaffing = () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
             alert('Employee appraisal target score & performance ratings locked successfully!');
             setIsPerformanceModalOpen(false);
+        },
+        onError: (err) => {
+            console.error('[Performance Appraisal Error]:', err);
+            alert(err.response?.data?.message || err.message || 'Failed to update employee appraisal review.');
         }
     });
 
@@ -899,12 +903,99 @@ const BusinessStaffing = () => {
         }
     }, [searchParams, setSearchParams, dbEmployees.length]);
 
+    // Custom department states and helpers
+    const DEFAULT_DEPARTMENTS = useMemo(() => [
+        'Sales', 'HR', 'Operations', 'Finance', 'Marketing', 'Engineering', 'Logistics', 'Quality & Compliance'
+    ], []);
+
+    const [customDepartments, setCustomDepartments] = useState(() => {
+        try {
+            const saved = localStorage.getItem('pos_custom_departments');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+
+    const allDepartments = useMemo(() => {
+        const list = [...DEFAULT_DEPARTMENTS, ...customDepartments];
+        employees.forEach(emp => {
+            if (emp.department_name && !list.includes(emp.department_name)) {
+                list.push(emp.department_name);
+            }
+        });
+        return Array.from(new Set(list.filter(Boolean)));
+    }, [DEFAULT_DEPARTMENTS, customDepartments, employees]);
+
+    const [showAddDeptOnboard, setShowAddDeptOnboard] = useState(false);
+    const [newDeptInputOnboard, setNewDeptInputOnboard] = useState('');
+    const [showAddDeptEdit, setShowAddDeptEdit] = useState(false);
+    const [newDeptInputEdit, setNewDeptInputEdit] = useState('');
+
+    const addCustomDepartment = (deptName) => {
+        const trimmed = (deptName || '').trim();
+        if (!trimmed) return null;
+        if (!customDepartments.includes(trimmed) && !DEFAULT_DEPARTMENTS.includes(trimmed)) {
+            const updated = [...customDepartments, trimmed];
+            setCustomDepartments(updated);
+            try {
+                localStorage.setItem('pos_custom_departments', JSON.stringify(updated));
+            } catch (e) {}
+        }
+        return trimmed;
+    };
+
+    // Strict Indian PAN Sanitizer & Validator (Format: 5 letters, 4 digits, 1 letter)
+    const sanitizePanInput = (rawVal) => {
+        if (!rawVal) return '';
+        const clean = String(rawVal).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        let formatted = '';
+        for (let i = 0; i < clean.length && i < 10; i++) {
+            const ch = clean[i];
+            if (i < 5) {
+                if (/[A-Z]/.test(ch)) formatted += ch;
+            } else if (i >= 5 && i < 9) {
+                if (/[0-9]/.test(ch)) formatted += ch;
+            } else if (i === 9) {
+                if (/[A-Z]/.test(ch)) formatted += ch;
+            }
+        }
+        return formatted;
+    };
+
+    const isValidPan = (pan) => {
+        if (!pan || !String(pan).trim()) return true; // Optional field
+        return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(String(pan).trim().toUpperCase());
+    };
+
     // Form performance review states
     const [perfForm, setPerfForm] = useState({
-        employee_id: 'EMP-2026-001',
-        rating: 4.8,
-        target_score: 94
+        employee_id: '',
+        rating: 5.0,
+        target_score: 95
     });
+
+    // Performance review modal open handler
+    const handleOpenFileAppraisal = (targetEmpId = null) => {
+        let targetEmp = null;
+        if (targetEmpId) {
+            targetEmp = employees.find(emp => 
+                String(emp.employee_id) === String(targetEmpId) || 
+                String(emp.id) === String(targetEmpId) || 
+                String(emp.employee_code) === String(targetEmpId)
+            );
+        }
+        if (!targetEmp && employees.length > 0) {
+            targetEmp = employees[0];
+        }
+
+        setPerfForm({
+            employee_id: targetEmp ? String(targetEmp.employee_id || targetEmp.id) : '',
+            rating: targetEmp && targetEmp.performance_rating ? parseFloat(targetEmp.performance_rating) : 5.0,
+            target_score: targetEmp && targetEmp.target_score ? parseInt(targetEmp.target_score) : 95
+        });
+        setIsPerformanceModalOpen(true);
+    };
 
     // Handle employee onboarding submit
     const handleOnboardSubmit = (e) => {
@@ -946,6 +1037,13 @@ const BusinessStaffing = () => {
             }
         }
 
+        const finalPan = sanitizePanInput(newEmp.pan_number);
+        if (newEmp.pan_number && !isValidPan(finalPan)) {
+            alert('Please enter a valid 10-character Indian PAN number (e.g. ABCDE1234F, format: 5 letters, 4 digits, 1 letter) or leave it blank.');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
         const finalEmployeeCode = (newEmp.employee_code || '').trim() || `CLK-00${(dbEmployees.length || 0) + 1}`;
         const finalDesignation = (newEmp.designation_name || '').trim() || 'Staff';
         const finalSalary = newEmp.basic_salary !== '' && newEmp.basic_salary !== undefined ? (parseFloat(newEmp.basic_salary) || 0) : 0;
@@ -953,7 +1051,6 @@ const BusinessStaffing = () => {
         const finalAccountNo = (newEmp.account_number || '').trim();
         const finalIfsc = (newEmp.ifsc_code || '').trim().toUpperCase();
         const finalPf = (newEmp.pf_number || '').trim();
-        const finalPan = (newEmp.pan_number || '').trim().toUpperCase();
         const finalEsi = (newEmp.esi_number || '').trim();
         const finalManager = (newEmp.reporting_manager || '').trim();
         const finalShift = newEmp.shift_name || 'General Shift (9 AM - 6 PM)';
@@ -1034,15 +1131,21 @@ const BusinessStaffing = () => {
             return;
         }
         
-        const empToUpdate = employees.find(emp => String(emp.employee_id) === String(perfForm.employee_id));
+        const empToUpdate = employees.find(emp => 
+            String(emp.employee_id) === String(perfForm.employee_id) || 
+            String(emp.id) === String(perfForm.employee_id) || 
+            String(emp.employee_code) === String(perfForm.employee_id)
+        );
+
         if (empToUpdate) {
+            const targetId = empToUpdate.id || empToUpdate.employee_id;
             performanceMutation.mutate({
-                id: empToUpdate.employee_id,
+                id: targetId,
                 rating: parseFloat(perfForm.rating) || 4.0,
                 target_score: parseInt(perfForm.target_score) || 85
             });
         } else {
-            alert('Selected employee not found.');
+            alert('Selected employee not found in database.');
         }
     };
 
@@ -1071,6 +1174,12 @@ const BusinessStaffing = () => {
                 alert(`ESI Number "${cleanEditEsi}" is already assigned to ${existingWithEsi.name || 'another staff member'}. ESI Number must be unique.`);
                 return;
             }
+        }
+
+        const finalEditPan = sanitizePanInput(editForm.pan_number);
+        if (editForm.pan_number && !isValidPan(finalEditPan)) {
+            alert('Please enter a valid 10-character Indian PAN number (e.g. ABCDE1234F, format: 5 letters, 4 digits, 1 letter) or leave it blank.');
+            return;
         }
 
         const parsedMonthlyQuota = parseFloat(editForm.monthly_leave_quota);
@@ -1116,7 +1225,7 @@ const BusinessStaffing = () => {
                 employment_type: editForm.employment_type,
                 reporting_manager: editForm.reporting_manager,
                 employee_code: editForm.employee_code,
-                pan_number: (editForm.pan_number || '').trim().toUpperCase(),
+                pan_number: finalEditPan,
                 pf_number: editForm.pf_number,
                 esi_number: editForm.esi_number,
                 leave_balance: finalLeaveBalance,
@@ -1260,7 +1369,7 @@ const BusinessStaffing = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button
-                        onClick={() => setIsPerformanceModalOpen(true)}
+                        onClick={() => handleOpenFileAppraisal()}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Award size={15} /> File Appraisal Review
@@ -1642,6 +1751,7 @@ const BusinessStaffing = () => {
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Performance Rating</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>KPI Targets Score</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Appraisal Target Date</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1658,6 +1768,14 @@ const BusinessStaffing = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '1rem', color: '#64748B' }}>1st October 2026</td>
+                                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                            <button
+                                                onClick={() => handleOpenFileAppraisal(emp.employee_id || emp.id)}
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '10px', background: '#FDF2F8', color: '#DB2777', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.75rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
+                                            >
+                                                <Award size={13} /> Settle Appraisal
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -2041,13 +2159,72 @@ const BusinessStaffing = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Department</label>
-                                                <select value={newEmp.department_name} onChange={(e) => setNewEmp({ ...newEmp, department_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}>
-                                                    <option>Sales</option>
-                                                    <option>HR</option>
-                                                    <option>Operations</option>
-                                                    <option>Finance</option>
-                                                </select>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Department</label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setShowAddDeptOnboard(!showAddDeptOnboard); setNewDeptInputOnboard(''); }}
+                                                        style={{ background: 'none', border: 'none', color: '#047857', fontSize: '0.68rem', fontWeight: '750', cursor: 'pointer', padding: 0 }}
+                                                    >
+                                                        {showAddDeptOnboard ? 'Cancel' : '+ Add Custom'}
+                                                    </button>
+                                                </div>
+                                                {showAddDeptOnboard ? (
+                                                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                                        <input
+                                                            type="text"
+                                                            autoFocus
+                                                            placeholder="Department Name"
+                                                            value={newDeptInputOnboard}
+                                                            onChange={(e) => setNewDeptInputOnboard(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    const added = addCustomDepartment(newDeptInputOnboard);
+                                                                    if (added) setNewEmp({ ...newEmp, department_name: added });
+                                                                    setShowAddDeptOnboard(false);
+                                                                }
+                                                            }}
+                                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1.5px solid #10B981', outline: 'none', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const added = addCustomDepartment(newDeptInputOnboard);
+                                                                if (added) setNewEmp({ ...newEmp, department_name: added });
+                                                                setShowAddDeptOnboard(false);
+                                                            }}
+                                                            style={{ padding: '0.5rem 0.65rem', borderRadius: '8px', background: '#10B981', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                        >
+                                                            Add
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowAddDeptOnboard(false)}
+                                                            style={{ padding: '0.5rem 0.5rem', borderRadius: '8px', background: '#E2E8F0', color: '#475569', border: 'none', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <select
+                                                        value={newEmp.department_name}
+                                                        onChange={(e) => {
+                                                            if (e.target.value === '__ADD_NEW__') {
+                                                                setShowAddDeptOnboard(true);
+                                                                setNewDeptInputOnboard('');
+                                                            } else {
+                                                                setNewEmp({ ...newEmp, department_name: e.target.value });
+                                                            }
+                                                        }}
+                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}
+                                                    >
+                                                        {allDepartments.map(dept => (
+                                                            <option key={dept} value={dept}>{dept}</option>
+                                                        ))}
+                                                        <option value="__ADD_NEW__">+ Add Custom Department...</option>
+                                                    </select>
+                                                )}
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Designation Title</label>
@@ -2108,18 +2285,43 @@ const BusinessStaffing = () => {
                                         <input type="number" value={newEmp.basic_salary} onChange={(e) => setNewEmp({ ...newEmp, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 35000 (Optional)" />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>PAN Number</label>
+                                            {newEmp.pan_number && (
+                                                <span style={{ 
+                                                    fontSize: '0.62rem', 
+                                                    fontWeight: '750', 
+                                                    color: isValidPan(newEmp.pan_number) ? '#059669' : '#D97706'
+                                                }}>
+                                                    {isValidPan(newEmp.pan_number) ? '✓ Valid PAN' : `${newEmp.pan_number.length}/10 chars`}
+                                                </span>
+                                            )}
+                                        </div>
                                         <input
                                             type="text"
                                             maxLength={10}
                                             value={newEmp.pan_number}
                                             onChange={(e) => {
-                                                const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                                                const val = sanitizePanInput(e.target.value);
                                                 setNewEmp({ ...newEmp, pan_number: val });
                                             }}
-                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
-                                            placeholder="e.g. ABCDE1234F"
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.55rem', 
+                                                borderRadius: '8px', 
+                                                border: newEmp.pan_number ? (isValidPan(newEmp.pan_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                outline: 'none', 
+                                                fontSize: '0.85rem', 
+                                                boxSizing: 'border-box', 
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                                fontFamily: 'monospace'
+                                            }}
+                                            placeholder="ABCDE1234F"
                                         />
+                                        <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                            Standard format: 5 letters, 4 digits, 1 letter
+                                        </span>
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
@@ -2294,10 +2496,25 @@ const BusinessStaffing = () => {
                         <form onSubmit={handlePerformanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee</label>
-                                <select required value={perfForm.employee_id} onChange={(e) => setPerfForm({ ...perfForm, employee_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                <select 
+                                    required 
+                                    value={perfForm.employee_id} 
+                                    onChange={(e) => {
+                                        const selectedId = e.target.value;
+                                        const matched = employees.find(emp => String(emp.employee_id) === String(selectedId) || String(emp.id) === String(selectedId));
+                                        setPerfForm({ 
+                                            employee_id: selectedId,
+                                            rating: matched?.performance_rating ? parseFloat(matched.performance_rating) : 5.0,
+                                            target_score: matched?.target_score ? parseInt(matched.target_score) : 95
+                                        });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
                                     <option value="">-- Select Employee --</option>
-                                    {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(emp => (
-                                        <option key={emp.employee_id} value={emp.employee_id}>{emp.first_name} {emp.last_name}</option>
+                                    {employees.map(emp => (
+                                        <option key={emp.employee_id || emp.id} value={emp.employee_id || emp.id}>
+                                            {emp.first_name} {emp.last_name} ({emp.employee_code || `CLK-00${emp.id}`}) - {emp.department_name || 'Staff'}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -2451,13 +2668,72 @@ const BusinessStaffing = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                     <div>
-                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Department</label>
-                                                        <select value={editForm.department || 'Operations'} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}>
-                                                            <option>Sales</option>
-                                                            <option>HR</option>
-                                                            <option>Operations</option>
-                                                            <option>Finance</option>
-                                                        </select>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Department</label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setShowAddDeptEdit(!showAddDeptEdit); setNewDeptInputEdit(''); }}
+                                                                style={{ background: 'none', border: 'none', color: '#047857', fontSize: '0.68rem', fontWeight: '750', cursor: 'pointer', padding: 0 }}
+                                                            >
+                                                                {showAddDeptEdit ? 'Cancel' : '+ Add Custom'}
+                                                            </button>
+                                                        </div>
+                                                        {showAddDeptEdit ? (
+                                                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                                                <input
+                                                                    type="text"
+                                                                    autoFocus
+                                                                    placeholder="Department Name"
+                                                                    value={newDeptInputEdit}
+                                                                    onChange={(e) => setNewDeptInputEdit(e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault();
+                                                                            const added = addCustomDepartment(newDeptInputEdit);
+                                                                            if (added) setEditForm({ ...editForm, department: added });
+                                                                            setShowAddDeptEdit(false);
+                                                                        }
+                                                                    }}
+                                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1.5px solid #10B981', outline: 'none', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const added = addCustomDepartment(newDeptInputEdit);
+                                                                        if (added) setEditForm({ ...editForm, department: added });
+                                                                        setShowAddDeptEdit(false);
+                                                                    }}
+                                                                    style={{ padding: '0.5rem 0.65rem', borderRadius: '8px', background: '#10B981', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                                >
+                                                                    Add
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowAddDeptEdit(false)}
+                                                                    style={{ padding: '0.5rem 0.5rem', borderRadius: '8px', background: '#E2E8F0', color: '#475569', border: 'none', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <select
+                                                                value={editForm.department || 'Operations'}
+                                                                onChange={(e) => {
+                                                                    if (e.target.value === '__ADD_NEW__') {
+                                                                        setShowAddDeptEdit(true);
+                                                                        setNewDeptInputEdit('');
+                                                                    } else {
+                                                                        setEditForm({ ...editForm, department: e.target.value });
+                                                                    }
+                                                                }}
+                                                                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}
+                                                            >
+                                                                {allDepartments.map(dept => (
+                                                                    <option key={dept} value={dept}>{dept}</option>
+                                                                ))}
+                                                                <option value="__ADD_NEW__">+ Add Custom Department...</option>
+                                                            </select>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Designation Title</label>
@@ -2511,18 +2787,43 @@ const BusinessStaffing = () => {
                                                 <input type="number" value={editForm.basic_salary || ''} onChange={(e) => setEditForm({ ...editForm, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>PAN Number</label>
+                                                    {editForm.pan_number && (
+                                                        <span style={{ 
+                                                            fontSize: '0.62rem', 
+                                                            fontWeight: '750', 
+                                                            color: isValidPan(editForm.pan_number) ? '#059669' : '#D97706'
+                                                        }}>
+                                                            {isValidPan(editForm.pan_number) ? '✓ Valid PAN' : `${editForm.pan_number.length}/10 chars`}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <input
                                                     type="text"
                                                     maxLength={10}
                                                     value={editForm.pan_number || ''}
                                                     onChange={(e) => {
-                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                                                        const val = sanitizePanInput(e.target.value);
                                                         setEditForm({ ...editForm, pan_number: val });
                                                     }}
-                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
-                                                    placeholder="e.g. ABCDE1234F"
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.55rem', 
+                                                        borderRadius: '8px', 
+                                                        border: editForm.pan_number ? (isValidPan(editForm.pan_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                        outline: 'none', 
+                                                        fontSize: '0.85rem', 
+                                                        boxSizing: 'border-box', 
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em',
+                                                        fontFamily: 'monospace'
+                                                    }}
+                                                    placeholder="ABCDE1234F"
                                                 />
+                                                <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                    Standard format: 5 letters, 4 digits, 1 letter
+                                                </span>
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
