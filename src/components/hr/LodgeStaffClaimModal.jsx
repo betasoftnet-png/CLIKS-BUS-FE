@@ -270,14 +270,14 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
           </div>
 
           {/* ================================================================= */}
-          {/* DYNAMIC MULTIPLE RECEIPTS SECTION                                 */}
+          {/* DYNAMIC MULTIPLE SUPPORTING DOCUMENTS / RECEIPTS SECTION         */}
           {/* ================================================================= */}
           <div className="space-y-3 pt-2">
             {receipts.map((rcpt, index) => (
               <div key={rcpt.id} className="p-3 bg-gray-50/80 border border-gray-200/70 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase text-gray-500">
-                    Receipt / Reference #{index + 1} (Optional)
+                    Supporting Document / Receipt #{index + 1} (Optional)
                   </span>
                   {receipts.length > 1 && (
                     <button
@@ -293,7 +293,7 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    placeholder="e.g. UPI Ref No, Bank Txn ID, Receipt No."
+                    placeholder="e.g. UPI Ref No, Invoice No, Receipt Ref or Document Details"
                     value={rcpt.refNo}
                     onChange={(e) => handleReceiptChange(rcpt.id, 'refNo', e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800"
@@ -334,14 +334,14 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
               </div>
             ))}
 
-            {/* + Add Another Receipt Button */}
+            {/* + Add Another Supporting Document Button */}
             <button
               type="button"
               onClick={handleAddReceipt}
               className="w-full py-2 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <span>+</span>
-              <span>Add Another Receipt / Proof</span>
+              <span>Add Another Supporting Document / Proof</span>
             </button>
           </div>
         </div>

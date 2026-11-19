@@ -522,28 +522,46 @@ const BusinessStaffing = () => {
 
     const approveClaimMutation = useMutation({
         mutationFn: (id) => expensesService.approveClaim(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
-            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            await queryClient.refetchQueries({ queryKey: ['claimsList'] });
             alert('Claim approved successfully!');
+        },
+        onError: (err) => {
+            console.error('Approve claim error:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to approve claim';
+            alert(`Approval failed: ${msg}`);
         }
     });
 
     const rejectClaimMutation = useMutation({
         mutationFn: ({ id, reason }) => expensesService.rejectClaim(id, { reason }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            await queryClient.refetchQueries({ queryKey: ['claimsList'] });
             alert('Claim rejected successfully!');
+        },
+        onError: (err) => {
+            console.error('Reject claim error:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to reject claim';
+            alert(`Rejection failed: ${msg}`);
         }
     });
 
     const payClaimMutation = useMutation({
         mutationFn: ({ id, data }) => expensesService.payClaim(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
-            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            await queryClient.refetchQueries({ queryKey: ['claimsList'] });
             setIsPaymentModalOpen(false);
             alert('Claim marked as Paid and reimbursed successfully!');
+        },
+        onError: (err) => {
+            console.error('Pay claim error:', err);
+            const msg = err.response?.data?.message || err.message || 'Failed to process payment';
+            alert(`Payment failed: ${msg}`);
         }
     });
 
@@ -744,15 +762,31 @@ const BusinessStaffing = () => {
         }
 
         const parsedQuota = parseFloat(rosterForm.monthly_leave_quota);
-        const quota = (!isNaN(parsedQuota) && rosterForm.monthly_leave_quota !== '' && rosterForm.monthly_leave_quota !== null) ? Math.max(0, parsedQuota) : defaultLeaveQuota;
+        const quota = (!isNaN(parsedQuota) && rosterForm.monthly_leave_quota !== '' && rosterForm.monthly_leave_quota !== null) 
+            ? Math.min(31, Math.max(0, parsedQuota)) 
+            : defaultLeaveQuota;
 
         const parsedBal = parseFloat(rosterForm.leave_balance);
-        const newBalance = rosterForm.sync_balance 
+        const rawBal = rosterForm.sync_balance 
             ? Math.round(quota * 12) 
-            : ((!isNaN(parsedBal) && rosterForm.leave_balance !== '' && rosterForm.leave_balance !== null) ? Math.max(0, parsedBal) : 0);
+            : ((!isNaN(parsedBal) && rosterForm.leave_balance !== '' && rosterForm.leave_balance !== null) ? parsedBal : 0);
+        
+        // Strict restrictions: Annual leave balance cannot exceed 60 days
+        const newBalance = Math.min(60, Math.max(0, rawBal));
 
-        const annualBonusAmt = rosterForm.bonus_mode === 'fixed' ? (parseFloat(rosterForm.annual_bonus_amt) || 0) : null;
-        const annualBonusPct = rosterForm.bonus_mode === 'percentage' ? (parseFloat(rosterForm.annual_bonus_pct) || 10) : null;
+        if (!rosterForm.sync_balance && parsedBal > 60) {
+            alert('Annual leave balance cannot exceed 60 days. It has been capped at 60 days.');
+        }
+
+        const rawBonusAmt = parseFloat(rosterForm.annual_bonus_amt);
+        const annualBonusAmt = rosterForm.bonus_mode === 'fixed' 
+            ? Math.min(10000000, Math.max(0, !isNaN(rawBonusAmt) ? rawBonusAmt : 0)) 
+            : null;
+
+        const rawBonusPct = parseFloat(rosterForm.annual_bonus_pct);
+        const annualBonusPct = rosterForm.bonus_mode === 'percentage' 
+            ? Math.min(100, Math.max(0, !isNaN(rawBonusPct) ? rawBonusPct : 10)) 
+            : null;
 
         const emp = employees.find(e => String(e.employee_id) === String(rosterForm.employee_id) || String(e.id) === String(rosterForm.employee_id));
         let addrMeta = {};
@@ -2143,7 +2177,7 @@ const BusinessStaffing = () => {
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Purpose Description</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Lodge Date</th>
-                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt Details</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supporting Documents</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Amount</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center', whiteSpace: 'nowrap', minWidth: '160px' }}>Actions</th>
@@ -2159,7 +2193,7 @@ const BusinessStaffing = () => {
                                                 <td style={{ padding: '1rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
                                                 <td style={{ padding: '1rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                                                        <span>{cl.receipt || (!cl.proof_file_path && 'No receipt attached')}</span>
+                                                        <span>{cl.receipt || (!cl.proof_file_path && 'No documents attached')}</span>
                                                         {cl.proof_file_path && (
                                                             <a 
                                                                 href={getFileUrl(cl.proof_file_path)} 
@@ -2167,7 +2201,7 @@ const BusinessStaffing = () => {
                                                                 rel="noopener noreferrer" 
                                                                 style={{ color: '#10B981', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                             >
-                                                                📎 View File
+                                                                📎 View Document
                                                             </a>
                                                         )}
                                                     </div>
@@ -4635,9 +4669,24 @@ const BusinessStaffing = () => {
                                             type="number"
                                             step="0.5"
                                             min="0"
-                                            max="30"
+                                            max="31"
                                             value={rosterForm.monthly_leave_quota}
-                                            onChange={(e) => setRosterForm({ ...rosterForm, monthly_leave_quota: e.target.value })}
+                                            onChange={(e) => {
+                                                const raw = e.target.value;
+                                                if (raw === '') {
+                                                    setRosterForm({ ...rosterForm, monthly_leave_quota: '' });
+                                                    return;
+                                                }
+                                                const num = parseFloat(raw);
+                                                if (!isNaN(num)) {
+                                                    if (num < 0) return;
+                                                    if (num > 31) {
+                                                        setRosterForm({ ...rosterForm, monthly_leave_quota: '31' });
+                                                        return;
+                                                    }
+                                                }
+                                                setRosterForm({ ...rosterForm, monthly_leave_quota: raw });
+                                            }}
                                             style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                         />
                                         <span style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: '700', marginTop: '0.25rem', display: 'block' }}>
@@ -4645,13 +4694,33 @@ const BusinessStaffing = () => {
                                         </span>
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Annual Leave Balance Left</label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <label style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Annual Leave Balance Left</label>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#059669', background: '#ECFDF5', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>Max 60 Days</span>
+                                        </div>
                                         <input
                                             type="number"
                                             step="0.5"
                                             min="0"
+                                            max="60"
                                             value={rosterForm.leave_balance}
-                                            onChange={(e) => setRosterForm({ ...rosterForm, leave_balance: e.target.value })}
+                                            onChange={(e) => {
+                                                const raw = e.target.value;
+                                                if (raw === '') {
+                                                    setRosterForm({ ...rosterForm, leave_balance: '' });
+                                                    return;
+                                                }
+                                                const num = parseFloat(raw);
+                                                if (!isNaN(num)) {
+                                                    if (num < 0) return;
+                                                    if (num > 60) {
+                                                        // Strictly clamp beyond infinity numbers
+                                                        setRosterForm({ ...rosterForm, leave_balance: '60' });
+                                                        return;
+                                                    }
+                                                }
+                                                setRosterForm({ ...rosterForm, leave_balance: raw });
+                                            }}
                                             style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                         />
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.3rem' }}>
@@ -4662,16 +4731,17 @@ const BusinessStaffing = () => {
                                                 onChange={(e) => {
                                                     const chk = e.target.checked;
                                                     const curQ = (!isNaN(parseFloat(rosterForm.monthly_leave_quota)) && rosterForm.monthly_leave_quota !== '') ? parseFloat(rosterForm.monthly_leave_quota) : 1.5;
+                                                    const calculatedBal = Math.min(60, Math.round(curQ * 12));
                                                     setRosterForm({
                                                         ...rosterForm,
                                                         sync_balance: chk,
-                                                        leave_balance: chk ? Math.round(curQ * 12) : rosterForm.leave_balance
+                                                        leave_balance: chk ? calculatedBal : rosterForm.leave_balance
                                                     });
                                                 }}
                                                 style={{ accentColor: '#2563EB', cursor: 'pointer' }}
                                             />
                                             <label htmlFor="sync_bal" style={{ fontSize: '0.68rem', color: '#475569', fontWeight: '700', cursor: 'pointer' }}>
-                                                Reset to Quota × 12 ({Math.round(((!isNaN(parseFloat(rosterForm.monthly_leave_quota)) && rosterForm.monthly_leave_quota !== '') ? parseFloat(rosterForm.monthly_leave_quota) : 1.5) * 12)} d)
+                                                Reset to Quota × 12 ({Math.min(60, Math.round(((!isNaN(parseFloat(rosterForm.monthly_leave_quota)) && rosterForm.monthly_leave_quota !== '') ? parseFloat(rosterForm.monthly_leave_quota) : 1.5) * 12))} d)
                                             </label>
                                         </div>
                                     </div>
@@ -4720,14 +4790,29 @@ const BusinessStaffing = () => {
 
                                 {rosterForm.bonus_mode === 'percentage' ? (
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Annual Bonus % (e.g. 10%, 15%, 8.33% statutory bonus)</label>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Annual Bonus % (Max 100%)</label>
                                         <input
                                             type="number"
                                             step="0.5"
                                             min="0"
                                             max="100"
                                             value={rosterForm.annual_bonus_pct}
-                                            onChange={(e) => setRosterForm({ ...rosterForm, annual_bonus_pct: e.target.value })}
+                                            onChange={(e) => {
+                                                const raw = e.target.value;
+                                                if (raw === '') {
+                                                    setRosterForm({ ...rosterForm, annual_bonus_pct: '' });
+                                                    return;
+                                                }
+                                                const num = parseFloat(raw);
+                                                if (!isNaN(num)) {
+                                                    if (num < 0) return;
+                                                    if (num > 100) {
+                                                        setRosterForm({ ...rosterForm, annual_bonus_pct: '100' });
+                                                        return;
+                                                    }
+                                                }
+                                                setRosterForm({ ...rosterForm, annual_bonus_pct: raw });
+                                            }}
                                             style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                         />
                                         <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: '750', marginTop: '0.3rem', display: 'block' }}>
@@ -4736,13 +4821,29 @@ const BusinessStaffing = () => {
                                     </div>
                                 ) : (
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Fixed Annual Bonus Amount (INR)</label>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Fixed Annual Bonus Amount (INR, Max ₹1 Crore)</label>
                                         <input
                                             type="number"
                                             min="0"
+                                            max="10000000"
                                             placeholder="e.g. 25000"
                                             value={rosterForm.annual_bonus_amt}
-                                            onChange={(e) => setRosterForm({ ...rosterForm, annual_bonus_amt: e.target.value })}
+                                            onChange={(e) => {
+                                                const raw = e.target.value;
+                                                if (raw === '') {
+                                                    setRosterForm({ ...rosterForm, annual_bonus_amt: '' });
+                                                    return;
+                                                }
+                                                const num = parseFloat(raw);
+                                                if (!isNaN(num)) {
+                                                    if (num < 0) return;
+                                                    if (num > 10000000) {
+                                                        setRosterForm({ ...rosterForm, annual_bonus_amt: '10000000' });
+                                                        return;
+                                                    }
+                                                }
+                                                setRosterForm({ ...rosterForm, annual_bonus_amt: raw });
+                                            }}
                                             style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                         />
                                     </div>

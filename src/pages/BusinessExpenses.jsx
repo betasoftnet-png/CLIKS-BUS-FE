@@ -1890,7 +1890,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                     <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
                                     <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Purpose Description</th>
                                     <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Lodge Date</th>
-                                    <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt Details</th>
+                                    <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supporting Documents</th>
                                     <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                     <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Amount</th>
                                     <th style={{ padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center', minWidth: '150px' }}>Actions</th>
@@ -1913,7 +1913,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                 <td style={{ padding: '0.8rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
                                                 <td style={{ padding: '0.8rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                                                        <span>{cl.receipt || (!cl.proof_file_path && 'No receipt attached')}</span>
+                                                        <span>{cl.receipt || (!cl.proof_file_path && 'No documents attached')}</span>
                                                         {cl.proof_file_path && (
                                                             <a 
                                                                 href={getFileUrl(cl.proof_file_path)} 
@@ -1921,7 +1921,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                                 rel="noopener noreferrer" 
                                                                 style={{ color: '#7C3AED', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                             >
-                                                                📎 View File
+                                                                📎 View Document
                                                             </a>
                                                         )}
                                                     </div>
