@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Info, Loader2, Scale, Barcode, RefreshCw } from 'lucide-react';
+import { X, Plus, Info, Loader2, Scale, Barcode, RefreshCw, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { productsService, inventoryService, hsnService, stockService } from '../../services';
 import { CurrencyContext } from '../../context/CurrencyContext';
@@ -55,6 +55,36 @@ export const QuickRegisterItemModal = ({
     const [sku, setSku] = useState('');
     const [barcode, setBarcode] = useState('');
     const [hsnCode, setHsnCode] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file (PNG, JPG, WEBP, SVG).');
+            return;
+        }
+
+        if (file.size > 2.5 * 1024 * 1024) {
+            alert('File size exceeds 2.5MB. Please choose a smaller image.');
+            return;
+        }
+
+        setIsUploadingImage(true);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setImageUrl(reader.result);
+            setIsUploadingImage(false);
+        };
+        reader.onerror = () => {
+            alert('Failed to read image file.');
+            setIsUploadingImage(false);
+        };
+        reader.readAsDataURL(file);
+    };
 
     // Fetch live categories from database
     const { data: dbCategories = [] } = useQuery({
@@ -164,6 +194,8 @@ export const QuickRegisterItemModal = ({
             setTaxRate(`${taxVal}% GST`);
             setSku(editingProduct.sku || '');
             setBarcode(editingProduct.barcode || '');
+            const existingImg = editingProduct.image_url || editingProduct.imageUrl || editingProduct.image || editingProduct.photo || editingProduct.thumbnail || editingProduct.rawProduct?.image_url || editingProduct.rawProduct?.imageUrl || '';
+            setImageUrl(existingImg || '');
 
             // Fallback lookup in query cache if editingProduct doesn't have hsn_code
             let resolvedHsn = editingProduct.hsn_code || editingProduct.hsnCode || editingProduct.hsn || editingProduct.hsn_sac || editingProduct.rawProduct?.hsn_code || editingProduct.rawProduct?.hsnCode || '';
@@ -257,6 +289,7 @@ export const QuickRegisterItemModal = ({
             setSku('');
             setBarcode('');
             setHsnCode('');
+            setImageUrl('');
             setHsnQueryOverride('');
             setUserTypedHsnCode(false);
             setIsAutoSuggestedHsn(false);
@@ -441,7 +474,10 @@ export const QuickRegisterItemModal = ({
                 isUnlimited: isItemUnlimited,
                 is_unlimited: isItemUnlimited,
                 hsn_code: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '',
-                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || ''
+                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '',
+                image_url: prod?.image_url || variables?.image_url || variables?.imageUrl || null,
+                imageUrl: prod?.image_url || variables?.image_url || variables?.imageUrl || null,
+                image: prod?.image || prod?.image_url || variables?.image_url || null
             };
 
             // Requirement 4: Instant Update - push new product into active POS catalogue state
@@ -572,6 +608,9 @@ export const QuickRegisterItemModal = ({
             hsnCode: defaultHsnCode,
             hsn: defaultHsnCode,
             hsn_sac: defaultHsnCode,
+            image_url: imageUrl || null,
+            imageUrl: imageUrl || null,
+            image: imageUrl || null,
             warehouse_id: resolvedWarehouse,
             warehouse: resolvedWarehouse
         };
@@ -590,9 +629,9 @@ export const QuickRegisterItemModal = ({
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}
+                style={{ background: 'white', width: '100%', maxWidth: '460px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}
             >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ padding: '8px', borderRadius: '10px', background: '#ECFDF5', color: '#10B981' }}>
                             <Plus size={20} strokeWidth={3} />
@@ -629,6 +668,157 @@ export const QuickRegisterItemModal = ({
                             style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
                             placeholder="e.g. Tomato / Rice / Milk"
                         />
+                    </div>
+
+                    {/* Product Picture Upload */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                <ImageIcon size={13} color="#10B981" />
+                                <span>Product Picture</span>
+                            </label>
+                            <span style={{ fontSize: '0.66rem', color: '#94A3B8', fontWeight: '600' }}>
+                                Optional (PNG, JPG, WEBP)
+                            </span>
+                        </div>
+
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={handleImageUpload}
+                        />
+
+                        {imageUrl ? (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '8px 12px',
+                                borderRadius: '12px',
+                                background: '#F8FAFC',
+                                border: '1.5px solid #E2E8F0'
+                            }}>
+                                <div style={{
+                                    width: '52px',
+                                    height: '52px',
+                                    borderRadius: '10px',
+                                    overflow: 'hidden',
+                                    border: '1px solid #CBD5E1',
+                                    background: '#FFFFFF',
+                                    flexShrink: 0
+                                }}>
+                                    <img
+                                        src={imageUrl}
+                                        alt="Product preview"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                                        Picture Attached
+                                    </div>
+                                    <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '1px' }}>
+                                        Displayed when picture mode is ON
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        style={{
+                                            border: '1px solid #CBD5E1',
+                                            background: '#FFFFFF',
+                                            color: '#334155',
+                                            borderRadius: '8px',
+                                            padding: '5px 10px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Change
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageUrl('')}
+                                        title="Remove photo"
+                                        style={{
+                                            border: 'none',
+                                            background: '#FEE2E2',
+                                            color: '#EF4444',
+                                            borderRadius: '8px',
+                                            padding: '6px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                    border: '1.5px dashed #CBD5E1',
+                                    borderRadius: '12px',
+                                    padding: '10px 14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    background: '#F8FAFC',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = '#10B981';
+                                    e.currentTarget.style.background = '#F0FDF4';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = '#CBD5E1';
+                                    e.currentTarget.style.background = '#F8FAFC';
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '8px',
+                                        background: '#E2E8F0',
+                                        color: '#64748B',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <Upload size={16} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B' }}>
+                                            {isUploadingImage ? 'Loading picture...' : 'Upload Product Picture'}
+                                        </div>
+                                        <div style={{ fontSize: '0.66rem', color: '#64748B' }}>
+                                            Photo thumbnail for POS cards & customer view
+                                        </div>
+                                    </div>
+                                </div>
+                                <span style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    color: '#059669',
+                                    background: '#ECFDF5',
+                                    border: '1px solid #A7F3D0',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px'
+                                }}>
+                                    + Add Picture
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Sold by Weight / Loose Bulk Item toggle */}

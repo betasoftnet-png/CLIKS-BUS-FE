@@ -1155,7 +1155,11 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
   #thermal-receipt-pane,
   #thermal-receipt-pane *,
   #invoice-print-area,
-  #invoice-print-area * {
+  #invoice-print-area *,
+  #printable-barcode-sticker,
+  #printable-barcode-sticker *,
+  .printable-barcode-area,
+  .printable-barcode-area * {
     visibility: visible;
   }
 

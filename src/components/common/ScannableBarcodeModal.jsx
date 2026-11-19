@@ -73,22 +73,24 @@ export const ScannableBarcodeModal = ({
 
     const handlePrint = () => {
         const svgHtml = svgRef.current ? svgRef.current.outerHTML : '';
-
-        const printWindow = window.open('', '_blank', 'width=650,height=550');
-        if (!printWindow) {
-            alert('Popup blocker prevented opening the print window. Please allow popups.');
+        if (!svgHtml) {
+            alert('Barcode image is still preparing. Please try again.');
             return;
         }
 
-        printWindow.document.write(`
+        const printContent = `
             <!DOCTYPE html>
             <html>
                 <head>
+                    <meta charset="utf-8">
                     <title>Barcode Label - ${productName}</title>
                     <style>
                         @page {
                             size: auto;
                             margin: 0;
+                        }
+                        * {
+                            box-sizing: border-box;
                         }
                         body {
                             margin: 0;
@@ -97,7 +99,7 @@ export const ScannableBarcodeModal = ({
                             align-items: center;
                             justify-content: center;
                             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                            background: #F8FAFC;
+                            background: #FFFFFF;
                         }
                         .sticker {
                             width: 320px;
@@ -107,9 +109,10 @@ export const ScannableBarcodeModal = ({
                             border-radius: 12px;
                             text-align: center;
                             box-sizing: border-box;
+                            margin: 0 auto;
                         }
                         .title {
-                            font-size: 14px;
+                            font-size: 15px;
                             font-weight: 800;
                             color: #0F172A;
                             margin-bottom: 4px;
@@ -129,20 +132,27 @@ export const ScannableBarcodeModal = ({
                             color: #166534;
                             margin-top: 6px;
                         }
+                        .barcode-box {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                        }
                         .barcode-box svg {
                             max-width: 100%;
                             height: auto;
+                            display: block;
+                            margin: 0 auto;
                         }
                         @media print {
                             body {
-                                background: white;
-                                padding: 0;
+                                background: white !important;
+                                padding: 0 !important;
                             }
                             .sticker {
-                                border: none;
-                            }
-                            .no-print {
-                                display: none !important;
+                                border: none !important;
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                padding: 8px !important;
                             }
                         }
                     </style>
@@ -156,16 +166,61 @@ export const ScannableBarcodeModal = ({
                         </div>
                         ${productPrice !== null ? `<div class="price">₹${productPrice.toFixed(2)}</div>` : ''}
                     </div>
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(function() { window.close(); }, 500);
-                        };
-                    </script>
                 </body>
             </html>
-        `);
-        printWindow.document.close();
+        `;
+
+        try {
+            // Invisible print iframe guarantees that the browser print dialog opens directly
+            // right in the active window without opening blank tabs or getting caught by popup blockers
+            let printIframe = document.getElementById('barcode-print-frame');
+            if (printIframe && printIframe.parentNode) {
+                printIframe.parentNode.removeChild(printIframe);
+            }
+            printIframe = document.createElement('iframe');
+            printIframe.id = 'barcode-print-frame';
+            printIframe.style.position = 'fixed';
+            printIframe.style.right = '0';
+            printIframe.style.bottom = '0';
+            printIframe.style.width = '0';
+            printIframe.style.height = '0';
+            printIframe.style.border = '0';
+            document.body.appendChild(printIframe);
+
+            const frameWindow = printIframe.contentWindow;
+            const doc = frameWindow.document;
+            doc.open();
+            doc.write(printContent);
+            doc.close();
+
+            setTimeout(() => {
+                try {
+                    frameWindow.focus();
+                    frameWindow.print();
+                } catch (e) {
+                    console.error('Iframe print error:', e);
+                }
+                setTimeout(() => {
+                    try {
+                        if (printIframe && printIframe.parentNode) {
+                            printIframe.parentNode.removeChild(printIframe);
+                        }
+                    } catch (_) {}
+                }, 3000);
+            }, 300);
+        } catch (iframeErr) {
+            console.error('Iframe creation error, falling back to window.open:', iframeErr);
+            const printWindow = window.open('', '_blank', 'width=650,height=550');
+            if (printWindow) {
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                    setTimeout(() => { printWindow.close(); }, 500);
+                }, 300);
+            }
+        }
     };
 
     return (

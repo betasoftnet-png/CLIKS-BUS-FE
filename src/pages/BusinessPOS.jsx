@@ -5269,78 +5269,128 @@ const BusinessPOS = () => {
                     )}
                 </div>
 
-                {/* Kiosk Order Real-time Notification Banner */}
+                {/* Kiosk Order Real-time Notification Card (Clean, Uncongested Layout) */}
                 {kioskOrderNotification && (
                     <div style={{
-                        padding: '0.65rem 1.25rem',
-                        background: 'linear-gradient(90deg, #EFF6FF, #DBEAFE)',
-                        borderBottom: '2px solid #3B82F6',
+                        margin: '0.65rem 0.85rem',
+                        padding: '0.65rem 0.85rem',
+                        background: '#EFF6FF',
+                        border: '1.5px solid #BFDBFE',
+                        borderRadius: '12px',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '1rem',
+                        flexDirection: 'column',
+                        gap: '6px',
                         flexShrink: 0,
-                        boxShadow: '0 2px 10px rgba(59, 130, 246, 0.15)',
-                        animation: 'fadeIn 0.25s ease-in-out'
+                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.08)',
+                        animation: 'fadeIn 0.2s ease-in-out'
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: '#2563EB', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}>
-                                <Bell size={16} />
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E3A8A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span>New In-Store Customer Order Received!</span>
-                                    <span style={{ fontSize: '0.72rem', background: '#1D4ED8', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
-                                        {kioskOrderNotification.orderId}
+                        {/* Header Row: Bell Icon + Order ID + Status Pill + Dismiss X */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                                <div style={{
+                                    background: '#2563EB',
+                                    color: '#fff',
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
+                                    <Bell size={13} />
+                                </div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1E3A8A', whiteSpace: 'nowrap' }}>
+                                    Kiosk Order
+                                </span>
+                                <span style={{ fontSize: '0.7rem', background: '#DBEAFE', color: '#1D4ED8', border: '1px solid #93C5FD', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                    {kioskOrderNotification.orderId}
+                                </span>
+                                {kioskOrderNotification.paymentStatus === 'PAID' ? (
+                                    <span style={{ fontSize: '0.68rem', background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                        PAID ({kioskOrderNotification.paymentMode})
                                     </span>
-                                    {kioskOrderNotification.paymentStatus === 'PAID' ? (
-                                        <span style={{ fontSize: '0.72rem', background: '#16A34A', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
-                                            PAID VIA {kioskOrderNotification.paymentMode}
-                                        </span>
-                                    ) : (
-                                        <span style={{ fontSize: '0.72rem', background: '#D97706', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
-                                            PAY AT COUNTER
-                                        </span>
-                                    )}
-                                </div>
-                                <div style={{ fontSize: '0.76rem', color: '#2563EB', fontWeight: '600', marginTop: '1px' }}>
-                                    Customer: <strong>{kioskOrderNotification.customerName || 'In-Store Guest'}</strong> {kioskOrderNotification.customerPhone ? `(${kioskOrderNotification.customerPhone})` : ''} • {kioskOrderNotification.itemCount} item(s) • Total: <strong>{formatCurrency(kioskOrderNotification.total || 0)}</strong>
-                                    {kioskOrderNotification.paymentRef ? ` • Ref: ${kioskOrderNotification.paymentRef}` : ''}
-                                </div>
+                                ) : (
+                                    <span style={{ fontSize: '0.68rem', background: '#FEF3C7', color: '#B45309', border: '1px solid #FCD34D', padding: '1px 6px', borderRadius: '6px', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                        PAY AT COUNTER
+                                    </span>
+                                )}
                             </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+
                             <button
+                                type="button"
+                                onClick={() => setKioskOrderNotification(null)}
+                                title="Dismiss notification"
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#94A3B8',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '2px',
+                                    borderRadius: '4px',
+                                    flexShrink: 0
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#1E3A8A'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#94A3B8'}
+                            >
+                                <X size={15} />
+                            </button>
+                        </div>
+
+                        {/* Customer & Item Summary Row */}
+                        <div style={{ fontSize: '0.74rem', color: '#3B82F6', fontWeight: '600', lineHeight: 1.35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                            <span style={{ color: '#1E40AF' }}>
+                                <strong>{kioskOrderNotification.customerName || 'In-Store Guest'}</strong>
+                                {kioskOrderNotification.customerPhone ? ` (${kioskOrderNotification.customerPhone})` : ''}
+                                {kioskOrderNotification.itemCount ? ` • ${kioskOrderNotification.itemCount} item(s)` : ''}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '850', color: '#0F172A' }}>
+                                {formatCurrency(kioskOrderNotification.total || 0)}
+                            </span>
+                        </div>
+
+                        {/* Action Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <button
+                                type="button"
                                 onClick={() => {
                                     restoreCart(kioskOrderNotification.heldCartId);
                                     setKioskOrderNotification(null);
                                 }}
                                 style={{
+                                    flex: 1,
                                     background: '#2563EB',
                                     color: '#fff',
                                     border: 'none',
-                                    padding: '0.45rem 0.95rem',
+                                    padding: '0.42rem 0.75rem',
                                     borderRadius: '8px',
-                                    fontSize: '0.78rem',
+                                    fontSize: '0.76rem',
                                     fontWeight: '800',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
+                                    justifyContent: 'center',
                                     gap: '6px',
-                                    boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)'
+                                    boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+                                    transition: 'all 0.15s ease'
                                 }}
                             >
-                                <ShoppingCart size={13} /> Open in POS Cart
+                                <ShoppingCart size={13} />
+                                <span>Open in POS Cart</span>
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setKioskOrderNotification(null)}
                                 style={{
-                                    background: '#fff',
+                                    background: '#FFFFFF',
                                     color: '#64748B',
                                     border: '1px solid #CBD5E1',
-                                    padding: '0.45rem 0.75rem',
+                                    padding: '0.42rem 0.65rem',
                                     borderRadius: '8px',
-                                    fontSize: '0.76rem',
+                                    fontSize: '0.74rem',
                                     fontWeight: '700',
                                     cursor: 'pointer'
                                 }}
