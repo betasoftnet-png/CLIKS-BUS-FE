@@ -847,8 +847,16 @@ const BusinessStaffing = () => {
             annual_bonus: (e.annual_bonus !== undefined && e.annual_bonus !== null && e.annual_bonus !== '') ? parseFloat(e.annual_bonus) : ((addrMeta.annual_bonus !== undefined && addrMeta.annual_bonus !== null && addrMeta.annual_bonus !== '') ? parseFloat(addrMeta.annual_bonus) : null),
             annual_bonus_pct: (e.annual_bonus_pct !== undefined && e.annual_bonus_pct !== null && e.annual_bonus_pct !== '') ? parseFloat(e.annual_bonus_pct) : ((addrMeta.annual_bonus_pct !== undefined && addrMeta.annual_bonus_pct !== null) ? parseFloat(addrMeta.annual_bonus_pct) : 10),
             weekly_off: e.weekly_off || addrMeta.weekly_off || 'Sunday Off',
-            performance_rating: e.performance_rating || addrMeta.performance_rating || 4.5,
-            target_score: e.target_score || addrMeta.target_score || 92,
+            performance_rating: (e.performance_rating !== null && e.performance_rating !== undefined && e.performance_rating !== '') 
+                ? parseFloat(e.performance_rating) 
+                : ((addrMeta.performance_rating !== null && addrMeta.performance_rating !== undefined && addrMeta.performance_rating !== '') 
+                    ? parseFloat(addrMeta.performance_rating) 
+                    : null),
+            target_score: (e.target_score !== null && e.target_score !== undefined && e.target_score !== '') 
+                ? parseFloat(e.target_score) 
+                : ((addrMeta.target_score !== null && addrMeta.target_score !== undefined && addrMeta.target_score !== '') 
+                    ? parseFloat(addrMeta.target_score) 
+                    : null),
             role_name: e.role || 'Staff Personnel'
         };
     }) : [];
@@ -968,6 +976,112 @@ const BusinessStaffing = () => {
         return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(String(pan).trim().toUpperCase());
     };
 
+    // Strict Indian PF / UAN Sanitizer & Validator (EPFO Member ID or 12-digit UAN)
+    const sanitizePfInput = (rawVal) => {
+        if (!rawVal) return '';
+        return String(rawVal).toUpperCase().replace(/[^A-Z0-9\/]/g, '').slice(0, 26);
+    };
+
+    const isValidPf = (pf) => {
+        if (!pf || !String(pf).trim()) return true; // Optional field
+        const clean = String(pf).trim().toUpperCase();
+        // 12-digit UAN
+        if (/^[0-9]{12}$/.test(clean)) return true;
+        // Standard EPFO Member ID format (e.g., MH/BAN/0011223 or MH/BAN/0011223/000/0001234 or MHBAN00112230000001234)
+        if (/^[A-Z]{2}[/A-Z]{0,4}[0-9/]{5,20}$/.test(clean)) return true;
+        return false;
+    };
+
+    // Strict Indian ESI Number Sanitizer & Validator (Exactly 17 digits)
+    const sanitizeEsiInput = (rawVal) => {
+        if (!rawVal) return '';
+        return String(rawVal).replace(/[^0-9]/g, '').slice(0, 17);
+    };
+
+    const isValidEsi = (esi) => {
+        if (!esi || !String(esi).trim()) return true; // Optional field
+        return /^[0-9]{17}$/.test(String(esi).trim());
+    };
+
+    // Strict Indian Bank Account Number Sanitizer & Validator (9 to 18 numeric digits)
+    const sanitizeAccountNo = (rawVal) => {
+        if (!rawVal) return '';
+        return String(rawVal).replace(/[^0-9]/g, '').slice(0, 18);
+    };
+
+    const isValidAccountNo = (acc) => {
+        if (!acc || !String(acc).trim()) return true; // Optional field
+        return /^[0-9]{9,18}$/.test(String(acc).trim());
+    };
+
+    // Strict Indian IFSC Code Sanitizer & Validator (11 chars: 4 letters, '0', 6 alphanumeric)
+    const sanitizeIfscInput = (rawVal) => {
+        if (!rawVal) return '';
+        const clean = String(rawVal).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        let formatted = '';
+        for (let i = 0; i < clean.length && i < 11; i++) {
+            const ch = clean[i];
+            if (i < 4) {
+                if (/[A-Z]/.test(ch)) formatted += ch;
+            } else if (i === 4) {
+                if (ch === '0' || /[0-9]/.test(ch)) formatted += '0';
+            } else {
+                if (/[A-Z0-9]/.test(ch)) formatted += ch;
+            }
+        }
+        return formatted;
+    };
+
+    const isValidIfsc = (ifsc) => {
+        if (!ifsc || !String(ifsc).trim()) return true; // Optional field
+        return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(String(ifsc).trim().toUpperCase());
+    };
+
+    // General string & name sanitizers
+    const sanitizeName = (rawVal, maxLen = 40) => {
+        if (!rawVal) return '';
+        return String(rawVal).replace(/[^a-zA-Z\s]/g, '').slice(0, maxLen);
+    };
+
+    const sanitizePhone = (rawVal) => {
+        if (!rawVal) return '';
+        return String(rawVal).replace(/[^0-9]/g, '').slice(0, 10);
+    };
+
+    const isValidPhone = (phone) => {
+        if (!phone) return false;
+        return /^[6-9][0-9]{9}$/.test(String(phone).trim());
+    };
+
+    const sanitizePincode = (rawVal) => {
+        if (!rawVal) return '';
+        return String(rawVal).replace(/[^0-9]/g, '').slice(0, 6);
+    };
+
+    const isValidPincode = (pin) => {
+        if (!pin || !String(pin).trim()) return true; // Optional field
+        return /^[0-9]{6}$/.test(String(pin).trim());
+    };
+
+    const sanitizeEmpCode = (rawVal) => {
+        if (!rawVal) return '';
+        return String(rawVal).toUpperCase().replace(/[^A-Z0-9\-\/]/g, '').slice(0, 16);
+    };
+
+    // Dynamic Appraisal Due Date Calculator
+    const getAppraisalDueDate = (joiningDateStr) => {
+        if (!joiningDateStr) return 'Pending Schedule';
+        try {
+            const joinDate = new Date(joiningDateStr);
+            if (isNaN(joinDate.getTime())) return 'Pending Schedule';
+            const dueDate = new Date(joinDate);
+            dueDate.setDate(dueDate.getDate() + 90);
+            return dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch (e) {
+            return 'Pending Schedule';
+        }
+    };
+
     // Form performance review states
     const [perfForm, setPerfForm] = useState({
         employee_id: '',
@@ -1015,9 +1129,33 @@ const BusinessStaffing = () => {
             return;
         }
 
+        // Name validation
+        const cleanFirstName = sanitizeName(newEmp.first_name, 35);
+        const cleanLastName = sanitizeName(newEmp.last_name, 35);
+        if (!cleanFirstName || !cleanLastName) {
+            alert('Please enter both valid First Name and Last Name (letters only).');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
+        // Phone validation
+        const cleanStaffPhone = sanitizePhone(newEmp.phone_number);
+        if (!isValidPhone(cleanStaffPhone)) {
+            alert('Please enter a valid 10-digit mobile phone number starting with 6, 7, 8, or 9.');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
+        // Email validation
+        const cleanEmail = (newEmp.email || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+            alert('Please enter a valid corporate email address (e.g. employee@bnxmail.com).');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
         // Emergency contact cannot be same as staff contact
-        const cleanStaffPhone = (newEmp.phone_number || '').replace(/[^0-9]/g, '');
-        const cleanEmergPhone = (newEmp.emergency_contact_number || '').replace(/[^0-9]/g, '');
+        const cleanEmergPhone = sanitizePhone(newEmp.emergency_contact_number);
         if (cleanStaffPhone && cleanEmergPhone) {
             if (cleanStaffPhone === cleanEmergPhone || (cleanStaffPhone.length >= 10 && cleanEmergPhone.length >= 10 && cleanStaffPhone.slice(-10) === cleanEmergPhone.slice(-10))) {
                 alert('Emergency contact number cannot be the same as the staff phone number. Please enter a different emergency contact number.');
@@ -1027,16 +1165,22 @@ const BusinessStaffing = () => {
         }
 
         // ESI Number must be unique
-        const cleanEsi = (newEmp.esi_number || '').trim();
-        if (cleanEsi) {
-            const existingWithEsi = employees.find(emp => (emp.esi_number || '').trim().toLowerCase() === cleanEsi.toLowerCase());
+        const finalEsi = sanitizeEsiInput(newEmp.esi_number);
+        if (finalEsi) {
+            if (!isValidEsi(finalEsi)) {
+                alert('Please enter a valid 17-digit ESI number (digits only, e.g. 31001234560000001) or leave it blank.');
+                isSubmittingOnboardRef.current = false;
+                return;
+            }
+            const existingWithEsi = employees.find(emp => (emp.esi_number || '').trim().toLowerCase() === finalEsi.toLowerCase());
             if (existingWithEsi) {
-                alert(`ESI Number "${cleanEsi}" is already assigned to ${existingWithEsi.name || 'another staff member'}. ESI Number must be unique.`);
+                alert(`ESI Number "${finalEsi}" is already assigned to ${existingWithEsi.name || 'another staff member'}. ESI Number must be unique.`);
                 isSubmittingOnboardRef.current = false;
                 return;
             }
         }
 
+        // PAN validation
         const finalPan = sanitizePanInput(newEmp.pan_number);
         if (newEmp.pan_number && !isValidPan(finalPan)) {
             alert('Please enter a valid 10-character Indian PAN number (e.g. ABCDE1234F, format: 5 letters, 4 digits, 1 letter) or leave it blank.');
@@ -1044,26 +1188,54 @@ const BusinessStaffing = () => {
             return;
         }
 
-        const finalEmployeeCode = (newEmp.employee_code || '').trim() || `CLK-00${(dbEmployees.length || 0) + 1}`;
-        const finalDesignation = (newEmp.designation_name || '').trim() || 'Staff';
-        const finalSalary = newEmp.basic_salary !== '' && newEmp.basic_salary !== undefined ? (parseFloat(newEmp.basic_salary) || 0) : 0;
-        const finalBankName = (newEmp.bank_name || '').trim();
-        const finalAccountNo = (newEmp.account_number || '').trim();
-        const finalIfsc = (newEmp.ifsc_code || '').trim().toUpperCase();
-        const finalPf = (newEmp.pf_number || '').trim();
-        const finalEsi = (newEmp.esi_number || '').trim();
-        const finalManager = (newEmp.reporting_manager || '').trim();
+        // PF validation
+        const finalPf = sanitizePfInput(newEmp.pf_number);
+        if (newEmp.pf_number && !isValidPf(finalPf)) {
+            alert('Please enter a valid PF number (e.g. MH/BAN/0011223 or 12-digit UAN like 100123456789) or leave it blank.');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
+        // Bank Account validation
+        const finalAccountNo = sanitizeAccountNo(newEmp.account_number);
+        if (newEmp.account_number && !isValidAccountNo(finalAccountNo)) {
+            alert('Please enter a valid 9 to 18-digit bank account number or leave it blank.');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
+        // IFSC validation
+        const finalIfsc = sanitizeIfscInput(newEmp.ifsc_code);
+        if (newEmp.ifsc_code && !isValidIfsc(finalIfsc)) {
+            alert('Please enter a valid 11-character Indian IFSC code (e.g. HDFC0000124 - 4 letters, 0, 6 alphanumeric characters) or leave it blank.');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
+        // Pincode validation
+        const finalPincode = sanitizePincode(newEmp.pincode);
+        if (newEmp.pincode && !isValidPincode(finalPincode)) {
+            alert('Please enter a valid 6-digit postal pincode (e.g. 600001) or leave it blank.');
+            isSubmittingOnboardRef.current = false;
+            return;
+        }
+
+        const finalEmployeeCode = sanitizeEmpCode(newEmp.employee_code) || `CLK-00${(dbEmployees.length || 0) + 1}`;
+        const finalDesignation = (newEmp.designation_name || '').trim().slice(0, 40) || 'Staff';
+        const finalSalary = newEmp.basic_salary !== '' && newEmp.basic_salary !== undefined ? Math.max(0, parseFloat(newEmp.basic_salary) || 0) : 0;
+        const finalBankName = (newEmp.bank_name || '').replace(/[^a-zA-Z\s.\-]/g, '').trim().slice(0, 50);
+        const finalManager = sanitizeName(newEmp.reporting_manager, 40);
         const finalShift = newEmp.shift_name || 'General Shift (9 AM - 6 PM)';
-        const finalAddress = (newEmp.address_line_1 || '').trim();
-        const finalCity = (newEmp.city || '').trim();
-        const finalState = (newEmp.state || '').trim();
-        const finalPincode = (newEmp.pincode || '').trim();
-        const finalEmergName = (newEmp.emergency_contact_name || '').trim();
-        const finalEmergPhone = (newEmp.emergency_contact_number || '').trim();
+        const finalAddress = (newEmp.address_line_1 || '').trim().slice(0, 100);
+        const finalCity = sanitizeName(newEmp.city, 35);
+        const finalState = sanitizeName(newEmp.state, 35);
+        const finalEmergName = sanitizeName(newEmp.emergency_contact_name, 40);
         const finalMonthlyQuota = newEmp.monthly_leave_quota !== undefined && newEmp.monthly_leave_quota !== '' ? parseFloat(newEmp.monthly_leave_quota) : defaultLeaveQuota;
         const finalBonus = newEmp.annual_bonus !== undefined && newEmp.annual_bonus !== '' ? parseFloat(newEmp.annual_bonus) : null;
         const finalWeeklyOff = newEmp.weekly_off || 'Sunday Off';
         const finalLeaveBalance = (defaultLeaveQuota !== undefined && !isNaN(defaultLeaveQuota)) ? Math.round(defaultLeaveQuota * 12) : 18;
+        const finalTargetScore = newEmp.target_score !== '' && newEmp.target_score !== undefined && !isNaN(Number(newEmp.target_score)) ? Math.min(100, Math.max(0, parseFloat(newEmp.target_score))) : null;
+        const finalPerfRating = newEmp.performance_rating !== '' && newEmp.performance_rating !== undefined && !isNaN(Number(newEmp.performance_rating)) ? Math.min(5, Math.max(1, parseFloat(newEmp.performance_rating))) : null;
 
         createEmpMutation.mutate({
             name: `${newEmp.first_name} ${newEmp.last_name}`,
@@ -1118,6 +1290,8 @@ const BusinessStaffing = () => {
             }),
             pf_number: finalPf,
             pan_number: finalPan,
+            performance_rating: finalPerfRating,
+            target_score: finalTargetScore,
             leave_balance: finalLeaveBalance
         });
     };
@@ -1153,9 +1327,30 @@ const BusinessStaffing = () => {
     const handleEditSubmit = (e) => {
         e.preventDefault();
 
+        // Name validation
+        const cleanEditFirst = sanitizeName(editForm.first_name, 35);
+        const cleanEditLast = sanitizeName(editForm.last_name, 35);
+        if (!cleanEditFirst || !cleanEditLast) {
+            alert('Please enter both valid First Name and Last Name (letters only).');
+            return;
+        }
+
+        // Phone validation
+        const cleanStaffPhone = sanitizePhone(editForm.phone);
+        if (!isValidPhone(cleanStaffPhone)) {
+            alert('Please enter a valid 10-digit mobile phone number starting with 6, 7, 8, or 9.');
+            return;
+        }
+
+        // Email validation
+        const cleanEditEmail = (editForm.email || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEditEmail)) {
+            alert('Please enter a valid corporate email address (e.g. employee@bnxmail.com).');
+            return;
+        }
+
         // Emergency contact cannot be same as staff contact
-        const cleanStaffPhone = (editForm.phone || '').replace(/[^0-9]/g, '');
-        const cleanEmergPhone = (editForm.emergency_contact_number || '').replace(/[^0-9]/g, '');
+        const cleanEmergPhone = sanitizePhone(editForm.emergency_contact_number);
         if (cleanStaffPhone && cleanEmergPhone) {
             if (cleanStaffPhone === cleanEmergPhone || (cleanStaffPhone.length >= 10 && cleanEmergPhone.length >= 10 && cleanStaffPhone.slice(-10) === cleanEmergPhone.slice(-10))) {
                 alert('Emergency contact number cannot be the same as the staff phone number. Please enter a different emergency contact number.');
@@ -1164,8 +1359,12 @@ const BusinessStaffing = () => {
         }
 
         // ESI Number must be unique
-        const cleanEditEsi = (editForm.esi_number || '').trim();
+        const cleanEditEsi = sanitizeEsiInput(editForm.esi_number);
         if (cleanEditEsi) {
+            if (!isValidEsi(cleanEditEsi)) {
+                alert('Please enter a valid 17-digit ESI number (digits only, e.g. 31001234560000001) or leave it blank.');
+                return;
+            }
             const existingWithEsi = employees.find(emp => 
                 String(emp.id) !== String(currentSelectedEmployee?.id) && 
                 (emp.esi_number || '').trim().toLowerCase() === cleanEditEsi.toLowerCase()
@@ -1179,6 +1378,30 @@ const BusinessStaffing = () => {
         const finalEditPan = sanitizePanInput(editForm.pan_number);
         if (editForm.pan_number && !isValidPan(finalEditPan)) {
             alert('Please enter a valid 10-character Indian PAN number (e.g. ABCDE1234F, format: 5 letters, 4 digits, 1 letter) or leave it blank.');
+            return;
+        }
+
+        const finalEditPf = sanitizePfInput(editForm.pf_number);
+        if (editForm.pf_number && !isValidPf(finalEditPf)) {
+            alert('Please enter a valid PF number (e.g. MH/BAN/0011223 or 12-digit UAN like 100123456789) or leave it blank.');
+            return;
+        }
+
+        const finalEditAcc = sanitizeAccountNo(editForm.account_number);
+        if (editForm.account_number && !isValidAccountNo(finalEditAcc)) {
+            alert('Please enter a valid 9 to 18-digit bank account number or leave it blank.');
+            return;
+        }
+
+        const finalEditIfsc = sanitizeIfscInput(editForm.ifsc_code);
+        if (editForm.ifsc_code && !isValidIfsc(finalEditIfsc)) {
+            alert('Please enter a valid 11-character Indian IFSC code (e.g. HDFC0000124 - 4 letters, 0, 6 alphanumeric characters) or leave it blank.');
+            return;
+        }
+
+        const finalEditPincode = sanitizePincode(editForm.pincode);
+        if (editForm.pincode && !isValidPincode(finalEditPincode)) {
+            alert('Please enter a valid 6-digit postal pincode (e.g. 600001) or leave it blank.');
             return;
         }
 
@@ -1226,8 +1449,8 @@ const BusinessStaffing = () => {
                 reporting_manager: editForm.reporting_manager,
                 employee_code: editForm.employee_code,
                 pan_number: finalEditPan,
-                pf_number: editForm.pf_number,
-                esi_number: editForm.esi_number,
+                pf_number: finalEditPf,
+                esi_number: cleanEditEsi,
                 leave_balance: finalLeaveBalance,
                 designation_name: editForm.designation,
                 joining_date: editForm.joining_date,
@@ -1235,9 +1458,11 @@ const BusinessStaffing = () => {
                 performance_rating: editForm.performance_rating,
                 target_score: editForm.target_score
             }),
+            pf_number: finalEditPf,
+            pan_number: finalEditPan,
             deduct_tds: editForm.deduct_tds ? 1 : 0,
-            emergency_contact: JSON.stringify({ name: editForm.emergency_contact_name, phone: editForm.emergency_contact_number }),
-            bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: (editForm.ifsc_code || '').trim().toUpperCase() })
+            emergency_contact: JSON.stringify({ name: sanitizeName(editForm.emergency_contact_name, 40), phone: cleanEmergPhone }),
+            bank_details: JSON.stringify({ bank_name: (editForm.bank_name || '').replace(/[^a-zA-Z\s.\-]/g, '').trim().slice(0, 50), account_number: finalEditAcc, ifsc_code: finalEditIfsc })
         };
         updateEmpMutation.mutate({ id: editForm.employee_id, data: payload });
     };
@@ -1305,7 +1530,10 @@ const BusinessStaffing = () => {
 
     const totalHeadcount = employees.length;
     const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + (parseFloat(emp.basic_salary) || 0), 0);
-    const averageRating = (employees.reduce((sum, emp) => sum + emp.performance_rating, 0) / headcountSafe(totalHeadcount)).toFixed(1);
+    const ratedEmployees = employees.filter(emp => emp.performance_rating !== null && !isNaN(emp.performance_rating));
+    const averageRating = ratedEmployees.length > 0
+        ? (ratedEmployees.reduce((sum, emp) => sum + emp.performance_rating, 0) / ratedEmployees.length).toFixed(1)
+        : 'N/A';
 
     function headcountSafe(h) {
         return h > 0 ? h : 1;
@@ -1393,7 +1621,7 @@ const BusinessStaffing = () => {
                 {[
                     { label: 'Total Active Headcount', value: `${totalHeadcount} Employees`, icon: Users, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Monthly Basic Payroll', value: formatCurrency(totalMonthlyPayroll), icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Workforce Performance', value: `${averageRating} / 5.0 Rating`, icon: Award, color: '#8B5CF6', bg: '#F5F3FF' },
+                    { label: 'Workforce Performance', value: averageRating !== 'N/A' ? `${averageRating} / 5.0 Rating` : 'Pending Appraisal', icon: Award, color: '#8B5CF6', bg: '#F5F3FF' },
                     { label: 'Assigned Shifts', value: 'General (9AM - 6PM)', icon: Clock, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '1.25rem 1.5rem 1.25rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', gap: '1rem' }}>
@@ -1757,23 +1985,65 @@ const BusinessStaffing = () => {
                             <tbody>
                                 {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                     <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#F59E0B' }}>⭐ {emp.performance_rating} / 5.0</td>
-                                        <td style={{ padding: '1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '120px', height: '8px', borderRadius: '4px', background: '#F1F5F9', overflow: 'hidden' }}>
-                                                    <div style={{ width: `${emp.target_score}%`, height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)' }}></div>
-                                                </div>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>{emp.target_score}% Achieve</span>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>
+                                            <div style={{ color: '#0F172A', fontSize: '0.9rem' }}>{emp.first_name} {emp.last_name}</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600', marginTop: '2px' }}>
+                                                {emp.employee_code || `CLK-00${emp.id}`} • {emp.department_name || 'Staff'}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1rem', color: '#64748B' }}>1st October 2026</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {emp.performance_rating !== null && !isNaN(emp.performance_rating) ? (
+                                                <span style={{ fontWeight: '800', color: '#F59E0B', fontSize: '0.9rem' }}>
+                                                    ⭐ {Number(emp.performance_rating).toFixed(1)} / 5.0
+                                                </span>
+                                            ) : (
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#FEF3C7', color: '#92400E', padding: '0.25rem 0.65rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750' }}>
+                                                    ⏳ Pending Appraisal
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {emp.target_score !== null && !isNaN(emp.target_score) ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div style={{ width: '120px', height: '8px', borderRadius: '4px', background: '#F1F5F9', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${Math.min(100, Math.max(0, emp.target_score))}%`, height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)' }}></div>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>{emp.target_score}% Achieve</span>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div style={{ width: '120px', height: '8px', borderRadius: '4px', background: '#F1F5F9', overflow: 'hidden' }}>
+                                                        <div style={{ width: '0%', height: '100%', background: '#CBD5E1' }}></div>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#94A3B8' }}>Target Not Set</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: '600' }}>
+                                            <div>{getAppraisalDueDate(emp.joining_date)}</div>
+                                            {emp.performance_rating === null && (
+                                                <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '500' }}>90-Day Probation Review</span>
+                                            )}
+                                        </td>
                                         <td style={{ padding: '1rem', textAlign: 'right' }}>
                                             <button
                                                 onClick={() => handleOpenFileAppraisal(emp.employee_id || emp.id)}
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem', borderRadius: '10px', background: '#FDF2F8', color: '#DB2777', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.75rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
+                                                style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '0.4rem', 
+                                                    padding: '0.45rem 0.85rem', 
+                                                    borderRadius: '10px', 
+                                                    background: emp.performance_rating !== null ? '#FDF2F8' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                                    color: emp.performance_rating !== null ? '#DB2777' : 'white', 
+                                                    border: emp.performance_rating !== null ? '1px solid #FCE7F3' : 'none', 
+                                                    fontWeight: '750', 
+                                                    fontSize: '0.75rem', 
+                                                    cursor: 'pointer', 
+                                                    boxShadow: emp.performance_rating !== null ? '0 1px 2px rgba(0,0,0,0.03)' : '0 4px 10px rgba(124, 58, 237, 0.25)' 
+                                                }}
                                             >
-                                                <Award size={13} /> Settle Appraisal
+                                                <Award size={13} /> {emp.performance_rating !== null ? 'Re-Appraise' : 'Settle Appraisal'}
                                             </button>
                                         </td>
                                     </tr>
@@ -2059,13 +2329,29 @@ const BusinessStaffing = () => {
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
                                                     First Name <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <input required type="text" value={newEmp.first_name} onChange={(e) => setNewEmp({ ...newEmp, first_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Arun" />
+                                                <input 
+                                                    required 
+                                                    type="text" 
+                                                    maxLength={35}
+                                                    value={newEmp.first_name} 
+                                                    onChange={(e) => setNewEmp({ ...newEmp, first_name: sanitizeName(e.target.value, 35) })} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                    placeholder="Arun" 
+                                                />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
                                                     Last Name <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <input required type="text" value={newEmp.last_name} onChange={(e) => setNewEmp({ ...newEmp, last_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Kumar" />
+                                                <input 
+                                                    required 
+                                                    type="text" 
+                                                    maxLength={35}
+                                                    value={newEmp.last_name} 
+                                                    onChange={(e) => setNewEmp({ ...newEmp, last_name: sanitizeName(e.target.value, 35) })} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                    placeholder="Kumar" 
+                                                />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
@@ -2249,11 +2535,25 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Reporting Manager</label>
-                                                <input type="text" value={newEmp.reporting_manager} onChange={(e) => setNewEmp({ ...newEmp, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Ankit Sharma (Optional)" />
+                                                <input 
+                                                    type="text" 
+                                                    maxLength={40}
+                                                    value={newEmp.reporting_manager} 
+                                                    onChange={(e) => setNewEmp({ ...newEmp, reporting_manager: sanitizeName(e.target.value, 40) })} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                    placeholder="e.g. Ankit Sharma (Optional)" 
+                                                />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Employee ID / Code</label>
-                                                <input type="text" value={newEmp.employee_code} onChange={(e) => setNewEmp({ ...newEmp, employee_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. CLK-001 or EMP-2026-001" />
+                                                <input 
+                                                    type="text" 
+                                                    maxLength={16}
+                                                    value={newEmp.employee_code} 
+                                                    onChange={(e) => setNewEmp({ ...newEmp, employee_code: sanitizeEmpCode(e.target.value) })} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }} 
+                                                    placeholder="e.g. CLK-001 or EMP-2026-001" 
+                                                />
                                             </div>
                                         </div>
                                         <div>
@@ -2324,8 +2624,43 @@ const BusinessStaffing = () => {
                                         </span>
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
-                                        <input type="text" value={newEmp.pf_number} onChange={(e) => setNewEmp({ ...newEmp, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. MH/BAN/0011223" />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>PF Number</label>
+                                            {newEmp.pf_number && (
+                                                <span style={{ 
+                                                    fontSize: '0.62rem', 
+                                                    fontWeight: '750', 
+                                                    color: isValidPf(newEmp.pf_number) ? '#059669' : '#D97706'
+                                                }}>
+                                                    {isValidPf(newEmp.pf_number) ? '✓ Valid PF/UAN' : `${newEmp.pf_number.length} chars`}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            maxLength={26}
+                                            value={newEmp.pf_number} 
+                                            onChange={(e) => {
+                                                const val = sanitizePfInput(e.target.value);
+                                                setNewEmp({ ...newEmp, pf_number: val });
+                                            }} 
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.55rem', 
+                                                borderRadius: '8px', 
+                                                border: newEmp.pf_number ? (isValidPf(newEmp.pf_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                outline: 'none', 
+                                                fontSize: '0.85rem', 
+                                                boxSizing: 'border-box',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.03em',
+                                                fontFamily: 'monospace'
+                                            }} 
+                                            placeholder="e.g. MH/BAN/0011223" 
+                                        />
+                                        <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                            Standard EPFO Member ID or 12-digit UAN
+                                        </span>
                                     </div>
                                     <div>
                                         {(() => {
@@ -2333,19 +2668,48 @@ const BusinessStaffing = () => {
                                             const dup = val ? employees.find(e => (e.esi_number || '').trim().toLowerCase() === val.toLowerCase()) : null;
                                             return (
                                                 <>
-                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: dup ? '#DC2626' : '#64748B', marginBottom: '0.25rem' }}>
-                                                        ESI Number {dup && '(Must be unique)'}
-                                                    </label>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: dup ? '#DC2626' : '#64748B' }}>
+                                                            ESI Number {dup && '(Must be unique)'}
+                                                        </label>
+                                                        {newEmp.esi_number && !dup && (
+                                                            <span style={{ 
+                                                                fontSize: '0.62rem', 
+                                                                fontWeight: '750', 
+                                                                color: isValidEsi(newEmp.esi_number) ? '#059669' : '#D97706'
+                                                            }}>
+                                                                {isValidEsi(newEmp.esi_number) ? '✓ Valid 17-digit ESI' : `${newEmp.esi_number.length}/17 digits`}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <input 
                                                         type="text" 
+                                                        maxLength={17}
                                                         value={newEmp.esi_number} 
-                                                        onChange={(e) => setNewEmp({ ...newEmp, esi_number: e.target.value })} 
-                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: dup ? '1.5px solid #EF4444' : '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', background: dup ? '#FEF2F2' : 'white' }} 
-                                                        placeholder="e.g. 31001234560001" 
+                                                        onChange={(e) => {
+                                                            const val = sanitizeEsiInput(e.target.value);
+                                                            setNewEmp({ ...newEmp, esi_number: val });
+                                                        }} 
+                                                        style={{ 
+                                                            width: '100%', 
+                                                            padding: '0.55rem', 
+                                                            borderRadius: '8px', 
+                                                            border: dup ? '1.5px solid #EF4444' : (newEmp.esi_number ? (isValidEsi(newEmp.esi_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1'), 
+                                                            outline: 'none', 
+                                                            fontSize: '0.85rem', 
+                                                            boxSizing: 'border-box', 
+                                                            background: dup ? '#FEF2F2' : 'white',
+                                                            fontFamily: 'monospace'
+                                                        }} 
+                                                        placeholder="e.g. 31001234560000001" 
                                                     />
-                                                    {dup && (
+                                                    {dup ? (
                                                         <span style={{ color: '#DC2626', fontSize: '0.68rem', fontWeight: '750', marginTop: '0.25rem', display: 'block' }}>
                                                             ⚠️ Already assigned to {dup.name}
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                            Exact 17 numeric digits
                                                         </span>
                                                     )}
                                                 </>
@@ -2356,25 +2720,93 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Name</label>
-                                        <input type="text" value={newEmp.bank_name} onChange={(e) => setNewEmp({ ...newEmp, bank_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. HDFC Bank (Optional)" />
+                                        <input 
+                                            type="text" 
+                                            maxLength={50}
+                                            value={newEmp.bank_name} 
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^a-zA-Z\s.\-]/g, '').slice(0, 50);
+                                                setNewEmp({ ...newEmp, bank_name: val });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                            placeholder="e.g. HDFC Bank (Optional)" 
+                                        />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Account Number</label>
-                                        <input type="text" value={newEmp.account_number} onChange={(e) => setNewEmp({ ...newEmp, account_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 50100223344551 (Optional)" />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Bank Account Number</label>
+                                            {newEmp.account_number && (
+                                                <span style={{ 
+                                                    fontSize: '0.62rem', 
+                                                    fontWeight: '750', 
+                                                    color: isValidAccountNo(newEmp.account_number) ? '#059669' : '#D97706'
+                                                }}>
+                                                    {isValidAccountNo(newEmp.account_number) ? '✓ Valid Account' : `${newEmp.account_number.length}d (min 9)`}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            maxLength={18}
+                                            value={newEmp.account_number} 
+                                            onChange={(e) => {
+                                                const val = sanitizeAccountNo(e.target.value);
+                                                setNewEmp({ ...newEmp, account_number: val });
+                                            }} 
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.55rem', 
+                                                borderRadius: '8px', 
+                                                border: newEmp.account_number ? (isValidAccountNo(newEmp.account_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                outline: 'none', 
+                                                fontSize: '0.85rem', 
+                                                boxSizing: 'border-box',
+                                                fontFamily: 'monospace'
+                                            }} 
+                                            placeholder="e.g. 50100223344551 (Optional)" 
+                                        />
+                                        <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                            9 to 18 numeric digits
+                                        </span>
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>IFSC Code</label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>IFSC Code</label>
+                                            {newEmp.ifsc_code && (
+                                                <span style={{ 
+                                                    fontSize: '0.62rem', 
+                                                    fontWeight: '750', 
+                                                    color: isValidIfsc(newEmp.ifsc_code) ? '#059669' : '#D97706'
+                                                }}>
+                                                    {isValidIfsc(newEmp.ifsc_code) ? '✓ Valid IFSC' : `${newEmp.ifsc_code.length}/11 chars`}
+                                                </span>
+                                            )}
+                                        </div>
                                         <input
                                             type="text"
                                             maxLength={11}
                                             value={newEmp.ifsc_code}
                                             onChange={(e) => {
-                                                const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+                                                const val = sanitizeIfscInput(e.target.value);
                                                 setNewEmp({ ...newEmp, ifsc_code: val });
                                             }}
-                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.55rem', 
+                                                borderRadius: '8px', 
+                                                border: newEmp.ifsc_code ? (isValidIfsc(newEmp.ifsc_code) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                outline: 'none', 
+                                                fontSize: '0.85rem', 
+                                                boxSizing: 'border-box', 
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                                fontFamily: 'monospace'
+                                            }}
                                             placeholder="e.g. HDFC0000124 (Optional)"
                                         />
+                                        <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                            11 chars: 4 letters, 0, 6 alphanumeric
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -2392,33 +2824,93 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                        <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street (Optional)" />
+                                        <input type="text" maxLength={100} value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street (Optional)" />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>City</label>
-                                            <input type="text" value={newEmp.city} onChange={(e) => setNewEmp({ ...newEmp, city: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Chennai" />
+                                            <input 
+                                                type="text" 
+                                                maxLength={35}
+                                                value={newEmp.city} 
+                                                onChange={(e) => setNewEmp({ ...newEmp, city: sanitizeName(e.target.value, 35) })} 
+                                                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                placeholder="e.g. Chennai" 
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>State</label>
-                                            <input type="text" value={newEmp.state} onChange={(e) => setNewEmp({ ...newEmp, state: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Tamil Nadu" />
+                                            <input 
+                                                type="text" 
+                                                maxLength={35}
+                                                value={newEmp.state} 
+                                                onChange={(e) => setNewEmp({ ...newEmp, state: sanitizeName(e.target.value, 35) })} 
+                                                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                placeholder="e.g. Tamil Nadu" 
+                                            />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Pincode</label>
-                                            <input type="text" value={newEmp.pincode} onChange={(e) => setNewEmp({ ...newEmp, pincode: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 600040" />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Pincode</label>
+                                                {newEmp.pincode && (
+                                                    <span style={{ 
+                                                        fontSize: '0.62rem', 
+                                                        fontWeight: '750', 
+                                                        color: isValidPincode(newEmp.pincode) ? '#059669' : '#D97706'
+                                                    }}>
+                                                        {isValidPincode(newEmp.pincode) ? '✓ 6 digits' : `${newEmp.pincode.length}/6`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <input 
+                                                type="text" 
+                                                maxLength={6}
+                                                value={newEmp.pincode} 
+                                                onChange={(e) => setNewEmp({ ...newEmp, pincode: sanitizePincode(e.target.value) })} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.55rem', 
+                                                    borderRadius: '8px', 
+                                                    border: newEmp.pincode ? (isValidPincode(newEmp.pincode) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                    outline: 'none', 
+                                                    fontSize: '0.85rem', 
+                                                    boxSizing: 'border-box',
+                                                    fontFamily: 'monospace'
+                                                }} 
+                                                placeholder="e.g. 600040" 
+                                            />
                                         </div>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
-                                            <input type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Vijay Kumar (Optional)" />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Phone</label>
                                             <input 
                                                 type="text" 
+                                                maxLength={40}
+                                                value={newEmp.emergency_contact_name} 
+                                                onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: sanitizeName(e.target.value, 40) })} 
+                                                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                placeholder="e.g. Vijay Kumar (Optional)" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Emergency Phone</label>
+                                                {newEmp.emergency_contact_number && (
+                                                    <span style={{ 
+                                                        fontSize: '0.62rem', 
+                                                        fontWeight: '750', 
+                                                        color: isValidPhone(newEmp.emergency_contact_number) ? '#059669' : '#D97706'
+                                                    }}>
+                                                        {isValidPhone(newEmp.emergency_contact_number) ? '✓ 10 digits' : `${newEmp.emergency_contact_number.length}/10`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <input 
+                                                type="text" 
+                                                maxLength={10}
                                                 value={newEmp.emergency_contact_number} 
-                                                onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} 
+                                                onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: sanitizePhone(e.target.value) })} 
                                                 style={{ 
                                                     width: '100%', 
                                                     padding: '0.55rem', 
@@ -2427,7 +2919,8 @@ const BusinessStaffing = () => {
                                                         const cleanStaff = (newEmp.phone_number || '').replace(/[^0-9]/g, '');
                                                         const cleanEmerg = (newEmp.emergency_contact_number || '').replace(/[^0-9]/g, '');
                                                         const isSame = cleanStaff && cleanEmerg && (cleanStaff === cleanEmerg || (cleanStaff.length >= 10 && cleanEmerg.length >= 10 && cleanStaff.slice(-10) === cleanEmerg.slice(-10)));
-                                                        return isSame ? '1.5px solid #EF4444' : '1px solid #CBD5E1';
+                                                        if (isSame) return '1.5px solid #EF4444';
+                                                        return newEmp.emergency_contact_number ? (isValidPhone(newEmp.emergency_contact_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1';
                                                     })(), 
                                                     outline: 'none', 
                                                     fontSize: '0.85rem', 
@@ -2610,11 +3103,25 @@ const BusinessStaffing = () => {
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>First Name</label>
-                                                        <input required type="text" value={editForm.first_name || ''} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <input 
+                                                            required 
+                                                            type="text" 
+                                                            maxLength={35}
+                                                            value={editForm.first_name || ''} 
+                                                            onChange={(e) => setEditForm({ ...editForm, first_name: sanitizeName(e.target.value, 35) })} 
+                                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        />
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Last Name</label>
-                                                        <input required type="text" value={editForm.last_name || ''} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <input 
+                                                            required 
+                                                            type="text" 
+                                                            maxLength={35}
+                                                            value={editForm.last_name || ''} 
+                                                            onChange={(e) => setEditForm({ ...editForm, last_name: sanitizeName(e.target.value, 35) })} 
+                                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
@@ -2652,7 +3159,14 @@ const BusinessStaffing = () => {
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Phone</label>
-                                                        <input required type="text" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <input 
+                                                            required 
+                                                            type="text" 
+                                                            maxLength={10}
+                                                            value={editForm.phone || ''} 
+                                                            onChange={(e) => setEditForm({ ...editForm, phone: sanitizePhone(e.target.value) })} 
+                                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div>
@@ -2758,11 +3272,24 @@ const BusinessStaffing = () => {
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Reporting Manager</label>
-                                                        <input type="text" value={editForm.reporting_manager || ''} onChange={(e) => setEditForm({ ...editForm, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <input 
+                                                            type="text" 
+                                                            maxLength={40}
+                                                            value={editForm.reporting_manager || ''} 
+                                                            onChange={(e) => setEditForm({ ...editForm, reporting_manager: sanitizeName(e.target.value, 40) })} 
+                                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        />
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Employee ID / Code</label>
-                                                        <input type="text" value={editForm.employee_code || ''} onChange={(e) => setEditForm({ ...editForm, employee_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. CLK-001" />
+                                                        <input 
+                                                            type="text" 
+                                                            maxLength={16}
+                                                            value={editForm.employee_code || ''} 
+                                                            onChange={(e) => setEditForm({ ...editForm, employee_code: sanitizeEmpCode(e.target.value) })} 
+                                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }} 
+                                                            placeholder="e.g. CLK-001" 
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div>
@@ -2826,8 +3353,43 @@ const BusinessStaffing = () => {
                                                 </span>
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
-                                                <input type="text" value={editForm.pf_number || ''} onChange={(e) => setEditForm({ ...editForm, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>PF Number</label>
+                                                    {editForm.pf_number && (
+                                                        <span style={{ 
+                                                            fontSize: '0.62rem', 
+                                                            fontWeight: '750', 
+                                                            color: isValidPf(editForm.pf_number) ? '#059669' : '#D97706'
+                                                        }}>
+                                                            {isValidPf(editForm.pf_number) ? '✓ Valid PF/UAN' : `${editForm.pf_number.length} chars`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    maxLength={26}
+                                                    value={editForm.pf_number || ''} 
+                                                    onChange={(e) => {
+                                                        const val = sanitizePfInput(e.target.value);
+                                                        setEditForm({ ...editForm, pf_number: val });
+                                                    }} 
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.55rem', 
+                                                        borderRadius: '8px', 
+                                                        border: editForm.pf_number ? (isValidPf(editForm.pf_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                        outline: 'none', 
+                                                        fontSize: '0.85rem', 
+                                                        boxSizing: 'border-box',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.03em',
+                                                        fontFamily: 'monospace'
+                                                    }} 
+                                                    placeholder="e.g. MH/BAN/0011223" 
+                                                />
+                                                <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                    Standard EPFO Member ID or 12-digit UAN
+                                                </span>
                                             </div>
                                             <div>
                                                 {(() => {
@@ -2835,19 +3397,48 @@ const BusinessStaffing = () => {
                                                     const dup = val ? employees.find(e => String(e.id) !== String(currentSelectedEmployee?.id) && (e.esi_number || '').trim().toLowerCase() === val.toLowerCase()) : null;
                                                     return (
                                                         <>
-                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: dup ? '#DC2626' : '#64748B', marginBottom: '0.25rem' }}>
-                                                                ESI Number {dup && '(Must be unique)'}
-                                                            </label>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: dup ? '#DC2626' : '#64748B' }}>
+                                                                    ESI Number {dup && '(Must be unique)'}
+                                                                </label>
+                                                                {editForm.esi_number && !dup && (
+                                                                    <span style={{ 
+                                                                        fontSize: '0.62rem', 
+                                                                        fontWeight: '750', 
+                                                                        color: isValidEsi(editForm.esi_number) ? '#059669' : '#D97706'
+                                                                    }}>
+                                                                        {isValidEsi(editForm.esi_number) ? '✓ Valid ESI (17d)' : `${editForm.esi_number.length}/17 digits`}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <input 
                                                                 type="text" 
+                                                                maxLength={17}
                                                                 value={editForm.esi_number || ''} 
-                                                                onChange={(e) => setEditForm({ ...editForm, esi_number: e.target.value })} 
-                                                                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: dup ? '1.5px solid #EF4444' : '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', background: dup ? '#FEF2F2' : 'white' }} 
+                                                                onChange={(e) => {
+                                                                    const val = sanitizeEsiInput(e.target.value);
+                                                                    setEditForm({ ...editForm, esi_number: val });
+                                                                }} 
+                                                                style={{ 
+                                                                    width: '100%', 
+                                                                    padding: '0.55rem', 
+                                                                    borderRadius: '8px', 
+                                                                    border: dup ? '1.5px solid #EF4444' : (editForm.esi_number ? (isValidEsi(editForm.esi_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1'), 
+                                                                    outline: 'none', 
+                                                                    fontSize: '0.85rem', 
+                                                                    boxSizing: 'border-box', 
+                                                                    background: dup ? '#FEF2F2' : 'white',
+                                                                    fontFamily: 'monospace'
+                                                                }} 
                                                                 placeholder="e.g. 31001234560001" 
                                                             />
-                                                            {dup && (
+                                                            {dup ? (
                                                                 <span style={{ color: '#DC2626', fontSize: '0.68rem', fontWeight: '750', marginTop: '0.25rem', display: 'block' }}>
                                                                     ⚠️ Already assigned to {dup.name}
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                                    Exact 17 numeric digits
                                                                 </span>
                                                             )}
                                                         </>
@@ -2858,25 +3449,93 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Name</label>
-                                                <input type="text" value={editForm.bank_name || ''} onChange={(e) => setEditForm({ ...editForm, bank_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input 
+                                                    type="text" 
+                                                    maxLength={50}
+                                                    value={editForm.bank_name || ''} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/[^a-zA-Z\s.\-]/g, '').slice(0, 50);
+                                                        setEditForm({ ...editForm, bank_name: val });
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                    placeholder="e.g. HDFC Bank (Optional)" 
+                                                />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Account Number</label>
-                                                <input type="text" value={editForm.account_number || ''} onChange={(e) => setEditForm({ ...editForm, account_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Bank Account Number</label>
+                                                    {editForm.account_number && (
+                                                        <span style={{ 
+                                                            fontSize: '0.62rem', 
+                                                            fontWeight: '750', 
+                                                            color: isValidAccountNo(editForm.account_number) ? '#059669' : '#D97706'
+                                                        }}>
+                                                            {isValidAccountNo(editForm.account_number) ? '✓ Valid Account' : `${editForm.account_number.length}d (min 9)`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    maxLength={18}
+                                                    value={editForm.account_number || ''} 
+                                                    onChange={(e) => {
+                                                        const val = sanitizeAccountNo(e.target.value);
+                                                        setEditForm({ ...editForm, account_number: val });
+                                                    }} 
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.55rem', 
+                                                        borderRadius: '8px', 
+                                                        border: editForm.account_number ? (isValidAccountNo(editForm.account_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                        outline: 'none', 
+                                                        fontSize: '0.85rem', 
+                                                        boxSizing: 'border-box',
+                                                        fontFamily: 'monospace'
+                                                    }} 
+                                                    placeholder="e.g. 50100223344551 (Optional)" 
+                                                />
+                                                <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                    9 to 18 numeric digits
+                                                </span>
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>IFSC Code</label>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>IFSC Code</label>
+                                                    {editForm.ifsc_code && (
+                                                        <span style={{ 
+                                                            fontSize: '0.62rem', 
+                                                            fontWeight: '750', 
+                                                            color: isValidIfsc(editForm.ifsc_code) ? '#059669' : '#D97706'
+                                                        }}>
+                                                            {isValidIfsc(editForm.ifsc_code) ? '✓ Valid IFSC' : `${editForm.ifsc_code.length}/11 chars`}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <input
                                                     type="text"
                                                     maxLength={11}
                                                     value={editForm.ifsc_code || ''}
                                                     onChange={(e) => {
-                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+                                                        const val = sanitizeIfscInput(e.target.value);
                                                         setEditForm({ ...editForm, ifsc_code: val });
                                                     }}
-                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.55rem', 
+                                                        borderRadius: '8px', 
+                                                        border: editForm.ifsc_code ? (isValidIfsc(editForm.ifsc_code) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                        outline: 'none', 
+                                                        fontSize: '0.85rem', 
+                                                        boxSizing: 'border-box', 
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em',
+                                                        fontFamily: 'monospace'
+                                                    }}
                                                     placeholder="e.g. HDFC0000124 (Optional)"
                                                 />
+                                                <span style={{ fontSize: '0.62rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>
+                                                    11 chars: 4 letters, 0, 6 alphanumeric
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -2887,15 +3546,16 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                                <input type="text" value={editForm.address_line_1 || ''} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street" />
+                                                <input type="text" maxLength={100} value={editForm.address_line_1 || ''} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street" />
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>City</label>
                                                     <input 
                                                         type="text" 
+                                                        maxLength={35}
                                                         value={editForm.city || ''} 
-                                                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} 
+                                                        onChange={(e) => setEditForm({ ...editForm, city: sanitizeName(e.target.value, 35) })} 
                                                         style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
                                                         placeholder="e.g. Chennai" 
                                                     />
@@ -2904,19 +3564,41 @@ const BusinessStaffing = () => {
                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>State</label>
                                                     <input 
                                                         type="text" 
+                                                        maxLength={35}
                                                         value={editForm.state || ''} 
-                                                        onChange={(e) => setEditForm({ ...editForm, state: e.target.value })} 
+                                                        onChange={(e) => setEditForm({ ...editForm, state: sanitizeName(e.target.value, 35) })} 
                                                         style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
                                                         placeholder="e.g. Tamil Nadu" 
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Pincode</label>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Pincode</label>
+                                                        {editForm.pincode && (
+                                                            <span style={{ 
+                                                                fontSize: '0.62rem', 
+                                                                fontWeight: '750', 
+                                                                color: isValidPincode(editForm.pincode) ? '#059669' : '#D97706'
+                                                            }}>
+                                                                {isValidPincode(editForm.pincode) ? '✓ 6 digits' : `${editForm.pincode.length}/6`}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <input 
                                                         type="text" 
+                                                        maxLength={6}
                                                         value={editForm.pincode || ''} 
-                                                        onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value })} 
-                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        onChange={(e) => setEditForm({ ...editForm, pincode: sanitizePincode(e.target.value) })} 
+                                                        style={{ 
+                                                            width: '100%', 
+                                                            padding: '0.55rem', 
+                                                            borderRadius: '8px', 
+                                                            border: editForm.pincode ? (isValidPincode(editForm.pincode) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1', 
+                                                            outline: 'none', 
+                                                            fontSize: '0.85rem', 
+                                                            boxSizing: 'border-box',
+                                                            fontFamily: 'monospace'
+                                                        }} 
                                                         placeholder="e.g. 600040" 
                                                     />
                                                 </div>
@@ -2924,14 +3606,33 @@ const BusinessStaffing = () => {
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
-                                                    <input type="text" value={editForm.emergency_contact_name || ''} onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
-                                                </div>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Phone</label>
                                                     <input 
                                                         type="text" 
+                                                        maxLength={40}
+                                                        value={editForm.emergency_contact_name || ''} 
+                                                        onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: sanitizeName(e.target.value, 40) })} 
+                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        placeholder="e.g. Vijay Kumar (Optional)" 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Emergency Phone</label>
+                                                        {editForm.emergency_contact_number && (
+                                                            <span style={{ 
+                                                                fontSize: '0.62rem', 
+                                                                fontWeight: '750', 
+                                                                color: isValidPhone(editForm.emergency_contact_number) ? '#059669' : '#D97706'
+                                                            }}>
+                                                                {isValidPhone(editForm.emergency_contact_number) ? '✓ 10 digits' : `${editForm.emergency_contact_number.length}/10`}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <input 
+                                                        type="text" 
+                                                        maxLength={10}
                                                         value={editForm.emergency_contact_number || ''} 
-                                                        onChange={(e) => setEditForm({ ...editForm, emergency_contact_number: e.target.value })} 
+                                                        onChange={(e) => setEditForm({ ...editForm, emergency_contact_number: sanitizePhone(e.target.value) })} 
                                                         style={{ 
                                                             width: '100%', 
                                                             padding: '0.55rem', 
@@ -2940,12 +3641,14 @@ const BusinessStaffing = () => {
                                                                 const cleanStaff = (editForm.phone || '').replace(/[^0-9]/g, '');
                                                                 const cleanEmerg = (editForm.emergency_contact_number || '').replace(/[^0-9]/g, '');
                                                                 const isSame = cleanStaff && cleanEmerg && (cleanStaff === cleanEmerg || (cleanStaff.length >= 10 && cleanEmerg.length >= 10 && cleanStaff.slice(-10) === cleanEmerg.slice(-10)));
-                                                                return isSame ? '1.5px solid #EF4444' : '1px solid #CBD5E1';
+                                                                if (isSame) return '1.5px solid #EF4444';
+                                                                return editForm.emergency_contact_number ? (isValidPhone(editForm.emergency_contact_number) ? '1px solid #10B981' : '1.5px solid #F59E0B') : '1px solid #CBD5E1';
                                                             })(), 
                                                             outline: 'none', 
                                                             fontSize: '0.85rem', 
                                                             boxSizing: 'border-box' 
                                                         }} 
+                                                        placeholder="e.g. 9876599911 (Optional)" 
                                                     />
                                                     {(() => {
                                                         const cleanStaff = (editForm.phone || '').replace(/[^0-9]/g, '');
