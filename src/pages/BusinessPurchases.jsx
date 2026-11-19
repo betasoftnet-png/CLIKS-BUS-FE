@@ -1005,16 +1005,6 @@ const BusinessPurchases = () => {
                     </button>
                     <button 
                         onClick={() => {
-                            setCreateDocType('RETURN');
-                            setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
-                            setIsCreateModalOpen(true);
-                        }}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'white', color: '#334155', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
-                    >
-                        <Plus size={14} /> Purchase Return
-                    </button>
-                    <button 
-                        onClick={() => {
                             setCreateDocType('BILL');
                             setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
                             setIsCreateModalOpen(true);
