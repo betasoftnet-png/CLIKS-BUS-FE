@@ -16,7 +16,7 @@ import { useAuth, useLanguage } from '../context';
 import { apiClient } from '../api/client';
 import logoPng from '../assets/cliks6.png'; // Final branding
 import accessKitPng from '../assets/ACCESS_KIT.png';
-import bitTool2Png from '../assets/BIT-TOOL-2.png';
+import bitTool2Png from '../assets/BIT-TOOL-3.png';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ProfileDropdown } from './ProfileDropdown';
