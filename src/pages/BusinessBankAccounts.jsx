@@ -79,6 +79,10 @@ const BusinessBankAccounts = () => {
 
     const handleCreateAccount = async (e) => {
         e.preventDefault();
+        if (accounts.length >= 10) {
+            alert('Account limit reached! A maximum of 10 cash & bank accounts are allowed (limit: 5-10 accounts).');
+            return;
+        }
         await paymentsStore.addBankAccount(accountForm);
         refreshStoreData();
         setIsAccountModalOpen(false);
@@ -126,7 +130,13 @@ const BusinessBankAccounts = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button 
-                        onClick={() => setIsAccountModalOpen(true)}
+                        onClick={() => {
+                            if (accounts.length >= 10) {
+                                alert('Account limit reached! A maximum of 10 cash & bank accounts are allowed (limit: 5-10 accounts).');
+                                return;
+                            }
+                            setIsAccountModalOpen(true);
+                        }}
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.6rem', 
                             padding: '0.85rem 1.5rem', borderRadius: '14px', 

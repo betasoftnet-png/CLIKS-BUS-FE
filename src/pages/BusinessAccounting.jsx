@@ -928,11 +928,20 @@ const BusinessAccounting = () => {
         });
     };
 
+    // Dynamic gross revenue computation: combine invoices and P&L
+    const totalInvoiceRevenue = dbInvoices.reduce((acc, inv) => {
+        if (inv.status && ['cancelled', 'void'].includes(String(inv.status).toLowerCase())) return acc;
+        return acc + (parseFloat(inv.total_amount ?? inv.amount ?? 0) || 0);
+    }, 0);
+    const displayGrossRevenue = Math.max(parseFloat(dbPL?.gross_revenue) || 0, totalInvoiceRevenue);
+    const displayTotalExpenses = parseFloat(dbPL?.total_expenses) || 0;
+    const displayNetProfit = displayGrossRevenue - displayTotalExpenses;
+
     // fallback data
     const summaryStats = [
-        { label: 'Gross Revenue', value: dbPL ? formatCurrency(dbPL.gross_revenue || 0) : formatCurrency(0), icon: TrendingUp, color: '#7C3AED', bg: '#F3E8FF' },
-        { label: 'Total Expenses', value: dbPL ? formatCurrency(dbPL.total_expenses || 0) : formatCurrency(0), icon: TrendingDown, color: '#EF4444', bg: '#FEF2F2' },
-        { label: 'Net Profit', value: dbPL ? formatCurrency(dbPL.net_profit || 0) : formatCurrency(0), icon: IndianRupee, color: '#0891B2', bg: '#E0F2FE' },
+        { label: 'Gross Revenue', value: formatCurrency(displayGrossRevenue), icon: TrendingUp, color: '#7C3AED', bg: '#F3E8FF' },
+        { label: 'Total Expenses', value: formatCurrency(displayTotalExpenses), icon: TrendingDown, color: '#EF4444', bg: '#FEF2F2' },
+        { label: 'Net Profit', value: formatCurrency(displayNetProfit), icon: IndianRupee, color: '#0891B2', bg: '#E0F2FE' },
         { label: 'GST Payable', value: dbBalanceSheet?.liabilities?.gst_payable ? formatCurrency(dbBalanceSheet.liabilities.gst_payable) : formatCurrency(0), icon: ShieldCheck, color: '#0D9488', bg: '#DCFCE7' }
     ];
 
@@ -1706,6 +1715,10 @@ const BusinessAccounting = () => {
                                 </div>
                                 <div 
                                     onClick={() => {
+                                        if (dbBankAccounts.length >= 10) {
+                                            alert("Account limit reached!\n\nYou have reached the maximum allowed limit of 10 Cash & Bank accounts (limit: 5-10 accounts). Please manage or remove existing accounts to add a new one.");
+                                            return;
+                                        }
                                         setBankForm({
                                             bank_name: '',
                                             account_name: '',
@@ -1721,21 +1734,26 @@ const BusinessAccounting = () => {
                                         setIsAddBankModalOpen(true);
                                     }}
                                     style={{ 
-                                        background: '#FEF2F2', 
+                                        background: dbBankAccounts.length >= 10 ? '#F8FAFC' : '#FEF2F2', 
                                         padding: '0.75rem 1rem', 
                                         borderRadius: '12px', 
-                                        border: '1px solid #FEE2E2', 
+                                        border: dbBankAccounts.length >= 10 ? '1px solid #E2E8F0' : '1px solid #FEE2E2', 
                                         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'center',
                                         alignItems: 'center',
-                                        cursor: 'pointer',
+                                        cursor: dbBankAccounts.length >= 10 ? 'not-allowed' : 'pointer',
                                         transition: 'all 0.2s ease-in-out'
                                     }}
                                     className="stat-card"
                                 >
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '950', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ ADD NEW BANK</h3>
+                                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '950', color: dbBankAccounts.length >= 10 ? '#94A3B8' : '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        + ADD NEW BANK ({dbBankAccounts.length}/10)
+                                    </h3>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '750', color: dbBankAccounts.length >= 10 ? '#EF4444' : '#64748B', marginTop: '2px' }}>
+                                        {dbBankAccounts.length >= 10 ? 'Limit Reached (Max 10)' : 'Limit: 5-10 accounts'}
+                                    </span>
                                 </div>
                             </div>
 
@@ -3605,7 +3623,12 @@ const BusinessAccounting = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Add New Bank Account</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Add New Bank Account</h2>
+                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '2px 8px', borderRadius: '6px' }}>
+                                    Slot {dbBankAccounts.length + 1} of 10 max
+                                </span>
+                            </div>
                             <button onClick={() => setIsAddBankModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         {bankFormError && (
@@ -3642,6 +3665,11 @@ const BusinessAccounting = () => {
                                     setBankFormTouched({ account_number: true, ifsc_code: true });
                                     
                                     // Validations
+                                    if (dbBankAccounts.length >= 10) {
+                                        setBankFormError('Account limit reached. You can add a maximum of 10 cash & bank accounts (limit: 5-10 accounts).');
+                                        return;
+                                    }
+
                                     if (!bankForm.bank_name?.trim() || !bankForm.account_name?.trim() || !bankForm.account_number || !cleanIfsc || bankForm.opening_balance === '') {
                                         setBankFormError('Bank Name, Account Name, Account Number, IFSC Code, and Opening Balance are mandatory.');
                                         return;
