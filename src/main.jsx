@@ -11,6 +11,13 @@ import './styles/layout.css'
 import './styles/premium.css'
 import App from './App.jsx'
 
+// Canonical Domain Enforcement: Redirect www.cliksbusiness.com -> cliksbusiness.com
+// Browsers treat www and non-www as separate origins, meaning localStorage (auth tokens)
+// is isolated. This automatic redirect ensures users stay in their logged-in session.
+if (typeof window !== 'undefined' && window.location.hostname === 'www.cliksbusiness.com') {
+  window.location.replace(`https://cliksbusiness.com${window.location.pathname}${window.location.search}${window.location.hash}`);
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
