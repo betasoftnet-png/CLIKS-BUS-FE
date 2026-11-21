@@ -35,14 +35,21 @@ import { ApiError, normalizeError } from './errors';
  */
 function buildUrl(endpoint, params = null) {
     let baseUrl = API_BASE_URL;
-    if (!baseUrl) {
-        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-            baseUrl = 'http://localhost:3000/api/v1';
-        } else if (typeof window !== 'undefined') {
+
+    // Smart origin resolution:
+    // If running in browser on cliksbusiness.com, always use same-origin /api/v1
+    // to prevent cross-origin CORS preflight failures to foreign domains (e.g. cliks.beta-softnet.com or bnxmail.com)
+    if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
+            baseUrl = (baseUrl && baseUrl.includes('localhost')) ? baseUrl : 'http://localhost:3000/api/v1';
+        } else if (host.includes('cliksbusiness.com')) {
             baseUrl = `${window.location.origin}/api/v1`;
-        } else {
-            baseUrl = 'http://localhost:3000/api/v1';
+        } else if (!baseUrl || baseUrl.includes('beta-softnet.com') || baseUrl.includes('bnxmail.com')) {
+            baseUrl = `${window.location.origin}/api/v1`;
         }
+    } else if (!baseUrl) {
+        baseUrl = 'http://localhost:3000/api/v1';
     }
 
     if (!baseUrl.includes('/api/v1')) {
