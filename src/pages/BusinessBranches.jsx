@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchService, productsService } from '../services';
 import { useCurrency, useAuth } from '../context';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 import {
     Building, Plus, Search, MapPin, Phone, Mail, ArrowRightLeft,
     Package, CheckCircle2, AlertCircle, Edit3, Trash2, Store,
@@ -16,7 +17,9 @@ const BusinessBranches = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { formatCurrency } = useCurrency();
-    const { user } = useAuth();
+    const { user, selectedPlan } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const branchLimit = getPlanLimit(activePlan, 'branches');
 
     const isOwner = !user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID';
 
@@ -586,6 +589,11 @@ const BusinessBranches = () => {
 
                     <button
                         onClick={() => {
+                            if (branches.length >= branchLimit) {
+                                alert(`Branch limit reached (${branchLimit} internal branch(es) on ${activePlan}). Please upgrade your plan to register additional showrooms.`);
+                                navigate('/subscription');
+                                return;
+                            }
                             setEditingBranch(null);
                             resetForm();
                             setIsCreateModalOpen(true);
