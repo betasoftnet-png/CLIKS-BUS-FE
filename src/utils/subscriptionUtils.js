@@ -177,21 +177,37 @@ export const PLAN_LIMITS = {
         support: 'VIP 24/7 Email Chat'
     },
     'Starter Plan': {
-        websiteUsers: 3,
+        websiteUsers: 2, // Sub ID's Roles: 2 ID's
+        branches: 1,
         warehouses: 0,
         invoicesPerYear: 5000,
         billsExpensesPerYear: 5000,
-        products: 5000,
-        customers: 2000,
-        vendors: 500,
-        staff: 5,
-        inventory: 'Basic',
-        eInvoiceEWayBill: 'Limited',
+        products: 5000, // Active Stock SKUs
+        customers: 1000, // Customer CRM Directory
+        vendors: 100,
+        staff: 2, // HR & Employees Database: Basic (2 Staff)
+        cloudStorageGB: 5,
+        autoBackup: 'Monthly',
+        eInvoicingDaily: 5, // 150/month
+        eWayBillsDaily: 2, // 60/month
+        gstinValidationDaily: 1,
+        marketingPerDay: 10,
+        reportsSales: 5,
+        reportsPurchase: 3,
+        reportsStock: 3,
+        reportsCRM: 3,
+        reportsFinance: 5,
+        posCounters: 1,
+        thermalFormats: 1,
+        segregationGoals: 10,
+        splitwiseSplits: 10,
+        inventory: 'Available',
+        eInvoiceEWayBill: 'Up to 5 e-Inv / 2 E-Way per day',
         apiWebhooks: false,
         whiteLabelInvoices: false,
-        dataExport: 'Basic',
+        dataExport: 'Offline CSV/PDF',
         mobileApp: true,
-        support: 'VIP 24/7 Email Chat'
+        support: 'Standard Email & Chat Support'
     },
     'Growth Plan': {
         websiteUsers: 10,
@@ -234,15 +250,21 @@ export const PLAN_RANKS = {
     'Micro Plan': 0.5,
     'Micro': 0.5,
     'Tier 1: Micro': 0.5,
-    'Trial Plan': 2,
-    'Trial': 2,
     'Starter Plan': 1,
     'Starter': 1,
+    'Tier 2: Starter': 1,
+    'Standard Plan': 1.5,
+    'Standard': 1.5,
+    'Tier 3: Standard': 1.5,
+    'Trial Plan': 2,
+    'Trial': 2,
     'Growth Plan': 2,
     'Growth': 2,
+    'Tier 4: Growth': 2,
     'Elite Suite': 3,
     'Elite Plan': 3,
     'Elite': 3,
+    'Tier 5: Elite': 3,
     'Yearly Founder': 3,
     'Fin-Pro Solo': 1,
     'Fin-Pro Firm': 2,
@@ -252,34 +274,47 @@ export const PLAN_RANKS = {
 };
 
 export const FEATURE_REQUIRED_PLAN = {
-    // Starter Plan Features (Rank 1 - Locked in Micro Plan / Tier 1)
+    // Micro Plan (Rank 0.5)
+    'pos-simple-billing': 'Micro Plan',
+    'basic-invoicing': 'Micro Plan',
+    'chart-of-accounts': 'Micro Plan',
+
+    // Starter Plan Features (Rank 1 - Unlocked in Starter Tier 2)
     'accounting': 'Starter Plan',
     'gst-filings': 'Starter Plan',
     'payroll-attendance': 'Starter Plan',
     'hr-staff': 'Starter Plan',
     'sales-orders': 'Starter Plan',
     'sales-returns': 'Starter Plan',
-    'delivery-challan': 'Starter Plan',
-    'loyalty-points': 'Starter Plan',
-    'audit-center': 'Starter Plan',
     'sub-ids-roles': 'Starter Plan',
-    'multi-branch': 'Starter Plan',
     'auto-backup': 'Starter Plan',
     'email-support': 'Starter Plan',
     'inventory-basic': 'Starter Plan',
     'mobile-app': 'Starter Plan',
+    'low-stock-alerts': 'Starter Plan',
+    'advance-payments': 'Starter Plan',
+
+    // Standard Plan Features (Rank 1.5 - Locked in Tier 2 Starter)
+    'delivery-challan': 'Standard Plan',
+    'loyalty-points': 'Standard Plan',
+    'audit-center': 'Standard Plan',
+    'multi-branch': 'Standard Plan',
+    'request-stock': 'Standard Plan',
+    'price-lists': 'Standard Plan',
+    'automated-payroll': 'Standard Plan',
+    'automated-reminders': 'Standard Plan',
 
     // Growth Plan Features (Rank 2)
     'multi-warehouse': 'Growth Plan',
     'warehouses': 'Growth Plan',
     'api-webhooks': 'Growth Plan',
-    'e-invoice': 'Growth Plan',
-    'e-way-bill': 'Growth Plan',
+    'e-invoice-unlimited': 'Growth Plan',
     'advanced-inventory': 'Growth Plan',
     'batch-expiry-tracking': 'Growth Plan',
     'fin-pro-export': 'Growth Plan',
     'advanced-export': 'Growth Plan',
     'priority-support': 'Growth Plan',
+    'late-fees': 'Growth Plan',
 
     // Elite Suite Features (Rank 3)
     'white-label-invoice': 'Elite Suite',
@@ -298,6 +333,7 @@ export const getPlanRank = (planName) => {
     const norm = String(planName).trim().toLowerCase();
     if (norm.includes('elite') || norm.includes('founder')) return 3;
     if (norm.includes('growth') || norm.includes('firm') || norm.includes('pro investor')) return 2;
+    if (norm.includes('standard')) return 1.5;
     if (norm.includes('starter') || norm.includes('solo') || norm.includes('basic investor') || norm.includes('monthly innovator')) return 1;
     if (norm.includes('micro') || norm.includes('tier 1')) return 0.5;
     return 0;

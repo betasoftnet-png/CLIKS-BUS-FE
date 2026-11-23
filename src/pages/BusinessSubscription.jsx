@@ -145,21 +145,21 @@ const BusinessSubscription = () => {
             },
             {
                 name: 'Starter Plan',
-                priceAnnually: 2999,
-                originalPrice: 4599,
-                desc: 'Ideal for small retail & emerging SMBs.',
+                priceAnnually: 6996,
+                originalPrice: 9999,
+                desc: 'Ideal for emerging single-branch retail & growing SMBs.',
                 icon: ShieldCheck,
-                color: '#1B6B3A',
-                badge: 'Basic',
+                color: '#16A34A',
+                badge: 'Tier 2: Starter (₹583/mo)',
                 features: [
-                    '3 Website Users',
+                    '2 Sub IDs / Roles & 1 Branch',
                     '5,000 Invoices & 5,000 Bills / year',
-                    '5,000 Products & 2,000 Customers',
-                    '500 Vendors & 5 Staff (HR)',
-                    'Accounting & GST (Reports, Filing, ITC)',
-                    'Basic Inventory & Limited E-Way Bill',
-                    'Basic Data Export & Mobile App',
-                    'VIP 24/7 Email Chat'
+                    '5,000 Active Stock SKUs & 1,000 Customers',
+                    '2 Staff (HR Profiles, Attendance & Shifts)',
+                    'Live E-Invoicing (5/day) & E-Way Bills (2/day)',
+                    'P&L Statements, GST Day Book & Tax Summary',
+                    '5 GB Cloud Storage & Monthly Auto-Backup',
+                    'POS 1 Counter Thermal Printing (1 Format)'
                 ]
             },
             {
@@ -387,25 +387,30 @@ const BusinessSubscription = () => {
     const renewal = getRenewalDetails();
 
     const comparisonRows = [
-        { feature: 'Website Users', icon: User, micro: '1 (Single)', starter: '3', growth: '10', elite: '25' },
-        { feature: 'Branches / Godowns', icon: Home, micro: '1 Branch', starter: '1 Branch', growth: '3', elite: '10' },
+        { feature: 'Sub IDs / Roles', icon: User, micro: '❌ Locked', starter: '2 IDs', growth: '10', elite: '20' },
+        { feature: 'Branches / Showrooms', icon: Home, micro: '1 Branch', starter: '1 Branch', growth: '5 Branches', elite: '15 Branches' },
         { feature: 'Invoices per year', icon: FileText, micro: '1,000', starter: '5,000', growth: '25,000', elite: '100,000' },
         { feature: 'Bills / Expenses per year', icon: Receipt, micro: '1,000', starter: '5,000', growth: '25,000', elite: '100,000' },
-        { feature: 'Products / Items (SKUs)', icon: Package, micro: '1,000', starter: '5,000', growth: '25,000', elite: 'Unlimited' },
-        { feature: 'Customers (CRM)', icon: Users, micro: '100', starter: '2,000', growth: '10,000', elite: 'Unlimited' },
-        { feature: 'Vendors / Suppliers', icon: UserCheck, micro: '50', starter: '500', growth: '2,500', elite: 'Unlimited' },
-        { feature: 'Staff (HR & Payroll)', icon: UserPlus, micro: '❌', starter: '5', growth: '25', elite: 'Unlimited' },
-        { feature: 'Accounting & Reports', icon: BookOpen, micro: 'Basic (COA Only)', starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'GST (Reports, Filing, ITC)', icon: FileCheck, micro: '❌', starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'Inventory Management', icon: Layers, micro: 'Basic', starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
-        { feature: 'E-Invoice / E-Way Bill', icon: Settings, micro: '❌', starter: 'Limited', growth: '✅', elite: '✅' },
-        { feature: 'POS Checkout', icon: Store, micro: 'Basic (PDF)', starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'Cloud Storage', icon: Download, micro: '1 GB', starter: '5 GB', growth: '25 GB', elite: '100 GB' },
+        { feature: 'Products / Items (SKUs)', icon: Package, micro: '1,000', starter: '5,000', growth: '50,000', elite: 'Unlimited' },
+        { feature: 'Customers (CRM)', icon: Users, micro: '100', starter: '1,000', growth: '15,000', elite: '25,000' },
+        { feature: 'Vendors / Suppliers', icon: UserCheck, micro: '50', starter: 'Basic', growth: 'Advance', elite: 'Advance' },
+        { feature: 'Staff (HR & Payroll)', icon: UserPlus, micro: '❌', starter: '2 Staff', growth: '25 Staff', elite: '100 Staff' },
+        { feature: 'Live E-Invoicing (IRN/QR)', icon: FileCheck, micro: '❌', starter: '5/day (150/mo)', growth: '20/day', elite: '30/day' },
+        { feature: 'Live E-Way Bills', icon: FileCheck, micro: '❌', starter: '2/day (60/mo)', growth: '5/day', elite: '10/day' },
+        { feature: 'Accounting & Statements', icon: BookOpen, micro: 'Basic (COA)', starter: 'P&L Only', growth: 'Full Statements', elite: 'Full + Branch' },
+        { feature: 'GST Day Book & Reports', icon: FileCheck, micro: '❌', starter: 'Offline CSV/PDF', growth: 'GSTR-1, 2B, 3B', elite: 'Full + JSON' },
+        { feature: 'Delivery Challan', icon: FileText, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
+        { feature: 'Loyalty Points Tracker', icon: Award, micro: '❌', starter: '❌', growth: 'Auto-Redeem', elite: 'Advanced Rules' },
+        { feature: 'Audit Center', icon: ShieldAlert, micro: '❌', starter: '❌', growth: 'Locking', elite: 'Full Audit Log' },
+        { feature: 'Warehouse / Godown', icon: Layers, micro: '❌', starter: '❌', growth: '5 Godowns', elite: '10 Godowns' },
+        { feature: 'POS Checkout', icon: Store, micro: 'Basic (PDF)', starter: '1 Counter (Thermal)', growth: '5 Counters', elite: '15 Counters' },
+        { feature: 'Cloud Storage', icon: Download, micro: '1 GB', starter: '5 GB', growth: '20 GB', elite: '50 GB' },
+        { feature: 'Auto Backup', icon: Calendar, micro: '❌', starter: 'Monthly', growth: 'Daily', elite: 'Daily' },
         { feature: 'API / Webhooks', icon: Code, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
-        { feature: 'White-label Invoices', icon: Link, micro: '❌', starter: '❌', growth: '❌', elite: '✅' },
-        { feature: 'Data Export / Reports', icon: Download, micro: 'Limited (2-3/cat)', starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
+        { feature: 'White-label Invoices', icon: Link, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
+        { feature: 'Data Export / Reports', icon: Download, micro: 'Limited (2-3/cat)', starter: 'Available (3-5/cat)', growth: 'Advanced', elite: 'Full Export' },
         { feature: 'Mobile App', icon: Smartphone, micro: '✅', starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'Support', icon: Headphones, micro: 'Email Support', starter: 'VIP 24/7 Email Chat', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
+        { feature: 'Support', icon: Headphones, micro: 'Email Support', starter: 'Email & Chat Support', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
     ];
 
     const renderCellValue = (val) => {
@@ -1408,10 +1413,10 @@ const BusinessSubscription = () => {
                                     {/* Starter Plan Header Column */}
                                     <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹2,999 / year</div>
-                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹250/month)</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,996 / year</div>
+                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹583/month)</div>
                                         <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Best for Small business
+                                            Best for Single Store
                                         </div>
                                     </th>
 
