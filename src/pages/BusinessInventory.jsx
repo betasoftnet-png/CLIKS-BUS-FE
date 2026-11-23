@@ -41,12 +41,15 @@ import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency, useAuth } from '../context';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 import { ScannableBarcodeModal } from '../components/common/ScannableBarcodeModal';
 import { ProductBarcodeGraphic } from '../components/common/ProductBarcodeGraphic';
 
 const BusinessInventory = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const skuLimit = getPlanLimit(activePlan, 'products');
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -983,7 +986,15 @@ const BusinessInventory = () => {
                         Bulk Import (CSV)
                     </button>
                     <button
-                        onClick={() => { closeModal(); setIsModalOpen(true); }}
+                        onClick={() => {
+                            if (items.length >= skuLimit) {
+                                alert(`Active Stock SKU limit reached (${skuLimit.toLocaleString()} SKUs on ${activePlan}). Please upgrade your subscription plan to add more products.`);
+                                navigate('/subscription');
+                                return;
+                            }
+                            closeModal();
+                            setIsModalOpen(true);
+                        }}
                         style={{
                             display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
                             padding: '0.6rem 1.15rem', borderRadius: '10px',

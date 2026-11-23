@@ -53,6 +53,7 @@ import { loyaltyService } from '../services/loyaltyService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 
 const COUNTRIES = [
     { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳', minDigits: 10, maxDigits: 10, digits: 10 },
@@ -257,6 +258,9 @@ const getAvatarColors = (name) => {
 const BusinessCRM = () => {
     const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
+    const { user, selectedPlan } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const customerLimit = getPlanLimit(activePlan, 'customers');
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
     const [customerTypeFilter, setCustomerTypeFilter] = useState('All');
@@ -490,7 +494,6 @@ const BusinessCRM = () => {
     const [selectedProfileCustomer, setSelectedProfileCustomer] = useState(null);
     const [selectedParty, setSelectedParty] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
-    const { user } = useAuth();
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'reports'
     const [customers, setCustomers] = useState([]);
@@ -1123,7 +1126,16 @@ const BusinessCRM = () => {
                         Bulk Import (CSV)
                     </button>
                     <button 
-                        onClick={(e) => { e.stopPropagation(); closeModal(); setIsModalOpen(true); }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (customers.length >= customerLimit) {
+                                alert(`Customer CRM limit reached (${customerLimit.toLocaleString()} Customers on ${activePlan}). Please upgrade your subscription plan to add more customer records.`);
+                                navigate('/subscription');
+                                return;
+                            }
+                            closeModal();
+                            setIsModalOpen(true);
+                        }}
                         className="crm-btn"
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
