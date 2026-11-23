@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo} from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, stockService, settingsService, productsService } from '../services';
 import { apiClient } from '../api/client';
 import FilterableTableHead from '../components/FilterableTableHead';
 import StockMovementHistory from '../components/StockMovementHistory';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 import {
     Warehouse as WarehouseIcon,
     Plus,
@@ -43,8 +44,11 @@ export const validateBnxEmail = (email) => {
 };
 
 const BusinessWarehouse = () => {
+    const navigate = useNavigate();
     const { formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const warehouseLimit = getPlanLimit(activePlan, 'warehouses');
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
@@ -1095,7 +1099,14 @@ const BusinessWarehouse = () => {
                         <Truck size={15} /> Goods Inward Receiving
                     </button>
                     <button
-                        onClick={() => setIsCreateModalOpen(true)}
+                        onClick={() => {
+                            if (dbWarehouses.length >= warehouseLimit) {
+                                alert(`Warehouse / Godown facility limit reached (${warehouseLimit} Godowns on ${activePlan}). Please upgrade to Elite Suite (10 Godowns) to register more facilities.`);
+                                navigate('/subscription');
+                                return;
+                            }
+                            setIsCreateModalOpen(true);
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
                     >
                         <Plus size={15} /> Register Warehouse
