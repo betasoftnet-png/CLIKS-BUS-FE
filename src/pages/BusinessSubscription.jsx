@@ -29,7 +29,8 @@ import {
     Smartphone,
     Headphones,
     CheckCircle2,
-    ShieldAlert
+    ShieldAlert,
+    Store
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { load } from '@cashfreepayments/cashfree-js';
@@ -123,6 +124,25 @@ const BusinessSubscription = () => {
 
     const allTiers = {
         business: [
+            {
+                name: 'Micro Plan',
+                priceAnnually: 3000,
+                originalPrice: 4999,
+                desc: 'Micro subscription for single-branch stores & small enterprises.',
+                icon: Store,
+                color: '#059669',
+                badge: 'Tier 1: Micro (₹250/mo)',
+                features: [
+                    '1 Branch / Godown',
+                    '1,000 Sales Invoices & 1,000 Bills / year',
+                    '1,000 Active Stock SKUs',
+                    '100 Customers CRM & 50 Vendors',
+                    '1 GB Cloud Storage Tracker',
+                    'Full Billing & Purchases Dashboards',
+                    'POS Checkout (PDF Only) & Hold/Split Payments',
+                    'Custom Chart of Accounts & Item-wise Expenses'
+                ]
+            },
             {
                 name: 'Starter Plan',
                 priceAnnually: 2999,
@@ -367,23 +387,25 @@ const BusinessSubscription = () => {
     const renewal = getRenewalDetails();
 
     const comparisonRows = [
-        { feature: 'Website Users', icon: User, starter: '3', growth: '10', elite: '25' },
-        { feature: 'Warehouses', icon: Home, starter: '❌', growth: '3', elite: '10' },
-        { feature: 'Invoices per year', icon: FileText, starter: '5,000', growth: '25,000', elite: '100,000' },
-        { feature: 'Bills / Expenses per year', icon: Receipt, starter: '5,000', growth: '25,000', elite: '100,000' },
-        { feature: 'Products / Items', icon: Package, starter: '5,000', growth: '25,000', elite: 'Unlimited' },
-        { feature: 'Customers', icon: Users, starter: '2,000', growth: '10,000', elite: 'Unlimited' },
-        { feature: 'Vendors / Suppliers', icon: UserCheck, starter: '500', growth: '2,500', elite: 'Unlimited' },
-        { feature: 'Staff (HR)', icon: UserPlus, starter: '5', growth: '25', elite: 'Unlimited' },
-        { feature: 'Accounting', icon: BookOpen, starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'GST (Reports, Filing, ITC)', icon: FileCheck, starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'Inventory', icon: Layers, starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
-        { feature: 'E-Invoice / E-Way Bill', icon: Settings, starter: 'Limited', growth: '✅', elite: '✅' },
-        { feature: 'API / Webhooks', icon: Code, starter: '❌', growth: '✅', elite: '✅' },
-        { feature: 'White-label Invoices', icon: Link, starter: '❌', growth: '❌', elite: '✅' },
-        { feature: 'Data Export', icon: Download, starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
-        { feature: 'Mobile App', icon: Smartphone, starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'Support', icon: Headphones, starter: 'VIP 24/7 Email Chat', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
+        { feature: 'Website Users', icon: User, micro: '1 (Single)', starter: '3', growth: '10', elite: '25' },
+        { feature: 'Branches / Godowns', icon: Home, micro: '1 Branch', starter: '1 Branch', growth: '3', elite: '10' },
+        { feature: 'Invoices per year', icon: FileText, micro: '1,000', starter: '5,000', growth: '25,000', elite: '100,000' },
+        { feature: 'Bills / Expenses per year', icon: Receipt, micro: '1,000', starter: '5,000', growth: '25,000', elite: '100,000' },
+        { feature: 'Products / Items (SKUs)', icon: Package, micro: '1,000', starter: '5,000', growth: '25,000', elite: 'Unlimited' },
+        { feature: 'Customers (CRM)', icon: Users, micro: '100', starter: '2,000', growth: '10,000', elite: 'Unlimited' },
+        { feature: 'Vendors / Suppliers', icon: UserCheck, micro: '50', starter: '500', growth: '2,500', elite: 'Unlimited' },
+        { feature: 'Staff (HR & Payroll)', icon: UserPlus, micro: '❌', starter: '5', growth: '25', elite: 'Unlimited' },
+        { feature: 'Accounting & Reports', icon: BookOpen, micro: 'Basic (COA Only)', starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'GST (Reports, Filing, ITC)', icon: FileCheck, micro: '❌', starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Inventory Management', icon: Layers, micro: 'Basic', starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
+        { feature: 'E-Invoice / E-Way Bill', icon: Settings, micro: '❌', starter: 'Limited', growth: '✅', elite: '✅' },
+        { feature: 'POS Checkout', icon: Store, micro: 'Basic (PDF)', starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Cloud Storage', icon: Download, micro: '1 GB', starter: '5 GB', growth: '25 GB', elite: '100 GB' },
+        { feature: 'API / Webhooks', icon: Code, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
+        { feature: 'White-label Invoices', icon: Link, micro: '❌', starter: '❌', growth: '❌', elite: '✅' },
+        { feature: 'Data Export / Reports', icon: Download, micro: 'Limited (2-3/cat)', starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
+        { feature: 'Mobile App', icon: Smartphone, micro: '✅', starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Support', icon: Headphones, micro: 'Email Support', starter: 'VIP 24/7 Email Chat', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
     ];
 
     const renderCellValue = (val) => {
@@ -1369,12 +1391,22 @@ const BusinessSubscription = () => {
                         <table className="cmp-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>
                             <thead>
                                 <tr>
-                                    <th className="cmp-th-feature" style={{ width: '31%', padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '1.1rem', fontWeight: '850' }}>
+                                    <th className="cmp-th-feature" style={{ width: '28%', padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '1.1rem', fontWeight: '850' }}>
                                         Platform / Feature
+                                    </th>
+
+                                    {/* Micro Plan Header Column */}
+                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#059669', color: 'white', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Micro</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹3,000 / year</div>
+                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹250/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Best for Micro Store
+                                        </div>
                                     </th>
                                     
                                     {/* Starter Plan Header Column */}
-                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
+                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
                                         <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹2,999 / year</div>
                                         <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹250/month)</div>
@@ -1384,7 +1416,7 @@ const BusinessSubscription = () => {
                                     </th>
 
                                     {/* Growth Plan Header Column */}
-                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#2563EB', color: 'white', verticalAlign: 'top' }}>
+                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#2563EB', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Growth</div>
                                         <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,999 / year</div>
                                         <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹583/month)</div>
@@ -1394,7 +1426,7 @@ const BusinessSubscription = () => {
                                     </th>
 
                                     {/* Elite Plan Header Column */}
-                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#7C3AED', color: 'white', verticalAlign: 'top' }}>
+                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#7C3AED', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Elite</div>
                                         <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹8,999 / year</div>
                                         <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹750/month)</div>
@@ -1415,6 +1447,9 @@ const BusinessSubscription = () => {
                                                     <RowIcon size={17} color="#2563EB" />
                                                     <span>{row.feature}</span>
                                                 </div>
+                                            </td>
+                                            <td style={{ padding: '0.85rem 1rem' }}>
+                                                {renderCellValue(row.micro)}
                                             </td>
                                             <td style={{ padding: '0.85rem 1rem' }}>
                                                 {renderCellValue(row.starter)}

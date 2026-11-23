@@ -6,6 +6,14 @@
 export const PLAN_FEATURES = {
     // Business Category Tiers
     'Free Plan': [],
+    'Micro Plan': [
+        'accounting-basic',
+        'billing',
+        'pos-basic',
+        'escrow-basic',
+        'cloud-storage-1gb',
+        'custom-chart-of-accounts'
+    ],
     'Trial Plan': [
         'accounting',
         'gst-filings',
@@ -125,6 +133,32 @@ export const PLAN_LIMITS = {
         mobileApp: true,
         support: 'VIP 24/7 Email Chat'
     },
+    'Micro Plan': {
+        websiteUsers: 1,
+        branches: 1,
+        warehouses: 0,
+        invoicesPerYear: 1000,
+        billsExpensesPerYear: 1000,
+        products: 1000,
+        customers: 100,
+        vendors: 50,
+        staff: 0,
+        inventory: 'Basic',
+        eInvoiceEWayBill: 'None',
+        cloudStorageGB: 1,
+        marketingPerDay: 5,
+        reportsSales: 3,
+        reportsPurchase: 2,
+        reportsStock: 2,
+        reportsCRM: 2,
+        reportsFinance: 3,
+        autoBackup: false,
+        apiWebhooks: false,
+        whiteLabelInvoices: false,
+        dataExport: 'Limited',
+        mobileApp: true,
+        support: 'Standard Email Support'
+    },
     'Trial Plan': {
         websiteUsers: 10,
         warehouses: 5,
@@ -197,6 +231,9 @@ export const PLAN_LIMITS = {
 
 export const PLAN_RANKS = {
     'Free Plan': 0,
+    'Micro Plan': 0.5,
+    'Micro': 0.5,
+    'Tier 1: Micro': 0.5,
     'Trial Plan': 2,
     'Trial': 2,
     'Starter Plan': 1,

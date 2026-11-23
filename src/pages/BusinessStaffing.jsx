@@ -159,13 +159,13 @@ const BusinessStaffing = () => {
     const getDefaultHolidaysForYear = (year) => {
         const y = parseInt(year, 10) || new Date().getFullYear();
         return [
+            { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: 'New Year Day', type: 'General Holiday' },
             { id: `rd-${y}`, date: `${y}-01-26`, displayDate: `26 Jan ${y}`, name: 'Republic Day', type: 'National Holiday' },
             { id: `md-${y}`, date: `${y}-05-01`, displayDate: `01 May ${y}`, name: 'May Day / Labor Day', type: 'State Holiday' },
             { id: `id-${y}`, date: `${y}-08-15`, displayDate: `15 Aug ${y}`, name: 'Independence Day', type: 'National Holiday' },
             { id: `gj-${y}`, date: `${y}-10-02`, displayDate: `02 Oct ${y}`, name: 'Gandhi Jayanti', type: 'National Holiday' },
             { id: `ap-${y}`, date: `${y}-10-20`, displayDate: `20 Oct ${y}`, name: 'Ayudha Pooja / Diwali', type: 'Festival' },
-            { id: `xm-${y}`, date: `${y}-12-25`, displayDate: `25 Dec ${y}`, name: 'Christmas', type: 'Festival' },
-            { id: `ny-${y+1}`, date: `${y+1}-01-01`, displayDate: `01 Jan ${y+1}`, name: 'New Year Day', type: 'General Holiday' }
+            { id: `xm-${y}`, date: `${y}-12-25`, displayDate: `25 Dec ${y}`, name: 'Christmas', type: 'Festival' }
         ];
     };
 
