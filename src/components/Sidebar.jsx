@@ -7,11 +7,19 @@ import SubscriptionBadgeWidget from './SubscriptionBadgeWidget';
 
 const ROUTE_FEATURE_MAP = {
     '/inventory/warehouse': 'multi-warehouse',
+    '/inventory/warehouses': 'multi-warehouse',
     '/hr/staff': 'payroll-attendance',
     '/hr/attendance': 'payroll-attendance',
     '/hr/payroll': 'payroll-attendance',
     '/finance/accounting': 'accounting',
-    '/finance/gst': 'gst-filings'
+    '/finance/gst': 'gst-filings',
+    '/finance/tax': 'gst-filings',
+    '/finance/fintech': 'audit-center',
+    '/sales/orders': 'sales-orders',
+    '/sales/returns': 'sales-returns',
+    '/sales/loyalty': 'loyalty-points',
+    '/sales/delivery': 'delivery-challan',
+    '/manage-subids': 'sub-ids-roles'
 };
 import {
     LayoutDashboard,
@@ -64,7 +72,8 @@ import {
     CheckCircle2,
     QrCode,
     FolderTree,
-    Award
+    Award,
+    Lock
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -82,6 +91,9 @@ import storageLogo from '../assets/storagelogo.png';
 const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false, user }) => {
     const { t } = useLanguage();
     const location = useLocation();
+    const navigate = useNavigate();
+    const { selectedPlan } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
     const displayLabel = (t && typeof t === 'function') ? t(item.label, item.label) : item.label;
 
     if (item.permission && !hasAccess(user, item.permission)) {
@@ -92,6 +104,10 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
     const isOpen = !!openMenus[item.label];
+
+    const featureCode = item.path ? ROUTE_FEATURE_MAP[item.path] : null;
+    const isLocked = featureCode ? !isFeatureAllowed(activePlan, featureCode) : false;
+    const isGroupLocked = hasChildren && item.children.length > 0 && item.children.every(c => c.path && ROUTE_FEATURE_MAP[c.path] && !isFeatureAllowed(activePlan, ROUTE_FEATURE_MAP[c.path]));
 
     const isChildActive = React.useMemo(() => {
         if (!hasChildren) return false;
@@ -159,7 +175,14 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             <div className="sidebar-group" style={{ marginBottom: '6px' }}>
                 <button
                     className={`sidebar-item has-children ${isOpen ? 'open' : ''} ${isParentActive ? 'active' : ''} ${isChildActive ? 'child-selected' : ''}`}
-                    onClick={() => toggleMenu(item.label)}
+                    onClick={() => {
+                        if (isGroupLocked) {
+                            alert(`The ${item.label} module is locked on your current plan (${activePlan}). Please upgrade to Starter Plan or higher to unlock.`);
+                            navigate('/subscription');
+                            return;
+                        }
+                        toggleMenu(item.label);
+                    }}
                     style={{
                         background: isClosedChildActive ? activeBg : (isOpen && isChildActive ? `${activeBg}60` : backgroundStyle),
                         color: isParentActive ? darkTextColor : activeText,
@@ -168,7 +191,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
                 >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3" style={{ flex: 1, minWidth: 0 }}>
                         {item.label === 'Inventory' ? (
                             <img src={inventoryIconPng} alt="Inventory" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block' }} />
                         ) : item.label === 'HR' ? (
@@ -176,9 +199,31 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                         ) : (
                             <IconComp size={20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
                         )}
-                        <span className="sidebar-label" style={{ fontWeight: (isParentActive || isChildActive) ? '850' : '750', color: darkTextColor }}>
+                        <span className="sidebar-label" style={{ fontWeight: (isParentActive || isChildActive) ? '850' : '750', color: darkTextColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {displayLabel}
                         </span>
+                        {isGroupLocked && (
+                            <span 
+                                title={`Module locked in ${activePlan} - Upgrade to unlock`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                    background: 'rgba(239, 68, 68, 0.08)',
+                                    color: '#DC2626',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    padding: '1px 5px',
+                                    borderRadius: '5px',
+                                    fontSize: '9px',
+                                    fontWeight: '800',
+                                    marginLeft: 'auto',
+                                    marginRight: '6px'
+                                }}
+                            >
+                                <Lock size={9} strokeWidth={2.5} />
+                                <span>LOCKED</span>
+                            </span>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -229,7 +274,15 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     return (
         <button
             className={`sidebar-item ${isActive ? 'active' : ''}`}
-            onClick={() => handleItemClick(item.label, item.path)}
+            onClick={() => {
+                if (isLocked) {
+                    const requiredPlan = getRequiredPlanForFeature(featureCode);
+                    alert(`Your current plan (${activePlan}) does not include access to ${item.label}. Please upgrade to ${requiredPlan} or higher to unlock access.`);
+                    navigate('/subscription');
+                    return;
+                }
+                handleItemClick(item.label, item.path);
+            }}
             style={{
                 marginBottom: '6px',
                 paddingLeft: isChild ? '1.2rem' : '0.75rem',
@@ -240,15 +293,40 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                 boxShadow: isActive && (isAdmin || isSales || isSupport) ? `0 4px 12px ${isSales ? 'rgba(234, 88, 12, 0.2)' : (isAdmin ? 'rgba(79, 70, 229, 0.2)' : 'rgba(59, 130, 246, 0.2)')}` : 'none'
             }}
         >
-            <div className="flex items-center gap-3">
-                {item.label === 'Inventory' ? (
-                    <img src={inventoryIconPng} alt="Inventory" style={{ width: isChild ? '18px' : '20px', height: isChild ? '18px' : '20px', objectFit: 'contain', display: 'block' }} />
-                ) : item.label === 'HR' ? (
-                    <img src={hrIconPng} alt="HR" style={{ width: isChild ? '18px' : '20px', height: isChild ? '18px' : '20px', objectFit: 'contain', display: 'block' }} />
-                ) : (
-                    <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
+            <div className="flex items-center gap-3" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                    {item.label === 'Inventory' ? (
+                        <img src={inventoryIconPng} alt="Inventory" style={{ width: isChild ? '18px' : '20px', height: isChild ? '18px' : '20px', objectFit: 'contain', display: 'block' }} />
+                    ) : item.label === 'HR' ? (
+                        <img src={hrIconPng} alt="HR" style={{ width: isChild ? '18px' : '20px', height: isChild ? '18px' : '20px', objectFit: 'contain', display: 'block' }} />
+                    ) : (
+                        <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
+                    )}
+                    <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {displayLabel}
+                    </span>
+                </div>
+                {isLocked && (
+                    <span 
+                        title={`Locked in ${activePlan} - Upgrade to unlock`}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            color: '#DC2626',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            padding: '1px 5px',
+                            borderRadius: '5px',
+                            fontSize: '9px',
+                            fontWeight: '800',
+                            flexShrink: 0
+                        }}
+                    >
+                        <Lock size={9} strokeWidth={2.5} />
+                        <span>LOCKED</span>
+                    </span>
                 )}
-                <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{displayLabel}</span>
             </div>
         </button>
     );

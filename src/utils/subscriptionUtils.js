@@ -252,10 +252,19 @@ export const PLAN_RANKS = {
 };
 
 export const FEATURE_REQUIRED_PLAN = {
-    // Starter Plan Features (Rank 1)
+    // Starter Plan Features (Rank 1 - Locked in Micro Plan / Tier 1)
     'accounting': 'Starter Plan',
     'gst-filings': 'Starter Plan',
     'payroll-attendance': 'Starter Plan',
+    'hr-staff': 'Starter Plan',
+    'sales-orders': 'Starter Plan',
+    'sales-returns': 'Starter Plan',
+    'delivery-challan': 'Starter Plan',
+    'loyalty-points': 'Starter Plan',
+    'audit-center': 'Starter Plan',
+    'sub-ids-roles': 'Starter Plan',
+    'multi-branch': 'Starter Plan',
+    'auto-backup': 'Starter Plan',
     'email-support': 'Starter Plan',
     'inventory-basic': 'Starter Plan',
     'mobile-app': 'Starter Plan',
@@ -267,6 +276,7 @@ export const FEATURE_REQUIRED_PLAN = {
     'e-invoice': 'Growth Plan',
     'e-way-bill': 'Growth Plan',
     'advanced-inventory': 'Growth Plan',
+    'batch-expiry-tracking': 'Growth Plan',
     'fin-pro-export': 'Growth Plan',
     'advanced-export': 'Growth Plan',
     'priority-support': 'Growth Plan',
@@ -289,6 +299,7 @@ export const getPlanRank = (planName) => {
     if (norm.includes('elite') || norm.includes('founder')) return 3;
     if (norm.includes('growth') || norm.includes('firm') || norm.includes('pro investor')) return 2;
     if (norm.includes('starter') || norm.includes('solo') || norm.includes('basic investor') || norm.includes('monthly innovator')) return 1;
+    if (norm.includes('micro') || norm.includes('tier 1')) return 0.5;
     return 0;
 };
 

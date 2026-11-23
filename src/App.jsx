@@ -279,7 +279,7 @@ function AuthenticatedApp() {
 
                 {/* Restructured Business Modules */}
                 <Route path="/dashboard" element={<BusinessDashboard />} />
-                <Route path="/manage-subids" element={<PermissionManager />} />
+                <Route path="/manage-subids" element={<FeatureGate feature="sub-ids-roles" requiredPlanName="Starter Plan"><PermissionManager /></FeatureGate>} />
                 <Route path="/inventory/products" element={<BusinessInventory />} />
                 <Route path="/inventory/categories" element={<BusinessCategories />} />
                 <Route path="/categories" element={<Navigate to="/inventory/categories" replace />} />
@@ -289,7 +289,7 @@ function AuthenticatedApp() {
                 <Route path="/sales/invoices" element={<Navigate to="/sales/invoice" replace />} />
                 <Route path="/sales/eway" element={<Navigate to="/sales/invoice?tab=eway" replace />} />
                 <Route path="/sales/einvoice" element={<Navigate to="/sales/invoice?tab=einvoice" replace />} />
-                <Route path="/sales/orders" element={<BusinessSalesOrders />} />
+                <Route path="/sales/orders" element={<FeatureGate feature="sales-orders" requiredPlanName="Starter Plan"><BusinessSalesOrders /></FeatureGate>} />
                 <Route path="/purchases/purchases" element={<BusinessPurchases />} />
                 <Route path="/purchases/invoice" element={<BusinessPurchases />} />
                 <Route path="/finance/purchases/new" element={<BusinessFinancePurchases />} />
@@ -305,10 +305,10 @@ function AuthenticatedApp() {
                 <Route path="/hr/payroll" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessPayroll /></FeatureGate>} />
                 <Route path="/payments/split-collect" element={<BusinessSplitCollect />} />
                 <Route path="/sales/customers" element={<BusinessCRM />} />
-                <Route path="/sales/loyalty" element={<BusinessLoyalty />} />
-                <Route path="/sales/loyalty-points" element={<BusinessLoyalty />} />
+                <Route path="/sales/loyalty" element={<FeatureGate feature="loyalty-points" requiredPlanName="Starter Plan"><BusinessLoyalty /></FeatureGate>} />
+                <Route path="/sales/loyalty-points" element={<FeatureGate feature="loyalty-points" requiredPlanName="Starter Plan"><BusinessLoyalty /></FeatureGate>} />
 
-                <Route path="/sales/returns" element={<BusinessReturns />} />
+                <Route path="/sales/returns" element={<FeatureGate feature="sales-returns" requiredPlanName="Starter Plan"><BusinessReturns /></FeatureGate>} />
                 <Route path="/inventory/stock" element={<BusinessStock />} />
                 <Route path="/inventory/stock/:id" element={<StockItemDetailView />} />
                 <Route path="/inventory/stock-items" element={<BusinessStock />} />
@@ -334,11 +334,11 @@ function AuthenticatedApp() {
                 <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
                 <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
                 <Route path="/finance/tax" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
-                <Route path="/finance/fintech" element={<BusinessCA mode="business" />} />
+                <Route path="/finance/fintech" element={<FeatureGate feature="audit-center" requiredPlanName="Starter Plan"><BusinessCA mode="business" /></FeatureGate>} />
                 <Route path="/finance/fittech" element={<Navigate to="/finance/fintech" replace />} />
                 <Route path="/marketing" element={<BusinessMarketing />} />
                 <Route path="/ca" element={<BusinessCA mode="personal" />} />
-                <Route path="/sales/delivery" element={<BusinessDelivery />} />
+                <Route path="/sales/delivery" element={<FeatureGate feature="delivery-challan" requiredPlanName="Starter Plan"><BusinessDelivery /></FeatureGate>} />
                 {/* Manufacturing redirect to Inventory Products */}
                 <Route path="/manufacturing" element={<Navigate to="/inventory/products" replace />} />
                 <Route path="/manufacturing/*" element={<Navigate to="/inventory/products" replace />} />

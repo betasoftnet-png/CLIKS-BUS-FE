@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, ChevronDown, Check, Lock, Building2, Plus, Sparkles, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBranch, useLanguage } from '../context';
+import { useBranch, useLanguage, useAuth } from '../context';
 
 export const BranchSelector = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const { selectedPlan, user } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const isMicroPlan = String(activePlan).toLowerCase().includes('micro') || String(activePlan).toLowerCase().includes('tier 1');
     const {
         branches,
         selectedBranchId,
@@ -182,6 +185,11 @@ export const BranchSelector = () => {
                         {/* Option 1: Consolidated View (All Showrooms) */}
                         <div
                             onClick={() => {
+                                if (isMicroPlan) {
+                                    alert(`Multi-Showroom Consolidated Toggle is locked on Tier 1 (Micro Subscription - 1 Branch limit). Please upgrade to Starter Plan or higher to unlock multi-showroom management.`);
+                                    navigate('/subscription');
+                                    return;
+                                }
                                 switchBranch('all');
                                 setIsOpen(false);
                             }}
@@ -312,6 +320,11 @@ export const BranchSelector = () => {
                             <button
                                 onClick={() => {
                                     setIsOpen(false);
+                                    if (isMicroPlan) {
+                                        alert("Adding multiple branches or external franchise showrooms is locked on Tier 1 (Micro Subscription - 1 Branch limit). Please upgrade to Starter Plan or higher to manage multiple branches.");
+                                        navigate('/subscription');
+                                        return;
+                                    }
                                     navigate('/inventory/branches');
                                 }}
                                 style={{
