@@ -51,10 +51,25 @@ export const PLAN_FEATURES = {
         'gst-filings',
         'payroll-attendance',
         'email-support',
+        'delivery-challan',
+        'loyalty-points',
+        'audit-center',
+        'multi-branch',
+        'automated-payroll',
+        'automated-reminders',
+        'bank-reconciliation',
+        'balance-sheet',
+        'request-stock',
+        'price-lists',
         'multi-warehouse',
         'api-webhooks',
         'fin-pro-export',
-        'priority-support'
+        'priority-support',
+        'dashboard-customization',
+        'voucher-audit-history',
+        'late-fees',
+        'external-franchise',
+        'white-label-invoice'
     ],
     'Elite Suite': [
         'accounting',
@@ -262,21 +277,44 @@ export const PLAN_LIMITS = {
         support: 'Priority Email & Chat Support'
     },
     'Growth Plan': {
-        websiteUsers: 10,
-        warehouses: 3,
+        websiteUsers: 10, // Sub ID's Roles: 10 ID's
+        branches: 5, // Internal Showrooms / Godowns: 5 Branches
+        externalBranches: 2, // External Franchise / Partner Branches: Up to 2 External
+        warehouses: 5, // Godown / Warehouse Mapping: 5 Godowns
         invoicesPerYear: 25000,
         billsExpensesPerYear: 25000,
-        products: 25000,
-        customers: 10000,
+        products: 50000, // Active Stock SKUs: 50,000
+        customers: 15000, // Customer CRM Directory: 15,000 Customers
         vendors: 2500,
-        staff: 25,
-        inventory: 'Advanced',
-        eInvoiceEWayBill: 'Full',
+        staff: 25, // HR & Employees Database: Advanced (25 Staff)
+        cloudStorageGB: 20,
+        autoBackup: 'Daily',
+        eInvoicingDaily: 20, // 600/month
+        eWayBillsDaily: 5, // 150/month
+        gstinValidationDaily: 3,
+        marketingPerDay: 20,
+        reportsSales: 8,
+        reportsPurchase: 6,
+        reportsStock: 5,
+        reportsCRM: 5,
+        reportsFinance: 13,
+        voucherScans: 50,
+        multiSeriesPrefixes: 5,
+        voucherAuditDaily: 5,
+        posCounters: 5,
+        kioskMode: 'Basic Kiosk Mode',
+        thermalLayouts: 'Custom Layouts',
+        segregationGoals: 30,
+        splitwiseSplits: 30,
+        automatedRemindersDaily: 20,
+        inventory: 'Basic Batching',
+        eInvoiceEWayBill: 'Up to 20 e-Inv / 5 E-Way per day',
         apiWebhooks: true,
-        whiteLabelInvoices: false,
-        dataExport: 'Advanced',
+        whiteLabelInvoices: true,
+        lateFees: true,
+        dataExport: 'GSTR-1, 2B, 3B + IMS',
         mobileApp: true,
-        support: 'VIP 24/7 Email Chat'
+        support: 'Priority Email & 24/7 Chat Support'
     },
     'Elite Suite': {
         websiteUsers: 25,
@@ -367,10 +405,14 @@ export const FEATURE_REQUIRED_PLAN = {
     'advanced-export': 'Growth Plan',
     'priority-support': 'Growth Plan',
     'late-fees': 'Growth Plan',
+    'dashboard-customization': 'Growth Plan',
+    'voucher-audit-history': 'Growth Plan',
+    'external-franchise': 'Growth Plan',
+    'white-label-invoice': 'Growth Plan',
+    'white-label': 'Growth Plan',
 
     // Elite Suite Features (Rank 3)
-    'white-label-invoice': 'Elite Suite',
-    'white-label': 'Elite Suite',
+    'unlimited-white-label': 'Elite Suite',
     'unlimited-staff': 'Elite Suite',
     'unlimited-products': 'Elite Suite',
     'unlimited-customers': 'Elite Suite',
