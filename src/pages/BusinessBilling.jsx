@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCurrency, useAuth, useBranch } from '../context';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 import { isInvoiceOnlyUser } from '../utils/permissions';
 import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../utils/weightBillingHelper';
 import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../utils/barcodeScannerHelper';
@@ -151,8 +152,11 @@ const INITIAL_BILLING_STAFF = [
 ];
 
 const BusinessBilling = () => {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const invoiceLimit = getPlanLimit(activePlan, 'invoicesPerYear');
     const { selectedBranch } = useBranch();
     const isMainBranch = React.useMemo(() => {
         return checkIsMainBranch(user, selectedBranch);
@@ -2515,6 +2519,11 @@ const BusinessBilling = () => {
         if (editingInvoice) {
             updateMutation.mutate({ id: editingInvoice.id, data: payload });
         } else {
+            if (safeInvoices.length >= invoiceLimit) {
+                alert(`Sales invoice limit reached (${invoiceLimit.toLocaleString()} Invoices on ${activePlan}). Please upgrade your subscription plan to generate more invoices.`);
+                navigate('/subscription');
+                return;
+            }
             // Create sales transaction inside paymentsStore
             if (paid > 0) {
                 paymentsStore.addTransaction({
@@ -3585,7 +3594,14 @@ const BusinessBilling = () => {
                         </button>
                     )}
                     <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => {
+                            if (safeInvoices.length >= invoiceLimit) {
+                                alert(`Sales invoice limit reached (${invoiceLimit.toLocaleString()} Invoices on ${activePlan}). Please upgrade your subscription plan to generate more invoices.`);
+                                navigate('/subscription');
+                                return;
+                            }
+                            setIsModalOpen(true);
+                        }}
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.5rem', 
                             padding: '0.65rem 1rem', borderRadius: '10px', 

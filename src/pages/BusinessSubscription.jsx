@@ -30,7 +30,20 @@ import {
     Headphones,
     CheckCircle2,
     ShieldAlert,
-    Store
+    Store,
+    ChevronDown,
+    ChevronUp,
+    Search,
+    ShoppingBag,
+    BarChart3,
+    Wallet,
+    HelpCircle,
+    Lock,
+    ExternalLink,
+    PercentCircle,
+    TrendingUp,
+    PlusCircle,
+    Filter
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { load } from '@cashfreepayments/cashfree-js';
@@ -39,6 +52,11 @@ import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import { useCurrency, useAuth } from '../context';
 import { caService } from '../services';
+import { 
+    FULL_SUBSCRIPTION_MATRIX, 
+    CLIKS_OPTIONAL_ADDONS, 
+    ZOHO_CLIKS_COMPARISON 
+} from '../data/subscriptionMatrixData';
 
 const BusinessSubscription = () => {
     const navigate = useNavigate();
@@ -49,6 +67,47 @@ const BusinessSubscription = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [firmMembersCount, setFirmMembersCount] = useState(3);
     const [showIcaiGuardModal, setShowIcaiGuardModal] = useState(false);
+
+    // Zoho Books-style Matrix States
+    const [featureSearch, setFeatureSearch] = useState('');
+    const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+    const [expandedCategories, setExpandedCategories] = useState(() => {
+        const init = {};
+        FULL_SUBSCRIPTION_MATRIX.forEach(cat => { init[cat.id] = true; });
+        return init;
+    });
+
+    const toggleCategory = (catId) => {
+        setExpandedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
+    };
+
+    const expandAllCategories = () => {
+        const allOpen = {};
+        FULL_SUBSCRIPTION_MATRIX.forEach(cat => { allOpen[cat.id] = true; });
+        setExpandedCategories(allOpen);
+    };
+
+    const collapseAllCategories = () => {
+        const allClosed = {};
+        FULL_SUBSCRIPTION_MATRIX.forEach(cat => { allClosed[cat.id] = false; });
+        setExpandedCategories(allClosed);
+    };
+
+    const getCategoryIcon = (iconName) => {
+        switch (iconName) {
+            case 'Layers': return <Layers size={18} />;
+            case 'FileCheck': return <FileCheck size={18} />;
+            case 'BarChart3': return <BarChart3 size={18} />;
+            case 'ShoppingBag': return <ShoppingBag size={18} />;
+            case 'FileText': return <FileText size={18} />;
+            case 'Receipt': return <Receipt size={18} />;
+            case 'Package': return <Package size={18} />;
+            case 'Store': return <Store size={18} />;
+            case 'Users': return <Users size={18} />;
+            case 'Wallet': return <Wallet size={18} />;
+            default: return <ShieldCheck size={18} />;
+        }
+    };
 
     const handleUpgrade = async (tier) => {
         if (tier.name === selectedTier) return;
@@ -435,40 +494,106 @@ const BusinessSubscription = () => {
     ];
 
     const renderCellValue = (val) => {
-        if (val === '✅') {
+        if (!val) return <span style={{ color: '#94A3B8' }}>-</span>;
+        const strVal = String(val).trim();
+
+        // Locked / Excluded values
+        if (strVal.includes('❌') || strVal.toLowerCase().includes('locked') || strVal.toLowerCase().includes('excluded')) {
+            const cleanText = strVal.replace(/❌/g, '').replace(/Locked/gi, '').replace(/Excluded/gi, '').trim();
             return (
                 <span style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 
-                    justifyContent: 'center', 
-                    width: '26px', 
-                    height: '26px', 
-                    borderRadius: '50%', 
-                    background: '#16A34A', 
-                    color: 'white',
-                    boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)'
+                    gap: '0.25rem', 
+                    padding: '0.2rem 0.55rem', 
+                    borderRadius: '8px', 
+                    background: 'rgba(239, 68, 68, 0.08)', 
+                    color: '#DC2626', 
+                    fontSize: '0.78rem', 
+                    fontWeight: '700',
+                    border: '1px solid rgba(239, 68, 68, 0.2)'
                 }}>
-                    <Check size={16} strokeWidth={3} />
+                    <Lock size={12} strokeWidth={2.5} />
+                    <span>{cleanText || 'Locked'}</span>
                 </span>
             );
         }
-        if (val === '❌') {
+
+        // Unlimited values
+        if (strVal.toLowerCase().includes('unlimited')) {
             return (
                 <span style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 
-                    justifyContent: 'center', 
-                    width: '24px', 
-                    height: '24px', 
-                    color: '#EF4444', 
-                    fontSize: '1.1rem',
-                    fontWeight: '800'
+                    gap: '0.25rem', 
+                    padding: '0.25rem 0.65rem', 
+                    borderRadius: '8px', 
+                    background: 'linear-gradient(135deg, #10B981, #059669)', 
+                    color: '#FFFFFF', 
+                    fontSize: '0.78rem', 
+                    fontWeight: '800',
+                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
                 }}>
-                    ✕
+                    <Sparkles size={12} />
+                    <span>{strVal}</span>
                 </span>
             );
         }
-        return <span className={`cmp-cell-val ${val === 'Unlimited' ? 'unlimited' : ''}`} style={{ fontWeight: val === 'Unlimited' ? '800' : '600', fontSize: '0.88rem' }}>{val}</span>;
+
+        // Available / Yes / Check values
+        if (strVal === '✅' || strVal.toLowerCase() === 'yes' || strVal.toLowerCase() === 'available') {
+            return (
+                <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.25rem', 
+                    padding: '0.2rem 0.55rem', 
+                    borderRadius: '8px', 
+                    background: 'rgba(22, 163, 74, 0.12)', 
+                    color: '#16A34A', 
+                    fontSize: '0.8rem', 
+                    fontWeight: '750'
+                }}>
+                    <CheckCircle2 size={13} strokeWidth={2.5} />
+                    <span>Available</span>
+                </span>
+            );
+        }
+
+        // Values with check mark
+        if (strVal.includes('✅')) {
+            const cleanText = strVal.replace(/✅/g, '').trim();
+            return (
+                <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.25rem', 
+                    padding: '0.2rem 0.55rem', 
+                    borderRadius: '8px', 
+                    background: 'rgba(22, 163, 74, 0.12)', 
+                    color: '#16A34A', 
+                    fontSize: '0.8rem', 
+                    fontWeight: '700'
+                }}>
+                    <CheckCircle2 size={13} strokeWidth={2.5} />
+                    <span>{cleanText}</span>
+                </span>
+            );
+        }
+
+        // Standard numerical or descriptive quota limit
+        return (
+            <span className="cmp-cell-val" style={{ 
+                fontWeight: '650', 
+                fontSize: '0.84rem',
+                display: 'inline-block',
+                padding: '0.15rem 0.45rem',
+                borderRadius: '6px',
+                background: 'rgba(0, 0, 0, 0.03)'
+            }}>
+                {strVal}
+            </span>
+        );
     };
 
     return (
@@ -619,6 +744,33 @@ const BusinessSubscription = () => {
                 }
                 .cmp-cell-val.unlimited {
                     color: #16A34A;
+                }
+                .cmp-cat-header {
+                    background: #F1F5F9;
+                    color: #0F172A;
+                    border-top: 1px solid #E2E8F0;
+                    border-bottom: 1px solid #E2E8F0;
+                }
+                .cmp-cat-header:hover {
+                    background: #E2E8F0;
+                }
+                .cmp-search-box {
+                    background: #FFFFFF;
+                    border: 1px solid #CBD5E1;
+                    color: #0F172A;
+                }
+                .cmp-filter-chip {
+                    background: #F1F5F9;
+                    color: #475569;
+                    border: 1px solid #E2E8F0;
+                }
+                .cmp-filter-chip:hover {
+                    background: #E2E8F0;
+                }
+                .cmp-filter-chip.active {
+                    background: #1B6B3A !important;
+                    color: #FFFFFF !important;
+                    border-color: #1B6B3A !important;
                 }
                 .invoices-history-card {
                     background: white;
@@ -910,6 +1062,44 @@ const BusinessSubscription = () => {
                 .dark-theme .cmp-cell-val.unlimited,
                 .dark .cmp-cell-val.unlimited {
                     color: #34D399 !important;
+                }
+                [data-theme='dark'] .cmp-cat-header,
+                .dark-theme .cmp-cat-header,
+                .dark .cmp-cat-header {
+                    background: #0B1120 !important;
+                    color: #F8FAFC !important;
+                    border-color: #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-cat-header:hover,
+                .dark-theme .cmp-cat-header:hover,
+                .dark .cmp-cat-header:hover {
+                    background: #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-search-box,
+                .dark-theme .cmp-search-box,
+                .dark .cmp-search-box {
+                    background: #0F172A !important;
+                    border-color: #334155 !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .cmp-filter-chip,
+                .dark-theme .cmp-filter-chip,
+                .dark .cmp-filter-chip {
+                    background: #1E293B !important;
+                    color: #94A3B8 !important;
+                    border-color: #334155 !important;
+                }
+                [data-theme='dark'] .cmp-filter-chip:hover,
+                .dark-theme .cmp-filter-chip:hover,
+                .dark .cmp-filter-chip:hover {
+                    background: #334155 !important;
+                }
+                [data-theme='dark'] .cmp-filter-chip.active,
+                .dark-theme .cmp-filter-chip.active,
+                .dark .cmp-filter-chip.active {
+                    background: #059669 !important;
+                    color: #FFFFFF !important;
+                    border-color: #059669 !important;
                 }
                 [data-theme='dark'] .invoices-header-icon,
                 .dark-theme .invoices-header-icon,
@@ -1400,110 +1590,559 @@ const BusinessSubscription = () => {
                 })}
             </div>
 
-            {/* Plan Comparison Table Section (Business Category) */}
+            {/* Plan Comparison Table Section (Business Category) — Zoho Books Inspired Comprehensive Matrix */}
             {activeCategory === 'business' && (
-                <div className="cmp-table-container" style={{ borderRadius: '32px', padding: '2rem 2.5rem', marginBottom: '3rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
-                        <div className="cmp-header-icon-wrap" style={{ width: '36px', height: '36px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <ShieldCheck size={20} />
+                <div className="cmp-table-container" style={{ borderRadius: '32px', padding: '2.25rem 2.5rem', marginBottom: '3rem' }}>
+                    {/* Header & Controls */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                            <div className="cmp-header-icon-wrap" style={{ width: '42px', height: '42px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <ShieldCheck size={24} />
+                            </div>
+                            <div>
+                                <h3 className="cmp-title" style={{ fontSize: '1.45rem', fontWeight: '900', margin: 0, letterSpacing: '-0.01em' }}>
+                                    Full Subscription Features & Limit Allocation Matrix
+                                </h3>
+                                <p className="cmp-desc" style={{ fontSize: '0.86rem', margin: '0.2rem 0 0 0', fontWeight: '500' }}>
+                                    Comprehensive breakdown across 9 categories (94+ platform features) based on the official Cliks Business Feature Allocation Document.
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="cmp-title" style={{ fontSize: '1.35rem', fontWeight: '850', margin: 0 }}>Plan Features Comparison</h3>
-                            <p className="cmp-desc" style={{ fontSize: '0.85rem', margin: 0, fontWeight: '500' }}>Compare exact features, usage quotas, and capabilities across all subscription tiers.</p>
+
+                        {/* Search & Global Accordion Controls */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            {/* Live Search Input */}
+                            <div style={{ position: 'relative', minWidth: '280px' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input
+                                    type="text"
+                                    value={featureSearch}
+                                    onChange={(e) => setFeatureSearch(e.target.value)}
+                                    placeholder="Search features (e.g. E-Invoicing, BRS, Godown)..."
+                                    className="cmp-search-box"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.65rem 1rem 0.65rem 2.25rem',
+                                        borderRadius: '12px',
+                                        fontSize: '0.84rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                                {featureSearch && (
+                                    <button
+                                        onClick={() => setFeatureSearch('')}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '10px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            color: '#94A3B8',
+                                            fontSize: '0.85rem',
+                                            fontWeight: '700'
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Expand / Collapse All */}
+                            <button
+                                onClick={expandAllCategories}
+                                className="cmp-filter-chip"
+                                style={{
+                                    padding: '0.6rem 1rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem'
+                                }}
+                            >
+                                <ChevronDown size={14} /> Expand All
+                            </button>
+                            <button
+                                onClick={collapseAllCategories}
+                                className="cmp-filter-chip"
+                                style={{
+                                    padding: '0.6rem 1rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem'
+                                }}
+                            >
+                                <ChevronUp size={14} /> Collapse All
+                            </button>
                         </div>
                     </div>
 
-                    <div className="cmp-table-inner-wrap" style={{ borderRadius: '20px', overflow: 'hidden' }}>
-                        <table className="cmp-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>
-                            <thead>
-                                <tr>
-                                    <th className="cmp-th-feature" style={{ width: '28%', padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '1.1rem', fontWeight: '850' }}>
-                                        Platform / Feature
-                                    </th>
+                    {/* Category Filter Pills (Zoho Books Style Sub-Nav) */}
+                    <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '1.25rem', scrollbarWidth: 'thin' }}>
+                        <button
+                            onClick={() => setSelectedCategoryFilter('all')}
+                            className={`cmp-filter-chip ${selectedCategoryFilter === 'all' ? 'active' : ''}`}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                borderRadius: '20px',
+                                fontSize: '0.8rem',
+                                fontWeight: '750',
+                                whiteSpace: 'nowrap',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            All Categories (94)
+                        </button>
+                        {FULL_SUBSCRIPTION_MATRIX.map(cat => {
+                            const isCatActive = selectedCategoryFilter === cat.id;
+                            return (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setSelectedCategoryFilter(cat.id)}
+                                    className={`cmp-filter-chip ${isCatActive ? 'active' : ''}`}
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '700',
+                                        whiteSpace: 'nowrap',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {getCategoryIcon(cat.icon)}
+                                    <span>{cat.category.replace(/^[0-9]+\.\s*/, '')}</span>
+                                    <span style={{ 
+                                        fontSize: '0.7rem', 
+                                        background: isCatActive ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.06)', 
+                                        padding: '0.1rem 0.4rem', 
+                                        borderRadius: '10px' 
+                                    }}>
+                                        {cat.features.length}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                                    {/* Micro Plan Header Column */}
-                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#059669', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Micro</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹3,000 / year</div>
-                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹250/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Best for Micro Store
-                                        </div>
-                                    </th>
-                                    
-                                    {/* Starter Plan Header Column */}
-                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
-                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹6,996 / year</div>
-                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹583/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Single Store
-                                        </div>
-                                    </th>
+                    {/* Table Container */}
+                    <div className="cmp-table-inner-wrap" style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="cmp-table" style={{ width: '100%', minWidth: '980px', borderCollapse: 'collapse', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>
+                                <thead>
+                                    <tr>
+                                        {/* Column 1: Feature Header */}
+                                        <th className="cmp-th-feature" style={{ width: '28%', padding: '1.5rem 1.5rem', textAlign: 'left', verticalAlign: 'middle', borderBottom: '2px solid #E2E8F0' }}>
+                                            <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B' }}>Platform Features</div>
+                                            <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '500', marginTop: '0.2rem' }}>
+                                                {featureSearch ? `Search results for "${featureSearch}"` : 'Compare exact quotas & parameters'}
+                                            </div>
+                                        </th>
 
-                                    {/* Standard Plan Header Column */}
-                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#2563EB', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Standard</div>
-                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹10,788 / year</div>
-                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹899/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Multi-Branch
-                                        </div>
-                                    </th>
-
-                                    {/* Growth Plan Header Column */}
-                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#0284C7', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Growth</div>
-                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹17,988 / year</div>
-                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹1,499/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Scaling
-                                        </div>
-                                    </th>
-
-                                    {/* Elite Plan Header Column */}
-                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#7C3AED', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Elite</div>
-                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹29,988 / year</div>
-                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹2,499/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Enterprise
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* Standard Feature Rows */}
-                                {comparisonRows.map((row, rIdx) => {
-                                    const RowIcon = row.icon;
-                                    return (
-                                        <tr key={rIdx} className={`cmp-row ${rIdx % 2 === 0 ? 'cmp-row-even' : 'cmp-row-odd'}`}>
-                                            <td className="cmp-feature-name" style={{ padding: '0.85rem 1.5rem', textAlign: 'left', fontWeight: '700', fontSize: '0.88rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                                    <RowIcon size={17} color="#2563EB" />
-                                                    <span>{row.feature}</span>
+                                        {/* Column 2: Micro Plan */}
+                                        <th style={{ width: '14%', padding: '1.25rem 0.75rem', background: '#059669', color: 'white', verticalAlign: 'top', borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
+                                            <div style={{ fontSize: '1.15rem', fontWeight: '900', marginBottom: '0.2rem' }}>Micro</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹3,000<span style={{ fontSize: '0.75rem', fontWeight: '500' }}> / yr</span></div>
+                                            <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.65rem' }}>₹250 / mo</div>
+                                            {selectedTier === 'Micro Plan' ? (
+                                                <div style={{ background: 'rgba(255, 255, 255, 0.25)', padding: '0.35rem 0.6rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                    Current Plan
                                                 </div>
-                                            </td>
-                                            <td style={{ padding: '0.85rem 0.75rem' }}>
-                                                {renderCellValue(row.micro)}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 0.75rem' }}>
-                                                {renderCellValue(row.starter)}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 0.75rem' }}>
-                                                {renderCellValue(row.standard)}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 0.75rem' }}>
-                                                {renderCellValue(row.growth)}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 0.75rem' }}>
-                                                {renderCellValue(row.elite)}
-                                            </td>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUpgrade(allTiers.business?.[0])}
+                                                    disabled={isProcessing}
+                                                    style={{
+                                                        background: 'white',
+                                                        color: '#059669',
+                                                        border: 'none',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        width: '100%'
+                                                    }}
+                                                >
+                                                    Select Micro
+                                                </button>
+                                            )}
+                                        </th>
+
+                                        {/* Column 3: Starter Plan */}
+                                        <th style={{ width: '14%', padding: '1.25rem 0.75rem', background: '#16A34A', color: 'white', verticalAlign: 'top', borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
+                                            <div style={{ fontSize: '1.15rem', fontWeight: '900', marginBottom: '0.2rem' }}>Starter</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,996<span style={{ fontSize: '0.75rem', fontWeight: '500' }}> / yr</span></div>
+                                            <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.65rem' }}>₹583 / mo</div>
+                                            {selectedTier === 'Starter Plan' ? (
+                                                <div style={{ background: 'rgba(255, 255, 255, 0.25)', padding: '0.35rem 0.6rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                    Current Plan
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUpgrade(allTiers.business?.[1])}
+                                                    disabled={isProcessing}
+                                                    style={{
+                                                        background: 'white',
+                                                        color: '#16A34A',
+                                                        border: 'none',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        width: '100%'
+                                                    }}
+                                                >
+                                                    Select Starter
+                                                </button>
+                                            )}
+                                        </th>
+
+                                        {/* Column 4: Standard Plan (Popular) */}
+                                        <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#2563EB', color: 'white', verticalAlign: 'top', position: 'relative', borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
+                                            <div style={{ 
+                                                position: 'absolute', 
+                                                top: '-1px', 
+                                                left: '50%', 
+                                                transform: 'translateX(-50%)', 
+                                                background: '#F59E0B', 
+                                                color: '#1E293B', 
+                                                fontSize: '0.62rem', 
+                                                fontWeight: '900', 
+                                                padding: '0.15rem 0.6rem', 
+                                                borderRadius: '0 0 6px 6px',
+                                                letterSpacing: '0.04em',
+                                                textTransform: 'uppercase'
+                                            }}>
+                                                RECOMMENDED
+                                            </div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: '900', marginBottom: '0.2rem', marginTop: '0.4rem' }}>Standard</div>
+                                            <div style={{ fontSize: '1.05rem', fontWeight: '800' }}>₹10,788<span style={{ fontSize: '0.75rem', fontWeight: '500' }}> / yr</span></div>
+                                            <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.65rem' }}>₹899 / mo</div>
+                                            {selectedTier === 'Standard Plan' ? (
+                                                <div style={{ background: 'rgba(255, 255, 255, 0.25)', padding: '0.35rem 0.6rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                    Current Plan
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUpgrade(allTiers.business?.[2])}
+                                                    disabled={isProcessing}
+                                                    style={{
+                                                        background: 'white',
+                                                        color: '#2563EB',
+                                                        border: 'none',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '850',
+                                                        cursor: 'pointer',
+                                                        width: '100%',
+                                                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                                                    }}
+                                                >
+                                                    Select Standard
+                                                </button>
+                                            )}
+                                        </th>
+
+                                        {/* Column 5: Growth Plan */}
+                                        <th style={{ width: '14%', padding: '1.25rem 0.75rem', background: '#0284C7', color: 'white', verticalAlign: 'top', borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
+                                            <div style={{ fontSize: '1.15rem', fontWeight: '900', marginBottom: '0.2rem' }}>Growth</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹17,988<span style={{ fontSize: '0.75rem', fontWeight: '500' }}> / yr</span></div>
+                                            <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.65rem' }}>₹1,499 / mo</div>
+                                            {selectedTier === 'Growth Plan' ? (
+                                                <div style={{ background: 'rgba(255, 255, 255, 0.25)', padding: '0.35rem 0.6rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                    Current Plan
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUpgrade(allTiers.business?.[3])}
+                                                    disabled={isProcessing}
+                                                    style={{
+                                                        background: 'white',
+                                                        color: '#0284C7',
+                                                        border: 'none',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        width: '100%'
+                                                    }}
+                                                >
+                                                    Select Growth
+                                                </button>
+                                            )}
+                                        </th>
+
+                                        {/* Column 6: Elite Suite */}
+                                        <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#7C3AED', color: 'white', verticalAlign: 'top', borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
+                                            <div style={{ fontSize: '1.15rem', fontWeight: '900', marginBottom: '0.2rem' }}>Elite</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹29,988<span style={{ fontSize: '0.75rem', fontWeight: '500' }}> / yr</span></div>
+                                            <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.65rem' }}>₹2,499 / mo</div>
+                                            {selectedTier === 'Elite Suite' ? (
+                                                <div style={{ background: 'rgba(255, 255, 255, 0.25)', padding: '0.35rem 0.6rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                    Current Plan
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUpgrade(allTiers.business?.[4])}
+                                                    disabled={isProcessing}
+                                                    style={{
+                                                        background: 'white',
+                                                        color: '#7C3AED',
+                                                        border: 'none',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        width: '100%'
+                                                    }}
+                                                >
+                                                    Select Elite
+                                                </button>
+                                            )}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {/* 9 Category Accordion Sections */}
+                                    {FULL_SUBSCRIPTION_MATRIX.map((cat, catIdx) => {
+                                        // Category filter check
+                                        if (selectedCategoryFilter !== 'all' && selectedCategoryFilter !== cat.id) {
+                                            return null;
+                                        }
+
+                                        // Search query filter
+                                        const query = featureSearch.toLowerCase().trim();
+                                        const visibleFeatures = cat.features.filter(f => {
+                                            if (!query) return true;
+                                            return (
+                                                f.name.toLowerCase().includes(query) ||
+                                                String(f.micro).toLowerCase().includes(query) ||
+                                                String(f.starter).toLowerCase().includes(query) ||
+                                                String(f.standard).toLowerCase().includes(query) ||
+                                                String(f.growth).toLowerCase().includes(query) ||
+                                                String(f.elite).toLowerCase().includes(query)
+                                            );
+                                        });
+
+                                        if (visibleFeatures.length === 0) return null;
+
+                                        const isExpanded = expandedCategories[cat.id] ?? true;
+
+                                        return (
+                                            <React.Fragment key={cat.id}>
+                                                {/* Accordion Category Header Bar */}
+                                                <tr
+                                                    onClick={() => toggleCategory(cat.id)}
+                                                    className="cmp-cat-header"
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                        userSelect: 'none',
+                                                        transition: 'background 0.15s ease'
+                                                    }}
+                                                >
+                                                    <td
+                                                        colSpan={6}
+                                                        style={{
+                                                            padding: '0.95rem 1.5rem',
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                <span style={{ 
+                                                                    display: 'inline-flex', 
+                                                                    alignItems: 'center', 
+                                                                    justifyContent: 'center',
+                                                                    width: '28px',
+                                                                    height: '28px',
+                                                                    borderRadius: '8px',
+                                                                    background: '#1B6B3A',
+                                                                    color: 'white'
+                                                                }}>
+                                                                    {getCategoryIcon(cat.icon)}
+                                                                </span>
+                                                                <span style={{ fontSize: '0.96rem', fontWeight: '850', letterSpacing: '-0.01em' }}>
+                                                                    {cat.category}
+                                                                </span>
+                                                                <span style={{ 
+                                                                    fontSize: '0.74rem', 
+                                                                    fontWeight: '700', 
+                                                                    background: 'rgba(27, 107, 58, 0.12)', 
+                                                                    color: '#1B6B3A', 
+                                                                    padding: '0.2rem 0.55rem', 
+                                                                    borderRadius: '12px' 
+                                                                }}>
+                                                                    {visibleFeatures.length} {visibleFeatures.length === 1 ? 'Feature' : 'Features'}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748B', fontSize: '0.8rem', fontWeight: '700' }}>
+                                                                <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                                                                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                {/* Features under this category */}
+                                                {isExpanded && visibleFeatures.map((feat, fIdx) => (
+                                                    <tr key={fIdx} className={`cmp-row ${fIdx % 2 === 0 ? 'cmp-row-even' : 'cmp-row-odd'}`}>
+                                                        {/* Feature Name */}
+                                                        <td className="cmp-feature-name" style={{ padding: '0.85rem 1.5rem', textAlign: 'left', fontWeight: '700', fontSize: '0.88rem' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1B6B3A', opacity: 0.6, flexShrink: 0 }} />
+                                                                <span>{feat.name}</span>
+                                                            </div>
+                                                        </td>
+
+                                                        {/* Micro */}
+                                                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                                                            {renderCellValue(feat.micro)}
+                                                        </td>
+
+                                                        {/* Starter */}
+                                                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                                                            {renderCellValue(feat.starter)}
+                                                        </td>
+
+                                                        {/* Standard */}
+                                                        <td style={{ padding: '0.85rem 0.75rem', background: 'rgba(37, 99, 235, 0.03)' }}>
+                                                            {renderCellValue(feat.standard)}
+                                                        </td>
+
+                                                        {/* Growth */}
+                                                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                                                            {renderCellValue(feat.growth)}
+                                                        </td>
+
+                                                        {/* Elite */}
+                                                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                                                            {renderCellValue(feat.elite)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Section 2: Cliks Business Optional Add-on Packs */}
+                    <div style={{ marginTop: '3.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div className="cmp-header-icon-wrap" style={{ width: '36px', height: '36px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <PlusCircle size={20} />
+                            </div>
+                            <div>
+                                <h4 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>
+                                    Cliks Business — Optional Capability Add-ons
+                                </h4>
+                                <p style={{ fontSize: '0.84rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>
+                                    Scale seats, locations, or compliance calls on demand without having to force-upgrade your core subscription.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="cmp-table-inner-wrap" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontFamily: "'Inter', sans-serif" }}>
+                                    <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                                        <tr>
+                                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.84rem', fontWeight: '800', color: '#475569' }}>Add-on Module</th>
+                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.84rem', fontWeight: '800', color: '#475569' }}>Monthly Rate</th>
+                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.84rem', fontWeight: '800', color: '#475569' }}>Annual Rate</th>
+                                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.84rem', fontWeight: '800', color: '#475569' }}>What it Includes</th>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    </thead>
+                                    <tbody>
+                                        {CLIKS_OPTIONAL_ADDONS.map((addon, aIdx) => (
+                                            <tr key={aIdx} className={`cmp-row ${aIdx % 2 === 0 ? 'cmp-row-even' : 'cmp-row-odd'}`}>
+                                                <td style={{ padding: '0.9rem 1.5rem', fontWeight: '800', fontSize: '0.9rem', color: '#064E3B' }}>
+                                                    {addon.name}
+                                                </td>
+                                                <td style={{ padding: '0.9rem 1.25rem', fontWeight: '750', fontSize: '0.86rem', color: '#1E293B' }}>
+                                                    {addon.pricingMonth}
+                                                </td>
+                                                <td style={{ padding: '0.9rem 1.25rem', fontWeight: '750', fontSize: '0.86rem', color: '#2563EB' }}>
+                                                    {addon.pricingYear}
+                                                </td>
+                                                <td style={{ padding: '0.9rem 1.5rem', fontSize: '0.84rem', color: '#64748B', fontWeight: '500' }}>
+                                                    {addon.desc}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 3: Cliks vs Zoho Books Cost & Feature Advantage */}
+                    <div style={{ marginTop: '3.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div className="cmp-header-icon-wrap" style={{ width: '36px', height: '36px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <TrendingUp size={20} />
+                            </div>
+                            <div>
+                                <h4 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>
+                                    Why Indian Businesses Choose Cliks Over Zoho Books
+                                </h4>
+                                <p style={{ fontSize: '0.84rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>
+                                    Zoho Books charges extra recurring fees for Billpay, Expense Claims, extra Branches, and Document Scans. Cliks includes native capabilities right in your plan.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="cmp-table-inner-wrap" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontFamily: "'Inter', sans-serif" }}>
+                                    <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                                        <tr>
+                                            <th style={{ width: '22%', padding: '1rem 1.5rem', fontSize: '0.84rem', fontWeight: '800', color: '#475569' }}>Feature / Module</th>
+                                            <th style={{ width: '22%', padding: '1rem 1.25rem', fontSize: '0.84rem', fontWeight: '800', color: '#EF4444' }}>Zoho Books Extra Add-on Pricing</th>
+                                            <th style={{ width: '56%', padding: '1rem 1.5rem', fontSize: '0.84rem', fontWeight: '800', color: '#16A34A' }}>Cliks Business Native Benefit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ZOHO_CLIKS_COMPARISON.map((cmp, cIdx) => (
+                                            <tr key={cIdx} className={`cmp-row ${cIdx % 2 === 0 ? 'cmp-row-even' : 'cmp-row-odd'}`}>
+                                                <td style={{ padding: '0.9rem 1.5rem', fontWeight: '800', fontSize: '0.9rem', color: '#1E293B' }}>
+                                                    {cmp.name}
+                                                </td>
+                                                <td style={{ padding: '0.9rem 1.25rem', fontWeight: '750', fontSize: '0.86rem', color: '#DC2626' }}>
+                                                    {cmp.zohoPrice}
+                                                </td>
+                                                <td style={{ padding: '0.9rem 1.5rem', fontSize: '0.85rem', color: '#064E3B', fontWeight: '600' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                                        <Check size={16} style={{ color: '#16A34A', flexShrink: 0, marginTop: '0.15rem' }} />
+                                                        <span>{cmp.cliksBenefit}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

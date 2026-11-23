@@ -44,11 +44,14 @@ import { Loader2 } from 'lucide-react';
 import { purchasesService, productsService, suppliersService, settingsService, returnsService, warehouseService, stockService } from '../services';
 import '../App.css';
 import { useCurrency, useAuth } from '../context';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 
 const BusinessPurchases = () => {
     const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const billLimit = getPlanLimit(activePlan, 'billsExpensesPerYear');
     const business = user?.business;
     const currentPlan = (
         user?.subscription?.plan_key || 
@@ -1005,6 +1008,11 @@ const BusinessPurchases = () => {
                     </button>
                     <button 
                         onClick={() => {
+                            if (purchases.length >= billLimit) {
+                                alert(`Purchase bills limit reached (${billLimit.toLocaleString()} Bills on ${activePlan}). Please upgrade your subscription plan to record more bills.`);
+                                navigate('/subscription');
+                                return;
+                            }
                             setCreateDocType('BILL');
                             setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
                             setIsCreateModalOpen(true);
