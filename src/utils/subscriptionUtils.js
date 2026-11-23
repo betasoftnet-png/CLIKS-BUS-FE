@@ -30,6 +30,22 @@ export const PLAN_FEATURES = {
         'payroll-attendance',
         'email-support'
     ],
+    'Standard Plan': [
+        'accounting',
+        'gst-filings',
+        'payroll-attendance',
+        'email-support',
+        'delivery-challan',
+        'loyalty-points',
+        'audit-center',
+        'multi-branch',
+        'automated-payroll',
+        'automated-reminders',
+        'bank-reconciliation',
+        'balance-sheet',
+        'request-stock',
+        'price-lists'
+    ],
     'Growth Plan': [
         'accounting',
         'gst-filings',
@@ -209,6 +225,42 @@ export const PLAN_LIMITS = {
         mobileApp: true,
         support: 'Standard Email & Chat Support'
     },
+    'Standard Plan': {
+        websiteUsers: 5, // Sub ID's Roles: 5 ID's
+        branches: 2, // Internal Showrooms / Godowns: 2 Branches
+        warehouses: 1, // Godown / Warehouse Mapping: 1 Godown
+        invoicesPerYear: 10000,
+        billsExpensesPerYear: 10000,
+        products: 10000, // Active Stock SKUs
+        customers: 5000, // Customer CRM Directory
+        vendors: 500,
+        staff: 5, // HR & Employees Database: Basic (5 Staff)
+        cloudStorageGB: 10,
+        autoBackup: 'Weekly',
+        eInvoicingDaily: 10, // 300/month
+        eWayBillsDaily: 3, // 90/month
+        gstinValidationDaily: 2,
+        marketingPerDay: 15,
+        reportsSales: 6,
+        reportsPurchase: 4,
+        reportsStock: 4,
+        reportsCRM: 4,
+        reportsFinance: 8,
+        voucherScans: 10,
+        posCounters: 2,
+        thermalFormats: 2,
+        segregationGoals: 20,
+        splitwiseSplits: 20,
+        automatedReminders: 10,
+        multiSeriesPrefixes: 2,
+        inventory: 'Available',
+        eInvoiceEWayBill: 'Up to 10 e-Inv / 3 E-Way per day',
+        apiWebhooks: false,
+        whiteLabelInvoices: false,
+        dataExport: 'GSTR-1 & 3B Reports',
+        mobileApp: true,
+        support: 'Priority Email & Chat Support'
+    },
     'Growth Plan': {
         websiteUsers: 10,
         warehouses: 3,
@@ -343,12 +395,25 @@ export const getRequiredPlanForFeature = (featureId) => {
     return FEATURE_REQUIRED_PLAN[featureId] || 'Starter Plan';
 };
 
+export const normalizePlanKey = (planName) => {
+    if (!planName) return 'Free Plan';
+    if (PLAN_LIMITS[planName]) return planName;
+    const norm = String(planName).trim().toLowerCase();
+    if (norm.includes('elite')) return 'Elite Suite';
+    if (norm.includes('growth')) return 'Growth Plan';
+    if (norm.includes('standard') || norm.includes('tier 3')) return 'Standard Plan';
+    if (norm.includes('starter') || norm.includes('tier 2')) return 'Starter Plan';
+    if (norm.includes('micro') || norm.includes('tier 1')) return 'Micro Plan';
+    if (norm.includes('trial')) return 'Trial Plan';
+    return planName;
+};
+
 /**
  * Get specific numeric or feature limit for a given plan.
  */
 export const getPlanLimit = (planName, limitKey) => {
-    const activePlan = planName || 'Free Plan';
-    const limits = PLAN_LIMITS[activePlan] || PLAN_LIMITS['Starter Plan'];
+    const key = normalizePlanKey(planName);
+    const limits = PLAN_LIMITS[key] || PLAN_LIMITS['Starter Plan'];
     return limits[limitKey] !== undefined ? limits[limitKey] : Infinity;
 };
 
@@ -385,8 +450,9 @@ export const calculateDaysRemaining = (expiryDate) => {
 export const getPlanDuration = (planName) => {
     if (!planName) return 15;
     if (String(planName).toLowerCase().includes('trial')) return 15;
-    const annualPlans = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'];
-    return annualPlans.includes(planName) ? 365 : 30;
+    const annualPlans = ['Micro Plan', 'Starter Plan', 'Standard Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'];
+    const key = normalizePlanKey(planName);
+    return annualPlans.includes(key) ? 365 : 30;
 };
 
 /**

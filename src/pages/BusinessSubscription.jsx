@@ -163,42 +163,63 @@ const BusinessSubscription = () => {
                 ]
             },
             {
+                name: 'Standard Plan',
+                priceAnnually: 10788,
+                originalPrice: 15999,
+                desc: 'Designed for multi-branch retail, full PO workflows & automated compliance.',
+                icon: Award,
+                color: '#2563EB',
+                badge: 'Tier 3: Standard (₹899/mo)',
+                features: [
+                    '5 Sub IDs / Roles & 2 Branches (Toggle)',
+                    '10,000 Invoices & 10,000 Bills / year',
+                    '10,000 Active Stock SKUs & 5,000 Customers',
+                    '5 Staff (HR Database & Automated Payroll)',
+                    'Live E-Invoicing (10/day) & E-Way Bills (3/day)',
+                    'Full Statements (P&L + Balance Sheet) & BRS',
+                    'Delivery Challan & Loyalty Points Tracking',
+                    '10 GB Cloud Storage & Weekly Auto-Backup',
+                    'POS 2 Counters (2 Thermal Formats)',
+                    '1 Godown / Warehouse & Price Lists'
+                ]
+            },
+            {
                 name: 'Growth Plan',
-                priceAnnually: 6999,
-                originalPrice: 9999,
+                priceAnnually: 17988,
+                originalPrice: 24999,
                 desc: 'Built for scaling businesses and multi-site operations.',
                 icon: Zap,
                 color: '#064E3B',
-                badge: 'Most Popular',
+                badge: 'Tier 4: Growth (₹1,499/mo)',
                 features: [
-                    'All features in Starter Plan',
-                    '10 Website Users & 3 Warehouses',
+                    '10 Sub IDs / Roles & 5 Branches (Toggle)',
                     '25,000 Invoices & 25,000 Bills / year',
-                    '25,000 Products & 10,000 Customers',
-                    '2,500 Vendors & 25 Staff (HR)',
-                    'Advanced Inventory & Full E-Invoice/E-Way Bill',
+                    '50,000 Products & 15,000 Customers',
+                    '25 Staff (Advanced HR & Payroll)',
+                    'Live E-Invoicing (20/day) & E-Way Bills (5/day)',
+                    '5 Godowns & Multi-Tier Landed Cost',
                     'API & Webhooks Access',
-                    'Advanced Data Export & Mobile App',
-                    'VIP 24/7 Email Chat'
+                    '20 GB Cloud Storage & Daily Auto-Backup',
+                    'POS 5 Counters + Basic Kiosk Mode'
                 ]
             },
             {
                 name: 'Elite Suite',
-                priceAnnually: 8999,
-                originalPrice: 15999,
+                priceAnnually: 29988,
+                originalPrice: 39999,
                 desc: 'Absolute control for national distribution networks.',
                 icon: Crown,
                 color: '#0D9488',
-                badge: 'Ultimate Value',
+                badge: 'Tier 5: Elite (₹2,499/mo)',
                 features: [
-                    'All features in Growth Plan',
-                    '25 Website Users & 10 Warehouses',
+                    '20 Sub IDs / Roles & 15 Branches',
                     '100,000 Invoices & 100,000 Bills / year',
-                    'Unlimited Products, Customers & Vendors',
-                    'Unlimited Staff (HR) profiles',
-                    'White-label Invoices',
-                    'Advanced Data Export & Mobile App',
-                    'VIP 24/7 Email Chat'
+                    'Unlimited Active Stock SKUs & 25,000 Customers',
+                    '100 Staff (HR & Full Sync Payroll)',
+                    'Live E-Invoicing (30/day) & E-Way Bills (10/day)',
+                    '10 Godowns & Full White-Labeling',
+                    '50 GB Cloud Storage & Daily Auto-Backup',
+                    'POS 15 Counters + Customizable Kiosk Mode'
                 ]
             }
         ],
@@ -387,30 +408,30 @@ const BusinessSubscription = () => {
     const renewal = getRenewalDetails();
 
     const comparisonRows = [
-        { feature: 'Sub IDs / Roles', icon: User, micro: '❌ Locked', starter: '2 IDs', growth: '10', elite: '20' },
-        { feature: 'Branches / Showrooms', icon: Home, micro: '1 Branch', starter: '1 Branch', growth: '5 Branches', elite: '15 Branches' },
-        { feature: 'Invoices per year', icon: FileText, micro: '1,000', starter: '5,000', growth: '25,000', elite: '100,000' },
-        { feature: 'Bills / Expenses per year', icon: Receipt, micro: '1,000', starter: '5,000', growth: '25,000', elite: '100,000' },
-        { feature: 'Products / Items (SKUs)', icon: Package, micro: '1,000', starter: '5,000', growth: '50,000', elite: 'Unlimited' },
-        { feature: 'Customers (CRM)', icon: Users, micro: '100', starter: '1,000', growth: '15,000', elite: '25,000' },
-        { feature: 'Vendors / Suppliers', icon: UserCheck, micro: '50', starter: 'Basic', growth: 'Advance', elite: 'Advance' },
-        { feature: 'Staff (HR & Payroll)', icon: UserPlus, micro: '❌', starter: '2 Staff', growth: '25 Staff', elite: '100 Staff' },
-        { feature: 'Live E-Invoicing (IRN/QR)', icon: FileCheck, micro: '❌', starter: '5/day (150/mo)', growth: '20/day', elite: '30/day' },
-        { feature: 'Live E-Way Bills', icon: FileCheck, micro: '❌', starter: '2/day (60/mo)', growth: '5/day', elite: '10/day' },
-        { feature: 'Accounting & Statements', icon: BookOpen, micro: 'Basic (COA)', starter: 'P&L Only', growth: 'Full Statements', elite: 'Full + Branch' },
-        { feature: 'GST Day Book & Reports', icon: FileCheck, micro: '❌', starter: 'Offline CSV/PDF', growth: 'GSTR-1, 2B, 3B', elite: 'Full + JSON' },
-        { feature: 'Delivery Challan', icon: FileText, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
-        { feature: 'Loyalty Points Tracker', icon: Award, micro: '❌', starter: '❌', growth: 'Auto-Redeem', elite: 'Advanced Rules' },
-        { feature: 'Audit Center', icon: ShieldAlert, micro: '❌', starter: '❌', growth: 'Locking', elite: 'Full Audit Log' },
-        { feature: 'Warehouse / Godown', icon: Layers, micro: '❌', starter: '❌', growth: '5 Godowns', elite: '10 Godowns' },
-        { feature: 'POS Checkout', icon: Store, micro: 'Basic (PDF)', starter: '1 Counter (Thermal)', growth: '5 Counters', elite: '15 Counters' },
-        { feature: 'Cloud Storage', icon: Download, micro: '1 GB', starter: '5 GB', growth: '20 GB', elite: '50 GB' },
-        { feature: 'Auto Backup', icon: Calendar, micro: '❌', starter: 'Monthly', growth: 'Daily', elite: 'Daily' },
-        { feature: 'API / Webhooks', icon: Code, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
-        { feature: 'White-label Invoices', icon: Link, micro: '❌', starter: '❌', growth: '✅', elite: '✅' },
-        { feature: 'Data Export / Reports', icon: Download, micro: 'Limited (2-3/cat)', starter: 'Available (3-5/cat)', growth: 'Advanced', elite: 'Full Export' },
-        { feature: 'Mobile App', icon: Smartphone, micro: '✅', starter: '✅', growth: '✅', elite: '✅' },
-        { feature: 'Support', icon: Headphones, micro: 'Email Support', starter: 'Email & Chat Support', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
+        { feature: 'Sub IDs / Roles', icon: User, micro: '❌ Locked', starter: '2 IDs', standard: '5 IDs', growth: '10', elite: '20' },
+        { feature: 'Branches / Showrooms', icon: Home, micro: '1 Branch', starter: '1 Branch', standard: '2 Branches', growth: '5 Branches', elite: '15 Branches' },
+        { feature: 'Invoices per year', icon: FileText, micro: '1,000', starter: '5,000', standard: '10,000', growth: '25,000', elite: '100,000' },
+        { feature: 'Bills / Expenses per year', icon: Receipt, micro: '1,000', starter: '5,000', standard: '10,000', growth: '25,000', elite: '100,000' },
+        { feature: 'Products / Items (SKUs)', icon: Package, micro: '1,000', starter: '5,000', standard: '10,000', growth: '50,000', elite: 'Unlimited' },
+        { feature: 'Customers (CRM)', icon: Users, micro: '100', starter: '1,000', standard: '5,000', growth: '15,000', elite: '25,000' },
+        { feature: 'Vendors / Suppliers', icon: UserCheck, micro: '50', starter: 'Basic', standard: 'Advance + Terms', growth: 'Advance', elite: 'Advance' },
+        { feature: 'Staff (HR & Payroll)', icon: UserPlus, micro: '❌', starter: '2 Staff', standard: '5 Staff', growth: '25 Staff', elite: '100 Staff' },
+        { feature: 'Live E-Invoicing (IRN/QR)', icon: FileCheck, micro: '❌', starter: '5/day (150/mo)', standard: '10/day (300/mo)', growth: '20/day', elite: '30/day' },
+        { feature: 'Live E-Way Bills', icon: FileCheck, micro: '❌', starter: '2/day (60/mo)', standard: '3/day (90/mo)', growth: '5/day', elite: '10/day' },
+        { feature: 'Accounting & Statements', icon: BookOpen, micro: 'Basic (COA)', starter: 'P&L Only', standard: 'Full Statements', growth: 'Full Statements', elite: 'Full + Branch' },
+        { feature: 'GST Day Book & Reports', icon: FileCheck, micro: '❌', starter: 'Offline CSV/PDF', standard: 'GSTR-1 & 3B', growth: 'GSTR-1, 2B, 3B', elite: 'Full + JSON' },
+        { feature: 'Delivery Challan', icon: FileText, micro: '❌', starter: '❌', standard: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Loyalty Points Tracker', icon: Award, micro: '❌', starter: '❌', standard: 'Basic Tracking', growth: 'Auto-Redeem', elite: 'Advanced Rules' },
+        { feature: 'Audit Center', icon: ShieldAlert, micro: '❌', starter: '❌', standard: 'Basic Auditor Role', growth: 'Locking', elite: 'Full Audit Log' },
+        { feature: 'Warehouse / Godown', icon: Layers, micro: '❌', starter: '❌', standard: '1 Godown', growth: '5 Godowns', elite: '10 Godowns' },
+        { feature: 'POS Checkout', icon: Store, micro: 'Basic (PDF)', starter: '1 Counter (Thermal)', standard: '2 Counters', growth: '5 Counters', elite: '15 Counters' },
+        { feature: 'Cloud Storage', icon: Download, micro: '1 GB', starter: '5 GB', standard: '10 GB', growth: '20 GB', elite: '50 GB' },
+        { feature: 'Auto Backup', icon: Calendar, micro: '❌', starter: 'Monthly', standard: 'Weekly', growth: 'Daily', elite: 'Daily' },
+        { feature: 'API / Webhooks', icon: Code, micro: '❌', starter: '❌', standard: '❌', growth: '✅', elite: '✅' },
+        { feature: 'White-label Invoices', icon: Link, micro: '❌', starter: '❌', standard: '❌', growth: '✅', elite: '✅' },
+        { feature: 'Data Export / Reports', icon: Download, micro: 'Limited (2-3/cat)', starter: 'Available (3-5/cat)', standard: 'Available (4-8/cat)', growth: 'Advanced', elite: 'Full Export' },
+        { feature: 'Mobile App', icon: Smartphone, micro: '✅', starter: '✅', standard: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Support', icon: Headphones, micro: 'Email Support', starter: 'Email & Chat Support', standard: 'Priority Email & Chat', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
     ];
 
     const renderCellValue = (val) => {
@@ -1411,32 +1432,42 @@ const BusinessSubscription = () => {
                                     </th>
                                     
                                     {/* Starter Plan Header Column */}
-                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,996 / year</div>
-                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹583/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Best for Single Store
+                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹6,996 / year</div>
+                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹583/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Single Store
+                                        </div>
+                                    </th>
+
+                                    {/* Standard Plan Header Column */}
+                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#2563EB', color: 'white', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Standard</div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹10,788 / year</div>
+                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(₹899/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Multi-Branch
                                         </div>
                                     </th>
 
                                     {/* Growth Plan Header Column */}
-                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#2563EB', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Growth</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,999 / year</div>
-                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹583/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Best for Growing business
+                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#0284C7', color: 'white', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Growth</div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹17,988 / year</div>
+                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹1,499/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Scaling
                                         </div>
                                     </th>
 
                                     {/* Elite Plan Header Column */}
-                                    <th style={{ width: '18%', padding: '1.25rem 1rem', background: '#7C3AED', color: 'white', verticalAlign: 'top' }}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Elite</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹8,999 / year</div>
-                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹750/month)</div>
-                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
-                                            Best for Large / advanced business
+                                    <th style={{ width: '15%', padding: '1.25rem 0.75rem', background: '#7C3AED', color: 'white', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Elite</div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: '800' }}>₹29,988 / year</div>
+                                        <div style={{ fontSize: '0.72rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹2,499/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.45rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Enterprise
                                         </div>
                                     </th>
                                 </tr>
@@ -1453,16 +1484,19 @@ const BusinessSubscription = () => {
                                                     <span>{row.feature}</span>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem' }}>
+                                            <td style={{ padding: '0.85rem 0.75rem' }}>
                                                 {renderCellValue(row.micro)}
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem' }}>
+                                            <td style={{ padding: '0.85rem 0.75rem' }}>
                                                 {renderCellValue(row.starter)}
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem' }}>
+                                            <td style={{ padding: '0.85rem 0.75rem' }}>
+                                                {renderCellValue(row.standard)}
+                                            </td>
+                                            <td style={{ padding: '0.85rem 0.75rem' }}>
                                                 {renderCellValue(row.growth)}
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem' }}>
+                                            <td style={{ padding: '0.85rem 0.75rem' }}>
                                                 {renderCellValue(row.elite)}
                                             </td>
                                         </tr>
