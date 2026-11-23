@@ -76,12 +76,32 @@ export const PLAN_FEATURES = {
         'gst-filings',
         'payroll-attendance',
         'email-support',
+        'delivery-challan',
+        'loyalty-points',
+        'audit-center',
+        'multi-branch',
+        'automated-payroll',
+        'automated-reminders',
+        'bank-reconciliation',
+        'balance-sheet',
+        'request-stock',
+        'price-lists',
         'multi-warehouse',
         'api-webhooks',
         'fin-pro-export',
         'priority-support',
-        'unlimited-staff',
+        'dashboard-customization',
+        'voucher-audit-history',
+        'late-fees',
+        'external-franchise',
         'white-label-invoice',
+        'full-white-label',
+        'unlimited-white-label',
+        'vendor-portal',
+        'multi-currency-landed-cost',
+        'custom-kiosk-mode',
+        'weigh-scale-sync',
+        'mobile-barcode-scan',
         'dedicated-manager',
         'vip-phone-support'
     ],
@@ -317,21 +337,47 @@ export const PLAN_LIMITS = {
         support: 'Priority Email & 24/7 Chat Support'
     },
     'Elite Suite': {
-        websiteUsers: 25,
-        warehouses: 10,
+        websiteUsers: 20, // Sub ID's Roles: 20 ID's
+        branches: 15, // Internal Showrooms / Godowns: 15 Branches
+        externalBranches: 10, // External Franchise / Partner Branches: Up to 10 External
+        warehouses: 10, // Godown / Warehouse Mapping: 10 Godowns
         invoicesPerYear: 100000,
         billsExpensesPerYear: 100000,
-        products: Infinity,
-        customers: Infinity,
+        products: Infinity, // Active Stock SKUs: Unlimited
+        customers: 25000, // Customer CRM Directory: 25,000 Customers
         vendors: Infinity,
-        staff: Infinity,
-        inventory: 'Advanced',
-        eInvoiceEWayBill: 'Full',
+        staff: 100, // HR & Employees Database: Elite (100 Staff)
+        cloudStorageGB: 50,
+        autoBackup: 'Daily',
+        eInvoicingDaily: 30, // 900/month
+        eWayBillsDaily: 10, // 300/month
+        gstinValidationDaily: 5,
+        marketingPerDay: 40,
+        reportsSales: 8,
+        reportsPurchase: 6,
+        reportsStock: 6,
+        reportsCRM: 5,
+        reportsFinance: 17,
+        voucherScans: 200,
+        multiSeriesPrefixes: Infinity, // Unlimited Custom Series
+        voucherAuditDaily: 15, // 15 limit/day
+        posCounters: 15,
+        kioskMode: 'Customizable Kiosk Mode',
+        thermalLayouts: 'Custom Layouts + Logo',
+        segregationGoals: Infinity, // Unlimited
+        splitwiseSplits: Infinity, // Unlimited
+        automatedRemindersDaily: 40,
+        inventory: 'Full Batch/Expiry/Serial',
+        eInvoiceEWayBill: 'Up to 30 e-Inv / 10 E-Way per day',
         apiWebhooks: true,
         whiteLabelInvoices: true,
-        dataExport: 'Advanced',
+        fullWhiteLabel: true,
+        lateFees: true,
+        vendorPortal: true,
+        multiCurrencyLandedCost: true,
+        dataExport: 'Full GSTR + JSON Export',
         mobileApp: true,
-        support: 'VIP 24/7 Email Chat'
+        support: 'Dedicated Manager & VIP 24/7 Phone Support'
     }
 };
 
