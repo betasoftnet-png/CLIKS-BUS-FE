@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
 import { attendanceService } from '../services/attendanceService';
 import { expensesService } from '../services/expensesService';
@@ -48,6 +48,7 @@ import FilterableTableHead from '../components/FilterableTableHead';
 import LodgeStaffClaimModal from '../components/hr/LodgeStaffClaimModal';
 import { useCurrency, useAuth } from '../context';
 import { config } from '../lib/config';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 
 const INITIAL_EMPLOYEES = [
     {
@@ -127,8 +128,11 @@ const INITIAL_EMPLOYEES = [
 ];
 
 const BusinessStaffing = () => {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const staffLimit = getPlanLimit(activePlan, 'staff');
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
@@ -1801,6 +1805,11 @@ const BusinessStaffing = () => {
                     </button>
                     <button
                         onClick={() => {
+                            if ((dbEmployees?.length || 0) >= staffLimit) {
+                                alert(`Employee headcount limit reached (${staffLimit} Staff on ${activePlan}). Please upgrade your subscription plan to onboard more employees.`);
+                                navigate('/subscription');
+                                return;
+                            }
                             const nextCode = `CLK-00${(dbEmployees.length || 0) + 1}`;
                             setNewEmp({ ...initialEmpState, employee_code: nextCode });
                             setIsOnboardModalOpen(true);

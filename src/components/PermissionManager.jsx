@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2, Receipt, Building, MapPin, Store } from 'lucide-react';
 import { branchService } from '../services/branchService';
 import { useAuth } from '../context';
+import { getPlanLimit } from '../utils/subscriptionUtils';
 
 const PERMISSIONS_HIERARCHY = [
   {
@@ -277,9 +278,12 @@ const PermissionNode = ({ node, selectedIds, onToggle }) => {
 
 const PermissionManager = () => {
   const API_BASE = import.meta.env.VITE_API_SUB_BASE_URL || '';
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, selectedPlan } = useAuth();
+  const activePlan = selectedPlan || user?.tier || 'Free Plan';
+  const subIdLimit = getPlanLimit(activePlan, 'websiteUsers');
 
   const isBranchManager = Boolean(user && (user.is_sub_id || user.role === 'sub_id' || user.role === 'SUB_ID') && user.branch_id);
   const managerBranchId = user?.branch_id ? String(user.branch_id) : null;
@@ -518,7 +522,14 @@ const PermissionManager = () => {
             {isBranchManager ? `${user?.branch_name || 'Showroom'} Staff` : 'Sub-IDs'}
           </h2>
           <button
-            onClick={() => setShowCreateForm(true)}
+            onClick={() => {
+              if (displayedSubIds.length >= subIdLimit) {
+                alert(`Sub-ID role limit reached (${subIdLimit} Sub-IDs on ${activePlan}). Please upgrade to Standard or Growth Plan to add more staff roles.`);
+                navigate('/subscription');
+                return;
+              }
+              setShowCreateForm(true);
+            }}
             className="p-2 text-green-700 bg-green-100 rounded-full hover:bg-green-200 transition"
             title="Create New Sub-ID"
           >
