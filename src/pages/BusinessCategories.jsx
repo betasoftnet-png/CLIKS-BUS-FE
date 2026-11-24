@@ -125,7 +125,7 @@ const BusinessCategories = () => {
     } = useQuery({
         queryKey: ['product_categories'],
         queryFn: () => productsService.getCategories(),
-        staleTime: 1000 * 60 * 2 // 2 minutes cache
+        staleTime: 0
     });
 
     // Fetch products list to enable assigning uncategorized & parent products during category creation
@@ -273,20 +273,61 @@ const BusinessCategories = () => {
         }
     });
 
-    // Delete mutation
+    // Delete mutation with instant optimistic UI update
     const deleteCategoryMutation = useMutation({
         mutationFn: async (id) => {
             return await productsService.deleteCategory(id);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['product_categories'] });
+        onMutate: async (deletedId) => {
+            // Cancel outgoing queries so background fetches don't overwrite optimistic delete
+            await queryClient.cancelQueries({ queryKey: ['product_categories'] });
+
+            // Snapshot previous cache state
+            const previousData = queryClient.getQueryData(['product_categories']);
+
+            // Optimistically remove from query cache immediately (0ms delay)
+            queryClient.setQueryData(['product_categories'], (old) => {
+                if (!old) return old;
+                const idNum = Number(deletedId);
+
+                const filterItems = (list) => (list || []).filter(item => Number(item.id) !== idNum);
+
+                const updatedGroups = (old.groups || [])
+                    .filter(g => Number(g.id) !== idNum)
+                    .map(g => ({
+                        ...g,
+                        subcategories: filterItems(g.subcategories)
+                    }));
+
+                return {
+                    ...old,
+                    categories: filterItems(old.categories),
+                    groups: updatedGroups,
+                    subgroups: filterItems(old.subgroups)
+                };
+            });
+
             setDeleteConfirmId(null);
-            showBanner('Category removed successfully', 'success');
+            return { previousData };
         },
-        onError: (err) => {
+        onError: (err, deletedId, context) => {
+            // Rollback on server error
+            if (context?.previousData) {
+                queryClient.setQueryData(['product_categories'], context.previousData);
+            }
             const msg = err.response?.data?.message || err.message || 'Failed to remove category';
             showBanner(msg, 'error');
             setDeleteConfirmId(null);
+        },
+        onSuccess: () => {
+            showBanner('Category removed successfully', 'success');
+        },
+        onSettled: () => {
+            // Re-sync with server state
+            queryClient.invalidateQueries({ queryKey: ['product_categories'], refetchType: 'all' });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
         }
     });
 
@@ -425,27 +466,9 @@ const BusinessCategories = () => {
         try {
             setIsUploadingImage(true);
 
-            // 1. Try uploading to backend storage service
-            const uploadFormData = new FormData();
-            uploadFormData.append('file', file);
-            uploadFormData.append('module', 'categories');
-            uploadFormData.append('folder', 'categories');
-
-            try {
-                const res = await storageService.uploadFile(uploadFormData);
-                const fileUrl = res?.data?.cdnUrl || res?.data?.directUrl || res?.data?.streamUrl || res?.data?.url || res?.data?.file_url || res?.url;
-
-                if (fileUrl) {
-                    setFormData(prev => ({ ...prev, image_url: fileUrl }));
-                    setShowUrlInput(false);
-                    return;
-                }
-            } catch (storageErr) {
-                console.warn('[Category Modal] Storage upload fallback to client-compressed image:', storageErr);
-            }
-
-            // 2. Client-side compression fallback: produces ultra-light (~25KB) image
-            // This prevents network timeouts and large JSON payloads
+            // Compress client-side to light, high-quality JPEG (~20KB)
+            // Stored directly as data URI to guarantee 100% instant rendering on all devices,
+            // complete portability, and zero reliance on unconfigured external CDN domains.
             const compressed = await compressImage(file, 600, 600, 0.82);
             if (compressed) {
                 setFormData(prev => ({ ...prev, image_url: compressed }));
@@ -453,6 +476,7 @@ const BusinessCategories = () => {
             }
         } catch (err) {
             console.error('[Category Modal] Image upload error:', err);
+            alert('Failed to process image. Please try another image.');
         } finally {
             setIsUploadingImage(false);
             if (e.target) e.target.value = '';
@@ -778,7 +802,7 @@ const BusinessCategories = () => {
                             >
                                 {/* Cover Image Banner */}
                                 <div style={{ position: 'relative', width: '100%', height: '140px', background: 'linear-gradient(135deg, #1B6B3A 0%, #0F3D20 100%)', overflow: 'hidden' }}>
-                                    {group.image_url ? (
+                                    {group.image_url && !group.image_url.includes('beta-softnet.com') ? (
                                         <img 
                                             src={group.image_url} 
                                             alt={group.category_name} 
@@ -810,7 +834,10 @@ const BusinessCategories = () => {
                                     <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '6px' }}>
                                         <button
                                             type="button"
-                                            onClick={() => handleOpenEditModal(group)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenEditModal(group);
+                                            }}
                                             style={{
                                                 padding: '0.35rem 0.65rem',
                                                 borderRadius: '8px',
@@ -833,16 +860,37 @@ const BusinessCategories = () => {
                                             <div style={{ display: 'flex', gap: '4px', background: 'white', padding: '2px', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        if (group.id) deleteCategoryMutation.mutate(group.id);
+                                                    disabled={deleteCategoryMutation.isPending && deleteCategoryMutation.variables === group.id}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (group.id) {
+                                                            deleteCategoryMutation.mutate(group.id);
+                                                        } else {
+                                                            showBanner('Cannot delete category without ID', 'error');
+                                                        }
                                                     }}
-                                                    style={{ border: 'none', background: '#EF4444', color: 'white', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
+                                                    style={{ 
+                                                        border: 'none', 
+                                                        background: '#EF4444', 
+                                                        color: 'white', 
+                                                        padding: '3px 8px', 
+                                                        borderRadius: '6px', 
+                                                        fontSize: '0.72rem', 
+                                                        fontWeight: '800', 
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '3px'
+                                                    }}
                                                 >
-                                                    Del?
+                                                    {deleteCategoryMutation.isPending && deleteCategoryMutation.variables === group.id ? 'Deleting...' : 'Del?'}
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setDeleteConfirmId(null)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteConfirmId(null);
+                                                    }}
                                                     style={{ border: 'none', background: '#E2E8F0', color: '#475569', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer' }}
                                                 >
                                                     ✕
@@ -851,7 +899,10 @@ const BusinessCategories = () => {
                                         ) : (
                                             <button
                                                 type="button"
-                                                onClick={() => setDeleteConfirmId(group.id || group.category_name)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteConfirmId(group.id || group.category_name);
+                                                }}
                                                 style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.08)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}
                                                 title="Delete Category"
                                             >
