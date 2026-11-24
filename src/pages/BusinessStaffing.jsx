@@ -38,6 +38,7 @@ import {
     ChevronLeft,
     ChevronRight,
     RefreshCw,
+    RotateCcw,
     CalendarCheck,
     Check
 } from 'lucide-react';
@@ -141,6 +142,10 @@ const BusinessStaffing = () => {
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState('All');
+    const [selectedShiftFilter, setSelectedShiftFilter] = useState('All');
+    const [selectedBloodGroupFilter, setSelectedBloodGroupFilter] = useState('All');
+    const [selectedQuickTag, setSelectedQuickTag] = useState('All');
     const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
     const isSubmittingOnboardRef = useRef(false);
     const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
@@ -1847,10 +1852,56 @@ const BusinessStaffing = () => {
         }
     };
 
-    const filteredEmployees = employees.filter(emp =>
-        `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.department_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const departmentsList = useMemo(() => {
+        const set = new Set();
+        employees.forEach(e => { if (e.department_name) set.add(e.department_name); });
+        return Array.from(set).sort();
+    }, [employees]);
+
+    const bloodGroupsList = useMemo(() => {
+        const set = new Set();
+        employees.forEach(e => { if (e.blood_group) set.add(e.blood_group); });
+        return Array.from(set).sort();
+    }, [employees]);
+
+    const shiftsList = useMemo(() => {
+        const set = new Set();
+        employees.forEach(e => { if (e.assigned_shift) set.add(e.assigned_shift); });
+        return Array.from(set).sort();
+    }, [employees]);
+
+    const filteredEmployees = employees.filter(emp => {
+        const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
+        const code = String(emp.employee_code || '').toLowerCase();
+        const empIdStr = String(emp.employee_id || '').toLowerCase();
+        const email = String(emp.email || '').toLowerCase();
+        const phone = String(emp.phone_number || '').toLowerCase();
+        const query = searchTerm.toLowerCase().trim();
+
+        const matchesSearch = !query || 
+            fullName.includes(query) ||
+            code.includes(query) ||
+            empIdStr.includes(query) ||
+            email.includes(query) ||
+            phone.includes(query) ||
+            (emp.department_name && emp.department_name.toLowerCase().includes(query)) ||
+            (emp.designation_name && emp.designation_name.toLowerCase().includes(query));
+
+        const matchesDept = selectedDepartmentFilter === 'All' || emp.department_name === selectedDepartmentFilter;
+        const matchesShift = selectedShiftFilter === 'All' || emp.assigned_shift === selectedShiftFilter;
+        const matchesBlood = selectedBloodGroupFilter === 'All' || emp.blood_group === selectedBloodGroupFilter;
+
+        let matchesTag = true;
+        if (selectedQuickTag === 'HighRating') {
+            matchesTag = emp.performance_rating !== null && emp.performance_rating >= 4.0;
+        } else if (selectedQuickTag === 'RecentJoin') {
+            matchesTag = emp.joining_date && String(emp.joining_date).startsWith('2026');
+        } else if (selectedQuickTag === 'NightShift') {
+            matchesTag = emp.assigned_shift && emp.assigned_shift.toLowerCase().includes('night');
+        }
+
+        return matchesSearch && matchesDept && matchesShift && matchesBlood && matchesTag;
+    });
 
     const totalHeadcount = employees.length;
     const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + (parseFloat(emp.basic_salary) || 0), 0);
@@ -2001,16 +2052,123 @@ const BusinessStaffing = () => {
                 {/* Tab 1: Employee Profiles */}
                 {activeTab === 'profiles' && (
                     <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                            <div style={{ position: 'relative', width: '400px' }}>
-                                <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                                <input
-                                    type="text"
-                                    placeholder="Search employees by name..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
-                                />
+                        <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                            {/* Primary Search & Dropdown Filters Bar */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                <div style={{ position: 'relative', flex: '1 1 320px', maxWidth: '440px' }}>
+                                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name, ID code, email, phone..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{ width: '100%', padding: '0.75rem 2.25rem 0.75rem 2.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', fontWeight: '600' }}
+                                    />
+                                    {searchTerm && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchTerm('')}
+                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                                        >
+                                            <X size={15} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Multi-Criteria Filter Dropdowns */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    {/* Department Filter */}
+                                    <select
+                                        value={selectedDepartmentFilter}
+                                        onChange={(e) => setSelectedDepartmentFilter(e.target.value)}
+                                        style={{ padding: '0.7rem 0.9rem', borderRadius: '12px', border: selectedDepartmentFilter !== 'All' ? '1px solid #10B981' : '1px solid #E2E8F0', outline: 'none', background: selectedDepartmentFilter !== 'All' ? '#ECFDF5' : 'white', color: selectedDepartmentFilter !== 'All' ? '#047857' : '#334155', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                                    >
+                                        <option value="All">All Departments</option>
+                                        {departmentsList.map(d => (
+                                            <option key={d} value={d}>{d}</option>
+                                        ))}
+                                    </select>
+
+                                    {/* Shift / Roster Filter */}
+                                    <select
+                                        value={selectedShiftFilter}
+                                        onChange={(e) => setSelectedShiftFilter(e.target.value)}
+                                        style={{ padding: '0.7rem 0.9rem', borderRadius: '12px', border: selectedShiftFilter !== 'All' ? '1px solid #3B82F6' : '1px solid #E2E8F0', outline: 'none', background: selectedShiftFilter !== 'All' ? '#EFF6FF' : 'white', color: selectedShiftFilter !== 'All' ? '#1D4ED8' : '#334155', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                                    >
+                                        <option value="All">All Shifts</option>
+                                        {shiftsList.map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+
+                                    {/* Blood Group Filter */}
+                                    <select
+                                        value={selectedBloodGroupFilter}
+                                        onChange={(e) => setSelectedBloodGroupFilter(e.target.value)}
+                                        style={{ padding: '0.7rem 0.85rem', borderRadius: '12px', border: selectedBloodGroupFilter !== 'All' ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: selectedBloodGroupFilter !== 'All' ? '#FEF2F2' : 'white', color: selectedBloodGroupFilter !== 'All' ? '#DC2626' : '#334155', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                                    >
+                                        <option value="All">All Blood Groups</option>
+                                        {bloodGroupsList.map(b => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+
+                                    {/* Reset All Filters Button */}
+                                    {(searchTerm || selectedDepartmentFilter !== 'All' || selectedShiftFilter !== 'All' || selectedBloodGroupFilter !== 'All' || selectedQuickTag !== 'All') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSearchTerm('');
+                                                setSelectedDepartmentFilter('All');
+                                                setSelectedShiftFilter('All');
+                                                setSelectedBloodGroupFilter('All');
+                                                setSelectedQuickTag('All');
+                                            }}
+                                            style={{ padding: '0.65rem 0.9rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: '#F1F5F9', color: '#475569', fontWeight: '750', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                        >
+                                            <RotateCcw size={13} /> Reset Filters
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Secondary Quick-Pills & Result Counter */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.4rem', borderTop: '1px dashed #E2E8F0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginRight: '0.2rem' }}>Quick Filters:</span>
+                                    {[
+                                        { id: 'All', label: `All Staff (${employees.length})` },
+                                        { id: 'HighRating', label: '★ Rating ≥ 4.0' },
+                                        { id: 'NightShift', label: 'Night Shift' },
+                                        { id: 'RecentJoin', label: 'Joined in 2026' }
+                                    ].map(pill => {
+                                        const isActive = selectedQuickTag === pill.id;
+                                        return (
+                                            <button
+                                                key={pill.id}
+                                                type="button"
+                                                onClick={() => setSelectedQuickTag(pill.id)}
+                                                style={{
+                                                    padding: '0.3rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    border: isActive ? '1px solid #1B6B3A' : '1px solid #E2E8F0',
+                                                    background: isActive ? '#1B6B3A' : 'white',
+                                                    color: isActive ? 'white' : '#475569',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: isActive ? '800' : '650',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {pill.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div style={{ fontSize: '0.75rem', fontWeight: '750', color: '#047857', background: '#ECFDF5', padding: '0.25rem 0.75rem', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
+                                    Showing {filteredEmployees.length} of {employees.length} Employees
+                                </div>
                             </div>
                         </div>
 
