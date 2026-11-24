@@ -46,7 +46,7 @@ const BusinessPayroll = () => {
     const queryClient = useQueryClient();
 
     // Queries
-    const { data: dbRecords = [] } = useQuery({
+    const { data: dbRecords = [], refetch: refetchPayroll } = useQuery({
         queryKey: ['payrollRecords'],
         queryFn: () => payrollService.getPayrollRecords()
     });
@@ -60,8 +60,6 @@ const BusinessPayroll = () => {
     const processPayrollMutation = useMutation({
         mutationFn: (data) => payrollService.processPayroll(data),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
-            await refetchPayroll();
             setIsProcessModalOpen(false);
             setPayForm({
                 employee_id: '',
@@ -78,7 +76,20 @@ const BusinessPayroll = () => {
                 esi_deduction: '',
                 tds_deduction: ''
             });
+            try {
+                await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+                if (typeof refetchPayroll === 'function') {
+                    await refetchPayroll();
+                }
+            } catch (err) {
+                console.error('Error refetching payroll records:', err);
+            }
             alert('Monthly payroll processed and basic allowances generated successfully!');
+        },
+        onError: (err) => {
+            console.error('Error processing payroll:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to process monthly payroll. Please check details and try again.';
+            alert(msg);
         }
     });
 
@@ -89,66 +100,123 @@ const BusinessPayroll = () => {
                 if (!Array.isArray(old)) return old;
                 return old.map(rec => rec.id === id ? { ...rec, status: 'paid' } : rec);
             });
-            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
-            await refetchPayroll();
             setSelectedPayroll(prev => prev && prev.payroll_id === id ? { ...prev, payroll_status: 'paid' } : prev);
+            try {
+                await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+                if (typeof refetchPayroll === 'function') {
+                    await refetchPayroll();
+                }
+            } catch (err) {
+                console.error('Error refetching payroll records:', err);
+            }
             alert('Direct Bank Transfer (NEFT/UPI) triggered successfully! Payslip PDF dispatched.');
+        },
+        onError: (err) => {
+            console.error('Error releasing salary:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to release salary.';
+            alert(msg);
         }
     });
 
     const createLoanMutation = useMutation({
         mutationFn: ({ id, data }) => payrollService.createLoan(id, data),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
-            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', deduction_months: '' });
             setIsLoanModalOpen(false);
+            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', deduction_months: '' });
+            try {
+                await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+                if (typeof refetchPayroll === 'function') {
+                    await refetchPayroll();
+                }
+            } catch (err) {
+                console.error('Error refetching payroll records:', err);
+            }
             alert('Employee loan allocation verified and remaining balance recorded successfully!');
+        },
+        onError: (err) => {
+            console.error('Error creating loan:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to create loan allocation.';
+            alert(msg);
         }
     });
 
     const createAdvanceMutation = useMutation({
         mutationFn: ({ id, data }) => payrollService.createAdvance(id, data),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            setIsAdvanceModalOpen(false);
             setAdvanceForm({
                 employee_name: '',
                 advance_amount: '',
                 reason: '',
                 recovery_month: 'Immediate (Next Payroll)'
             });
-            setIsAdvanceModalOpen(false);
+            try {
+                await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+                if (typeof refetchPayroll === 'function') {
+                    await refetchPayroll();
+                }
+            } catch (err) {
+                console.error('Error refetching payroll records:', err);
+            }
             alert('Salary advance disbursed and recovery cycle registered successfully!');
+        },
+        onError: (err) => {
+            console.error('Error creating advance:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to create salary advance.';
+            alert(msg);
         }
     });
 
     const updatePayrollMutation = useMutation({
         mutationFn: ({ id, data }) => payrollService.updatePayroll(id, data),
         onSuccess: async (updatedData, { id, data }) => {
+            setIsEditingPayroll(false);
             const updatedRec = updatedData || data;
             queryClient.setQueryData(['payrollRecords'], (old) => {
                 if (!Array.isArray(old)) return old;
                 return old.map(rec => rec.id === id ? { ...rec, ...updatedRec } : rec);
             });
-            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
-            await refetchPayroll();
             setSelectedPayroll(prev => prev ? { ...prev, ...data } : null);
-            setIsEditingPayroll(false);
+            try {
+                await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+                if (typeof refetchPayroll === 'function') {
+                    await refetchPayroll();
+                }
+            } catch (err) {
+                console.error('Error refetching payroll records:', err);
+            }
             alert('Payroll record updated successfully!');
+        },
+        onError: (err) => {
+            console.error('Error updating payroll:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to update payroll.';
+            alert(msg);
         }
     });
 
     const deletePayrollMutation = useMutation({
         mutationFn: (id) => payrollService.deletePayroll(id),
         onSuccess: async (_, id) => {
+            setIsDetailModalOpen(false);
+            setSelectedPayroll(null);
             queryClient.setQueryData(['payrollRecords'], (old) => {
                 if (!Array.isArray(old)) return old;
                 return old.filter(rec => rec.id !== id);
             });
-            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
-            await refetchPayroll();
-            setIsDetailModalOpen(false);
-            setSelectedPayroll(null);
+            try {
+                await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+                if (typeof refetchPayroll === 'function') {
+                    await refetchPayroll();
+                }
+            } catch (err) {
+                console.error('Error refetching payroll records:', err);
+            }
             alert('Payroll record deleted.');
+        },
+        onError: (err) => {
+            console.error('Error deleting payroll:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to delete payroll record.';
+            alert(msg);
         }
     });
 
