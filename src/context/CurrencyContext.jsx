@@ -33,10 +33,22 @@ export const CurrencyProvider = ({ children }) => {
     };
 
     // Global helper function to format any numeric amount
-    const formatCurrency = (amount) => {
+    const formatCurrency = (amount, options = {}) => {
         const num = parseFloat(amount || 0);
+        if (isNaN(num)) return `${currency.symbol || '₹'}0`;
         const locale = currency.code === 'INR' ? 'en-IN' : 'en-US';
-        return `${currency.symbol}${num.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+        const hasDecimals = Math.abs(num % 1) > 0.0001;
+        const minDigits = options.minimumFractionDigits !== undefined 
+            ? options.minimumFractionDigits 
+            : (hasDecimals ? 2 : 0);
+        const maxDigits = options.maximumFractionDigits !== undefined 
+            ? options.maximumFractionDigits 
+            : 2;
+
+        return `${currency.symbol}${num.toLocaleString(locale, { 
+            minimumFractionDigits: minDigits, 
+            maximumFractionDigits: maxDigits 
+        })}`;
     };
 
     // Default to India

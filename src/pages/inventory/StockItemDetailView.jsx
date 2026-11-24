@@ -92,8 +92,31 @@ export default function StockItemDetailView() {
 
     // 3. Resolve product / stock item
     const currentItem = useMemo(() => {
+        const rawId = String(id || '').trim();
+        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
+        const foundProd = safeProds.find(p => 
+            String(p.id) === rawId || 
+            String(p.id) === cleanId || 
+            String(p.sku || '').toLowerCase() === rawId.toLowerCase() ||
+            `STK-${p.id}` === rawId ||
+            `PROD-${p.id}` === rawId
+        );
+
+        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
+        const foundStock = safeStocks.find(s => 
+            String(s.id) === rawId || 
+            String(s.id) === cleanId || 
+            String(s.sku || '').toLowerCase() === rawId.toLowerCase() ||
+            `STK-${s.id}` === rawId
+        );
+
         if (location.state?.stockItem) {
-            return location.state.stockItem;
+            const item = location.state.stockItem;
+            const resolvedSupplier = item.supplier_name || item.supplier || item.vendor || item.primary_vendor || (foundProd && (foundProd.supplier_name || foundProd.supplier)) || (foundStock && (foundStock.supplier_name || foundStock.supplier)) || (directStock && (directStock.supplier_name || directStock.supplier)) || 'Standard Procurement Ltd';
+            return {
+                ...item,
+                supplier_name: resolvedSupplier
+            };
         }
 
         if (directStock) {
@@ -124,16 +147,6 @@ export default function StockItemDetailView() {
                 is_damaged_facility: false
             };
         }
-
-        const rawId = String(id || '').trim();
-        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
-        const foundProd = safeProds.find(p => 
-            String(p.id) === rawId || 
-            String(p.id) === cleanId || 
-            String(p.sku || '').toLowerCase() === rawId.toLowerCase() ||
-            `STK-${p.id}` === rawId ||
-            `PROD-${p.id}` === rawId
-        );
 
         if (foundProd) {
             const rawQty = parseFloat(foundProd.quantity ?? foundProd.opening_stock ?? 0) || 0;
@@ -166,14 +179,6 @@ export default function StockItemDetailView() {
                 is_damaged_facility: String(foundProd.warehouse_name || '').toLowerCase().includes('damaged')
             };
         }
-
-        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
-        const foundStock = safeStocks.find(s => 
-            String(s.id) === rawId || 
-            String(s.id) === cleanId || 
-            String(s.sku || '').toLowerCase() === rawId.toLowerCase() ||
-            `STK-${s.id}` === rawId
-        );
 
         if (foundStock) {
             const rawQty = parseFloat(foundStock.quantity ?? 0) || 0;
@@ -865,7 +870,7 @@ export default function StockItemDetailView() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', fontSize: '0.85rem' }}>
                         <span style={{ color: '#64748B', fontWeight: '600' }}>Total Valuation:</span>
                         <span style={{ fontWeight: '900', color: '#064E3B', fontSize: '1.05rem' }}>
-                            {formatCurrency(currentItem.current_stock * (currentItem.average_cost || 0))}
+                            {formatCurrency(Math.round(currentItem.current_stock * (currentItem.average_cost || 0)))}
                         </span>
                     </div>
                 </div>
@@ -911,8 +916,8 @@ export default function StockItemDetailView() {
 
                         <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Primary Vendor:</span>
-                            <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#0F172A', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={currentItem.supplier_name}>
-                                {currentItem.supplier_name}
+                            <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#0F172A', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={currentItem.supplier_name || 'Standard Procurement Ltd'}>
+                                {currentItem.supplier_name || 'Standard Procurement Ltd'}
                             </span>
                         </div>
                     </div>
@@ -931,7 +936,7 @@ export default function StockItemDetailView() {
                         <TrendingUp size={15} color="#059669" />
                     </div>
                     <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>+{summaryMetrics.totalIn} {currentItem.unit || 'PCS'}</div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Valuation: {formatCurrency(summaryMetrics.totalPurchasedValue)}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Valuation: {formatCurrency(Math.round(summaryMetrics.totalPurchasedValue))}</span>
                 </div>
 
                 <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
@@ -940,7 +945,7 @@ export default function StockItemDetailView() {
                         <TrendingDown size={15} color="#E11D48" />
                     </div>
                     <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>-{summaryMetrics.totalOut} {currentItem.unit || 'PCS'}</div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Total Sales: {formatCurrency(summaryMetrics.totalSalesValue)}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Total Sales: {formatCurrency(Math.round(summaryMetrics.totalSalesValue))}</span>
                 </div>
 
                 <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>

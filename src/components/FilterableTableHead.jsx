@@ -39,9 +39,9 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
     const hasAnyOpen = columns.some(c => !c.noFilter && openCols[c.key]);
 
     return (
-        <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <thead style={{ position: 'sticky', top: 0, zIndex: 20, background: '#F8FAFC', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}>
             {/* Column label row */}
-            <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+            <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
                 {columns.map(col => {
                     const isOpen = !col.noFilter && !!openCols[col.key];
                     const hasValue = !col.noFilter && !!filters[col.key];
@@ -50,7 +50,11 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
                             key={col.key}
                             className={col.className}
                             style={{
-                                padding: '0.55rem 1rem',
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 20,
+                                background: '#F8FAFC',
+                                padding: '0.65rem 1rem',
                                 fontSize: '0.7rem',
                                 fontWeight: '800',
                                 color: '#94A3B8',
@@ -97,39 +101,39 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
                                         />
                                     </button>
                                 )}
-                             </div>
-                         </th>
-                     );
-                 })}
-             </tr>
- 
-             {/* Filter input row — only renders when at least one column is open */}
-             {hasAnyOpen && (
-                 <tr style={{ borderBottom: '2px solid rgba(148, 163, 184, 0.15)', background: '#FAFAFA' }}>
-                      {columns.map(col => (
-                          <th key={col.key} className={col.className} style={{ padding: '0.2rem 0.4rem', ...(col.minWidth ? { minWidth: col.minWidth } : {}), ...(col.style || {}) }}>
-                             {!col.noFilter && openCols[col.key] ? (
-                                 <div style={{ position: 'relative' }}>
-                                     <input
-                                         autoFocus
-                                         type="text"
-                                         placeholder={col.placeholder || 'Filter...'}
-                                         value={filters[col.key]}
-                                         onChange={(e) => updateFilter(col.key, e.target.value)}
-                                         style={{
-                                             width: '100%',
-                                             padding: '0.28rem 1.4rem 0.28rem 0.5rem',
-                                             borderRadius: '6px',
-                                             border: '1.5px solid #94A3B8',
-                                             outline: 'none',
-                                             fontSize: '0.72rem',
-                                             fontWeight: '600',
-                                             color: '#1E293B',
-                                             background: 'white',
-                                             boxSizing: 'border-box',
-                                             boxShadow: '0 0 0 3px rgba(148, 163, 184, 0.12)',
-                                         }}
-                                     />
+                            </div>
+                        </th>
+                    );
+                })}
+            </tr>
+
+            {/* Filter input row — only renders when at least one column is open */}
+            {hasAnyOpen && (
+                <tr style={{ borderBottom: '2px solid rgba(148, 163, 184, 0.15)', background: '#FAFAFA' }}>
+                    {columns.map(col => (
+                        <th key={col.key} className={col.className} style={{ position: 'sticky', top: '34px', zIndex: 19, background: '#FAFAFA', padding: '0.2rem 0.4rem', ...(col.minWidth ? { minWidth: col.minWidth } : {}), ...(col.style || {}) }}>
+                            {!col.noFilter && openCols[col.key] ? (
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder={col.placeholder || 'Filter...'}
+                                        value={filters[col.key]}
+                                        onChange={(e) => updateFilter(col.key, e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.28rem 1.4rem 0.28rem 0.5rem',
+                                            borderRadius: '6px',
+                                            border: '1.5px solid #94A3B8',
+                                            outline: 'none',
+                                            fontSize: '0.72rem',
+                                            fontWeight: '600',
+                                            color: '#1E293B',
+                                            background: 'white',
+                                            boxSizing: 'border-box',
+                                            boxShadow: '0 0 0 3px rgba(148, 163, 184, 0.12)',
+                                        }}
+                                    />
                                     {filters[col.key] && (
                                         <button
                                             onClick={() => updateFilter(col.key, '')}

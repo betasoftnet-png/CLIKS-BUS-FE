@@ -141,6 +141,7 @@ const BusinessStock = () => {
                 sku: p.sku || p.barcode || p.item_code || (p.sku || `PROD-${p.id}`),
                 product_name: p.name || 'Unnamed Product',
                 category: p.category || '',
+                supplier_name: p.supplier_name || p.supplier || p.vendor || p.primary_vendor || 'Standard Procurement Ltd',
                 opening_stock: parseFloat(p.opening_stock || p.quantity || 0),
                 current_stock: rawQty,
                 available_stock: sellableQty,
@@ -197,6 +198,7 @@ const BusinessStock = () => {
                 sku: s.sku || s.barcode || s.item_code || (s.sku || `PROD-${s.id}`),
                 product_name: s.name || 'Unnamed Stock Item',
                 category: s.category || '',
+                supplier_name: s.supplier_name || s.supplier || s.vendor || 'Standard Procurement Ltd',
                 opening_stock: parseFloat(s.opening_stock || 10),
                 current_stock: rawQty,
                 available_stock: sellableQty,
@@ -786,7 +788,7 @@ const BusinessStock = () => {
     );
 
     // Compute live inventory valuations
-    const totalInventoryValue = stocks.reduce((sum, s) => sum + (s.current_stock * s.average_cost), 0);
+    const totalInventoryValue = stocks.reduce((sum, s) => sum + (s.current_stock * (s.average_cost || 0)), 0);
     const lowStockAlertsCount = stocks.filter(s => s.current_stock <= s.reorder_level).length;
     const activeInTransitTransfers = transfers.filter(t => t.status === 'In Transit' || t.status === 'Pending' || t.status === 'Dispatched');
     const totalInTransitQty = activeInTransitTransfers.reduce((sum, t) => sum + (parseFloat(t.qty) || 0), 0);
@@ -823,7 +825,7 @@ const BusinessStock = () => {
             {/* Live Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1rem' }}>
                 {[
-                    { label: 'Total Valuation (Cost)', value: formatCurrency(totalInventoryValue), icon: DollarSign, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Total Valuation (Cost)', value: formatCurrency(Math.round(totalInventoryValue)), icon: DollarSign, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Low Stock Alerts', value: `${lowStockAlertsCount} Items`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
                     { label: 'Warehouses Registered', value: `${dbWarehouses.length} Active`, icon: Warehouse, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Dynamic In-Transit', value: `${totalInTransitQty} pcs (${activeInTransitTransfers.length} Active)`, icon: Activity, color: '#8B5CF6', bg: '#F5F3FF' }
@@ -957,8 +959,8 @@ const BusinessStock = () => {
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 280px)', minHeight: '380px', padding: '0 1rem 1rem 1rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
                             <FilterableTableHead columns={[
         { key: 'product_name', label: 'Product Description', placeholder: 'Name' },
         { key: 'warehouse', label: 'Warehouse Location', placeholder: 'Location' },
@@ -970,7 +972,7 @@ const BusinessStock = () => {
     ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => {
-                                    const valuation = st.current_stock * st.average_cost;
+                                    const valuation = Math.round(st.current_stock * (st.average_cost || 0));
                                     return (
                                         <tr 
                                             key={st.stock_id} 
@@ -1031,18 +1033,19 @@ const BusinessStock = () => {
                             </select>
                         </div>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Movement ID</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Date</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Type</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Qty Moved</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reason / Doc ref</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Performed By</th>
-                            </tr>
-                        </thead>
+                    <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 280px)', minHeight: '380px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
+                            <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC' }}>
+                                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Movement ID</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Date</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Type</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Qty Moved</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reason / Doc ref</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Performed By</th>
+                                </tr>
+                            </thead>
                         <tbody>
                             {movements.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((move) => (
                                 <tr key={move.movement_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -1064,6 +1067,7 @@ const BusinessStock = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
 
@@ -1074,17 +1078,18 @@ const BusinessStock = () => {
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Warehouse Branch transfers</h3>
                         <button onClick={() => setIsTransferModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Transfer Stock</button>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Transfer ID</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>From Warehouse</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>To Warehouse</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Qty Transferred</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
-                            </tr>
-                        </thead>
+                    <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 280px)', minHeight: '380px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
+                            <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC' }}>
+                                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Transfer ID</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>From Warehouse</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>To Warehouse</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Qty Transferred</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                </tr>
+                            </thead>
                         <tbody>
                             {transfers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((trf) => (
                                 <tr key={trf.transfer_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -1110,6 +1115,7 @@ const BusinessStock = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
 
@@ -1298,8 +1304,8 @@ const BusinessStock = () => {
                         </div>
 
                         {/* Table */}
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 300px)', minHeight: '380px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
                                 <FilterableTableHead columns={[
                                     { key: 'product_name', label: 'PRODUCT DETAILS', placeholder: 'Name/SKU' },
                                     { key: 'starting_quantity', label: 'STARTING QUANTITY', placeholder: 'Qty' },
