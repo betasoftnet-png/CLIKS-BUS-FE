@@ -397,11 +397,20 @@ const BusinessPayroll = () => {
     };
 
     // Month options for processing and filtering
+    const getMonthOptionsForYear = (year) => {
+        const months = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return months.map(m => `${m} ${year}`);
+    };
+
     const monthOptions = [
-        'January 2026', 'February 2026', 'March 2026', 'April 2026',
-        'May 2026', 'June 2026', 'July 2026', 'August 2026',
-        'September 2026', 'October 2026', 'November 2026', 'December 2026',
-        'January 2027', 'February 2027', 'March 2027', 'April 2027'
+        ...getMonthOptionsForYear(2025),
+        ...getMonthOptionsForYear(2026),
+        ...getMonthOptionsForYear(2027),
+        ...getMonthOptionsForYear(2028),
+        ...getMonthOptionsForYear(2029)
     ];
 
     const [selectedMonthFilter, setSelectedMonthFilter] = useState('All');
@@ -436,6 +445,7 @@ const BusinessPayroll = () => {
         reason: '',
         recovery_month: 'Immediate (Next Payroll)'
     });
+    const [advanceRecoveryYear, setAdvanceRecoveryYear] = useState(() => new Date().getFullYear());
 
     // Submissions
     const handleProcessPayroll = (e) => {
@@ -474,7 +484,24 @@ const BusinessPayroll = () => {
         e.preventDefault();
         const loanAmt = parseFloat(loanForm.loan_amount) || 0;
         const emiAmt = parseFloat(loanForm.emi_amount) || 0;
-        const months = emiAmt > 0 ? Math.ceil(loanAmt / emiAmt) : (parseInt(loanForm.deduction_months) || 0);
+
+        if (loanAmt <= 0) {
+            alert('Please specify a valid loan amount greater than 0.');
+            return;
+        }
+
+        // Rule 3: Monthly EMI cannot be greater than loan amount
+        if (emiAmt > loanAmt) {
+            alert(`Monthly EMI (${currency.symbol}${emiAmt.toLocaleString()}) cannot be greater than the total loan amount (${currency.symbol}${loanAmt.toLocaleString()}).`);
+            return;
+        }
+
+        if (emiAmt <= 0) {
+            alert('Please specify a monthly EMI greater than 0.');
+            return;
+        }
+
+        const months = emiAmt > 0 ? Math.ceil(loanAmt / emiAmt) : (parseInt(loanForm.deduction_months) || 1);
 
         const matchingRecord = payrollRecords.find(r => r.employee_name === loanForm.employee_name);
         const targetId = matchingRecord ? matchingRecord.payroll_id : 1;
@@ -494,7 +521,15 @@ const BusinessPayroll = () => {
         e.preventDefault();
         const amt = parseFloat(advanceForm.advance_amount) || 0;
         if (amt <= 0) {
-            alert('Please specify an advance amount greater than 0');
+            alert('Please specify an advance amount greater than 0.');
+            return;
+        }
+
+        // Rule 1: Salary advances cannot be greater than the salary
+        const selEmp = availableEmployees.find(r => r.name === advanceForm.employee_name);
+        const empSalary = selEmp && parseFloat(selEmp.salary) > 0 ? parseFloat(selEmp.salary) : null;
+        if (empSalary !== null && amt > empSalary) {
+            alert(`Salary advance (${currency.symbol}${amt.toLocaleString()}) cannot be greater than ${advanceForm.employee_name}'s monthly basic salary of ${currency.symbol}${empSalary.toLocaleString()}.`);
             return;
         }
 
@@ -888,6 +923,7 @@ const BusinessPayroll = () => {
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Recovery Payroll Month</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reason / Purpose</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -907,11 +943,37 @@ const BusinessPayroll = () => {
                                             {a.status}
                                         </span>
                                     </td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (window.confirm(`Are you sure you want to remove this salary advance of ${formatCurrency(a.advance_amount)} for ${a.employee_name}?`)) {
+                                                    deletePayrollMutation.mutate(a.payroll_id);
+                                                }
+                                            }}
+                                            title="Delete Salary Advance"
+                                            style={{
+                                                border: 'none',
+                                                background: '#FEE2E2',
+                                                color: '#DC2626',
+                                                cursor: 'pointer',
+                                                padding: '0.35rem 0.6rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '750',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.25rem'
+                                            }}
+                                        >
+                                            <Trash2 size={12} /> Delete
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                             {salaryAdvances.length === 0 && (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                    <td colSpan="7" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
                                         No salary advances recorded. Click "Disburse Salary Advance" to disburse an advance.
                                     </td>
                                 </tr>
@@ -1243,56 +1305,70 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Amount ({currency.symbol})</label>
                                     <input 
                                         type="number" 
-                                        min="0"
+                                        min="1"
                                         step="any"
                                         onKeyDown={preventNegativeKeys}
-                                        placeholder="e.g. 2000"
+                                        placeholder="e.g. 50000"
                                         value={loanForm.loan_amount} 
                                         onChange={(e) => {
                                             const raw = e.target.value;
                                             const amt = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
                                             setLoanForm(prev => {
-                                                const emi = parseFloat(prev.emi_amount);
-                                                const loan = parseFloat(amt);
+                                                const loan = parseFloat(amt) || 0;
+                                                let emi = parseFloat(prev.emi_amount) || 0;
+                                                // Rule 3: If current EMI exceeds new loan amount, cap it!
+                                                if (loan > 0 && emi > loan) {
+                                                    emi = loan;
+                                                }
                                                 const months = (loan > 0 && emi > 0) ? Math.ceil(loan / emi) : prev.deduction_months;
-                                                return { ...prev, loan_amount: amt, deduction_months: months };
+                                                return { ...prev, loan_amount: amt, emi_amount: emi > 0 ? String(emi) : prev.emi_amount, deduction_months: months };
                                             });
                                         }} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly EMI ({currency.symbol})</label>
                                     <input 
                                         type="number" 
-                                        min="0"
+                                        min="1"
+                                        max={parseFloat(loanForm.loan_amount) || undefined}
                                         step="any"
                                         onKeyDown={preventNegativeKeys}
-                                        placeholder="e.g. 50"
+                                        placeholder="e.g. 5000"
                                         value={loanForm.emi_amount} 
                                         onChange={(e) => {
                                             const raw = e.target.value;
-                                            const emiStr = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                                            let emiStr = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                                            const loan = parseFloat(loanForm.loan_amount) || 0;
+                                            // Rule 3: Monthly EMI cannot be greater than loan amount!
+                                            if (loan > 0 && parseFloat(emiStr) > loan) {
+                                                emiStr = loan; // Automatically cap at loan amount!
+                                            }
                                             setLoanForm(prev => {
                                                 const emi = parseFloat(emiStr);
-                                                const loan = parseFloat(prev.loan_amount);
                                                 const months = (loan > 0 && emi > 0) ? Math.ceil(loan / emi) : prev.deduction_months;
                                                 return { ...prev, emi_amount: emiStr, deduction_months: months };
                                             });
                                         }} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: (parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > parseFloat(loanForm.loan_amount)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                     />
                                 </div>
                             </div>
+                            {parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > parseFloat(loanForm.loan_amount) && (
+                                <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '700', marginTop: '-0.5rem', display: 'block' }}>
+                                    ⚠️ Monthly EMI cannot exceed the total loan amount of {currency.symbol}{parseFloat(loanForm.loan_amount).toLocaleString()}
+                                </span>
+                            )}
 
                             {/* Loan Deduction Period (Months) Field */}
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Deduction Period (Months)</label>
                                 <input 
                                     type="number" 
-                                    min="0"
+                                    min="1"
                                     onKeyDown={preventNegativeKeys}
-                                    placeholder="e.g. 40"
+                                    placeholder="e.g. 12"
                                     value={
                                         loanForm.deduction_months !== undefined && loanForm.deduction_months !== ''
                                             ? loanForm.deduction_months
@@ -1306,7 +1382,7 @@ const BusinessPayroll = () => {
                                         const months = parseFloat(val);
                                         const loanAmt = parseFloat(loanForm.loan_amount);
                                         if (months > 0 && loanAmt > 0) {
-                                            const emi = Math.round((loanAmt / months) * 100) / 100;
+                                            const emi = Math.min(loanAmt, Math.round((loanAmt / months) * 100) / 100);
                                             setLoanForm(prev => ({ ...prev, emi_amount: String(emi), deduction_months: val }));
                                         } else {
                                             setLoanForm(prev => ({ ...prev, deduction_months: val }));
@@ -1315,17 +1391,20 @@ const BusinessPayroll = () => {
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                                 {parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > 0 && (
-                                    <span style={{ fontSize: '0.72rem', color: '#166534', fontWeight: '700', marginTop: '0.35rem', display: 'block' }}>
+                                    <span style={{ fontSize: '0.74rem', color: '#166534', fontWeight: '750', marginTop: '0.35rem', display: 'block' }}>
                                         {(() => {
                                             const loanAmt = parseFloat(loanForm.loan_amount);
                                             const emiAmt = parseFloat(loanForm.emi_amount);
+                                            if (emiAmt >= loanAmt) {
+                                                return `🗓️ Deduction Period: 1 single cycle of ${currency.symbol}${loanAmt.toLocaleString()} (Full repayment in 1 Month)`;
+                                            }
                                             const months = Math.ceil(loanAmt / emiAmt);
                                             const fullMonths = Math.floor(loanAmt / emiAmt);
                                             const remainder = Math.round((loanAmt - (fullMonths * emiAmt)) * 100) / 100;
                                             if (remainder > 0) {
-                                                return `🗓️ Deduction Period: ${fullMonths} cycles @ ${currency.symbol}${emiAmt} + final cycle @ ${currency.symbol}${remainder} (${months} Months total)`;
+                                                return `🗓️ Deduction Period: ${fullMonths} cycles @ ${currency.symbol}${emiAmt.toLocaleString()} + final cycle @ ${currency.symbol}${remainder.toLocaleString()} (${months} Months total)`;
                                             } else {
-                                                return `🗓️ Deduction Period: ${months} cycles @ ${currency.symbol}${emiAmt}/month (${months} Months total)`;
+                                                return `🗓️ Deduction Period: ${months} cycles @ ${currency.symbol}${emiAmt.toLocaleString()}/month (${months} Months total)`;
                                             }
                                         })()}
                                     </span>
@@ -1343,7 +1422,7 @@ const BusinessPayroll = () => {
             {/* Disburse Salary Advance Modal */}
             {isAdvanceModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(180, 83, 9, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706' }}>
@@ -1360,47 +1439,132 @@ const BusinessPayroll = () => {
                                 <select 
                                     required 
                                     value={advanceForm.employee_name} 
-                                    onChange={(e) => setAdvanceForm(prev => ({ ...prev, employee_name: e.target.value }))} 
+                                    onChange={(e) => {
+                                        const selName = e.target.value;
+                                        const sel = availableEmployees.find(r => r.name === selName);
+                                        const empSalary = sel && parseFloat(sel.salary) > 0 ? parseFloat(sel.salary) : null;
+                                        setAdvanceForm(prev => {
+                                            let currentAmt = prev.advance_amount;
+                                            if (empSalary !== null && parseFloat(currentAmt) > empSalary) {
+                                                currentAmt = empSalary;
+                                            }
+                                            return { ...prev, employee_name: selName, advance_amount: currentAmt };
+                                        });
+                                    }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
                                 >
                                     <option value="">-- Select Employee --</option>
                                     {availableEmployees.map(r => (
-                                        <option key={r.id} value={r.name}>{r.name} ({r.department || 'Staff'})</option>
+                                        <option key={r.id} value={r.name}>
+                                            {r.name} {parseFloat(r.salary) > 0 ? `(Salary: ${currency.symbol}${parseFloat(r.salary).toLocaleString()})` : `(${r.department || 'Staff'})`}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
 
+                            {/* Rule 1: Display selected employee salary limit banner */}
+                            {(() => {
+                                const selEmp = availableEmployees.find(r => r.name === advanceForm.employee_name);
+                                const empSalary = selEmp && parseFloat(selEmp.salary) > 0 ? parseFloat(selEmp.salary) : null;
+                                if (!empSalary) return null;
+                                return (
+                                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.6rem 0.85rem', borderRadius: '12px', fontSize: '0.75rem', color: '#047857', fontWeight: '750', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                        <span>Monthly Salary: <strong>{currency.symbol}{empSalary.toLocaleString()}</strong></span>
+                                        <span style={{ background: '#047857', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '800' }}>
+                                            Max Advance: {currency.symbol}{empSalary.toLocaleString()}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
+
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Advance Amount ({currency.symbol})</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                    Advance Amount ({currency.symbol})
+                                </label>
                                 <input 
                                     type="number" 
                                     required
                                     min="1"
+                                    max={(() => {
+                                        const sel = availableEmployees.find(r => r.name === advanceForm.employee_name);
+                                        return (sel && parseFloat(sel.salary) > 0) ? parseFloat(sel.salary) : undefined;
+                                    })()}
                                     step="any"
                                     onKeyDown={preventNegativeKeys}
                                     placeholder="e.g. 5000"
                                     value={advanceForm.advance_amount} 
                                     onChange={(e) => {
                                         const raw = e.target.value;
-                                        const amt = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                                        let amt = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                                        const sel = availableEmployees.find(r => r.name === advanceForm.employee_name);
+                                        const maxSalary = (sel && parseFloat(sel.salary) > 0) ? parseFloat(sel.salary) : null;
+                                        // Rule 1: Salary advances cannot be greater than the salary!
+                                        if (maxSalary !== null && amt > maxSalary) {
+                                            amt = maxSalary; // Cap at salary
+                                        }
                                         setAdvanceForm(prev => ({ ...prev, advance_amount: amt }));
                                     }} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1rem', fontWeight: '700' }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: (() => {
+                                        const sel = availableEmployees.find(r => r.name === advanceForm.employee_name);
+                                        const maxSalary = (sel && parseFloat(sel.salary) > 0) ? parseFloat(sel.salary) : null;
+                                        return (maxSalary !== null && parseFloat(advanceForm.advance_amount) > maxSalary) ? '1px solid #EF4444' : '1px solid #E2E8F0';
+                                    })(), outline: 'none', fontSize: '1rem', fontWeight: '700' }} 
                                 />
+                                {(() => {
+                                    const sel = availableEmployees.find(r => r.name === advanceForm.employee_name);
+                                    const maxSalary = (sel && parseFloat(sel.salary) > 0) ? parseFloat(sel.salary) : null;
+                                    if (maxSalary !== null && parseFloat(advanceForm.advance_amount) > maxSalary) {
+                                        return (
+                                            <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '700', marginTop: '0.35rem', display: 'block' }}>
+                                                ⚠️ Salary advance cannot exceed employee monthly salary of {currency.symbol}{maxSalary.toLocaleString()}
+                                            </span>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
 
+                            {/* Rule 2: Recovery payroll month changes according to different years */}
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Recovery Payroll Month</label>
-                                <select 
-                                    value={advanceForm.recovery_month} 
-                                    onChange={(e) => setAdvanceForm(prev => ({ ...prev, recovery_month: e.target.value }))} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                >
-                                    <option value="Immediate (Next Payroll)">Immediate (Next Payroll)</option>
-                                    {monthOptions.map(m => (
-                                        <option key={m} value={m}>{m}</option>
-                                    ))}
-                                </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Recovery Year</label>
+                                        <select 
+                                            value={advanceRecoveryYear} 
+                                            onChange={(e) => {
+                                                const newYear = parseInt(e.target.value, 10);
+                                                setAdvanceRecoveryYear(newYear);
+                                                if (advanceForm.recovery_month && advanceForm.recovery_month !== 'Immediate (Next Payroll)') {
+                                                    const monthOnly = advanceForm.recovery_month.replace(/\s*\d{4}/, '');
+                                                    setAdvanceForm(prev => ({ ...prev, recovery_month: `${monthOnly} ${newYear}` }));
+                                                }
+                                            }} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '750', color: '#064E3B' }}
+                                        >
+                                            {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(yr => (
+                                                <option key={yr} value={yr}>{yr}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                            Recovery Payroll Month ({advanceRecoveryYear})
+                                        </label>
+                                        <select 
+                                            value={advanceForm.recovery_month} 
+                                            onChange={(e) => setAdvanceForm(prev => ({ ...prev, recovery_month: e.target.value }))} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                        >
+                                            <option value="Immediate (Next Payroll)">Immediate (Next Payroll)</option>
+                                            {getMonthOptionsForYear(advanceRecoveryYear).map(m => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.35rem', display: 'block' }}>
+                                    Select year on the left to dynamically change recovery payroll month options
+                                </span>
                             </div>
 
                             <div>
