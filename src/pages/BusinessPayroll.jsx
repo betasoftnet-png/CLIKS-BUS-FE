@@ -93,14 +93,26 @@ const BusinessPayroll = () => {
         }
     });
 
+    const [releasingId, setReleasingId] = useState(null);
+
     const releaseSalaryMutation = useMutation({
         mutationFn: (id) => payrollService.releaseSalary(id),
-        onSuccess: async (_, id) => {
+        onMutate: async (id) => {
+            setReleasingId(id);
+            // Optimistically update React Query cache immediately so status updates on first click
             queryClient.setQueryData(['payrollRecords'], (old) => {
                 if (!Array.isArray(old)) return old;
-                return old.map(rec => rec.id === id ? { ...rec, status: 'paid' } : rec);
+                return old.map(rec => String(rec.id) === String(id) ? { ...rec, status: 'paid' } : rec);
             });
-            setSelectedPayroll(prev => prev && prev.payroll_id === id ? { ...prev, payroll_status: 'paid' } : prev);
+            setSelectedPayroll(prev => (prev && String(prev.payroll_id) === String(id)) ? { ...prev, payroll_status: 'paid', status: 'paid' } : prev);
+        },
+        onSuccess: async (data, id) => {
+            setReleasingId(null);
+            queryClient.setQueryData(['payrollRecords'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(rec => String(rec.id) === String(id) ? { ...rec, ...(data || {}), status: 'paid' } : rec);
+            });
+            setSelectedPayroll(prev => (prev && String(prev.payroll_id) === String(id)) ? { ...prev, payroll_status: 'paid', status: 'paid' } : prev);
             try {
                 await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
                 if (typeof refetchPayroll === 'function') {
@@ -109,11 +121,15 @@ const BusinessPayroll = () => {
             } catch (err) {
                 console.error('Error refetching payroll records:', err);
             }
-            alert('Direct Bank Transfer (NEFT/UPI) triggered successfully! Payslip PDF dispatched.');
+            alert('Direct Bank Transfer (NEFT/UPI) triggered successfully! Status updated to PAID.');
         },
-        onError: (err) => {
+        onError: (err, id) => {
+            setReleasingId(null);
             console.error('Error releasing salary:', err);
-            const msg = err?.response?.data?.message || err?.message || 'Failed to release salary.';
+            if (typeof refetchPayroll === 'function') {
+                refetchPayroll();
+            }
+            const msg = err?.response?.data?.message || err?.message || 'Failed to release salary. Please try again.';
             alert(msg);
         }
     });
@@ -291,56 +307,72 @@ const BusinessPayroll = () => {
         };
     }) : [];
 
-    const loans = dbRecords.length > 0 ? dbRecords.filter(rec => {
-        if (!rec.loans_data) return false;
-        let lData = {};
-        try { lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
-        return parseFloat(lData.loan_amount) > 0;
-    }).map(rec => {
-        let lData = {};
-        try { lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
-        const loanAmt = parseFloat(lData.loan_amount) || 0;
-        const emiAmt = parseFloat(lData.emi_amount) || 0;
-        const remBal = parseFloat(lData.remaining_balance) !== undefined ? parseFloat(lData.remaining_balance) : loanAmt;
-        const tenure = lData.deduction_months || (emiAmt > 0 ? Math.ceil(loanAmt / emiAmt) : 0);
-        return {
-            payroll_id: rec.id,
-            employee_name: rec.employee_name || lData.employee_name || 'Staff Member',
-            loan_amount: loanAmt,
-            emi_amount: emiAmt,
-            remaining_balance: remBal,
-            deduction_months: tenure,
-            status: remBal <= 0 ? 'Repaid' : 'Active'
-        };
+    // Multi-loan support: flatMap across records & arrays so multiple loans for an employee never overwrite
+    const loans = dbRecords.length > 0 ? dbRecords.flatMap(rec => {
+        if (!rec.loans_data) return [];
+        let parsed = [];
+        try {
+            const raw = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data;
+            parsed = Array.isArray(raw) ? raw : [raw];
+        } catch(e) { return []; }
+
+        return parsed.filter(l => l && parseFloat(l.loan_amount) > 0).map((lData, idx) => {
+            const loanAmt = parseFloat(lData.loan_amount) || 0;
+            const emiAmt = parseFloat(lData.emi_amount) || 0;
+            const remBal = parseFloat(lData.remaining_balance) !== undefined ? parseFloat(lData.remaining_balance) : loanAmt;
+            const tenure = lData.deduction_months || (emiAmt > 0 ? Math.ceil(loanAmt / emiAmt) : 0);
+            return {
+                payroll_id: rec.id,
+                loan_id: lData.loan_id || `${rec.id}-loan-${idx}`,
+                employee_name: lData.employee_name || rec.employee_name || 'Staff Member',
+                loan_amount: loanAmt,
+                emi_amount: emiAmt,
+                remaining_balance: remBal,
+                deduction_months: tenure,
+                status: remBal <= 0 ? 'Repaid' : 'Active',
+                disbursal_date: lData.disbursal_date || (rec.created_at ? rec.created_at.split('T')[0] : '')
+            };
+        });
     }) : [];
 
-    const salaryAdvances = dbRecords.length > 0 ? dbRecords.filter(rec => {
-        let aData = null;
-        let lData = null;
-        try { if (rec.advances_data) aData = typeof rec.advances_data === 'string' ? JSON.parse(rec.advances_data) : rec.advances_data; } catch(e){}
-        try { if (rec.loans_data) lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
-        return (aData && parseFloat(aData.advance_amount) > 0) || (lData && parseFloat(lData.salary_advance) > 0);
-    }).map(rec => {
-        let aData = {};
-        let lData = {};
-        try { if (rec.advances_data) aData = typeof rec.advances_data === 'string' ? JSON.parse(rec.advances_data) : rec.advances_data; } catch(e){}
-        try { if (rec.loans_data) lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
+    // Multi-advance support: flatMap across records & arrays so multiple advances for an employee never overwrite
+    const salaryAdvances = dbRecords.length > 0 ? dbRecords.flatMap(rec => {
+        let entries = [];
+        if (rec.advances_data) {
+            try {
+                const raw = typeof rec.advances_data === 'string' ? JSON.parse(rec.advances_data) : rec.advances_data;
+                const arr = Array.isArray(raw) ? raw : [raw];
+                entries.push(...arr);
+            } catch(e) {}
+        }
+        if (rec.loans_data) {
+            try {
+                const raw = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data;
+                const arr = Array.isArray(raw) ? raw : [raw];
+                arr.forEach(l => {
+                    if (l && parseFloat(l.salary_advance) > 0) entries.push(l);
+                });
+            } catch(e) {}
+        }
 
-        const amt = parseFloat(aData.advance_amount) || parseFloat(lData.salary_advance) || 0;
-        const date = aData.disbursal_date || (rec.created_at ? rec.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
-        const recoveryMonth = aData.recovery_month || rec.month || 'Immediate (Next Payroll)';
-        const reason = aData.reason || lData.reason || 'General Salary Advance';
-        const status = aData.status || (rec.status === 'paid' ? 'Deducted' : 'Disbursed');
+        return entries.filter(a => a && (parseFloat(a.advance_amount) > 0 || parseFloat(a.salary_advance) > 0)).map((aData, idx) => {
+            const amt = parseFloat(aData.advance_amount) || parseFloat(aData.salary_advance) || 0;
+            const date = aData.disbursal_date || (rec.created_at ? rec.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+            const recoveryMonth = aData.recovery_month || rec.month || 'Immediate (Next Payroll)';
+            const reason = aData.reason || 'General Salary Advance';
+            const status = aData.status || (rec.status === 'paid' ? 'Deducted' : 'Disbursed');
 
-        return {
-            payroll_id: rec.id,
-            employee_name: rec.employee_name || aData.employee_name || 'Staff Member',
-            advance_amount: amt,
-            disbursal_date: date,
-            recovery_month: recoveryMonth,
-            reason: reason,
-            status: status
-        };
+            return {
+                payroll_id: rec.id,
+                advance_id: aData.advance_id || `${rec.id}-adv-${idx}`,
+                employee_name: aData.employee_name || rec.employee_name || 'Staff Member',
+                advance_amount: amt,
+                disbursal_date: date,
+                recovery_month: recoveryMonth,
+                reason: reason,
+                status: status
+            };
+        });
     }) : [];
 
     // Available employees memoized across staff and payroll records
@@ -552,6 +584,68 @@ const BusinessPayroll = () => {
         releaseSalaryMutation.mutate(payId);
     };
 
+    const handleDeleteLoan = (loanItem) => {
+        if (!window.confirm(`Are you sure you want to remove this loan of ${currency.symbol}${loanItem.loan_amount.toLocaleString()} for ${loanItem.employee_name}?`)) {
+            return;
+        }
+        const rec = dbRecords.find(r => r.id === loanItem.payroll_id);
+        if (!rec) {
+            deletePayrollMutation.mutate(loanItem.payroll_id);
+            return;
+        }
+        let currentLoans = [];
+        try {
+            const raw = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data;
+            currentLoans = Array.isArray(raw) ? raw : [raw];
+        } catch(e) {}
+        const remaining = currentLoans.filter(l => (l.loan_id || '') !== loanItem.loan_id && parseFloat(l.loan_amount) !== loanItem.loan_amount);
+
+        if (parseFloat(rec.amount) > 0 || parseFloat(rec.basic_salary) > 0) {
+            updatePayrollMutation.mutate({
+                id: rec.id,
+                data: { loans_data: remaining.length > 0 ? JSON.stringify(remaining) : null }
+            });
+        } else if (remaining.length > 0) {
+            updatePayrollMutation.mutate({
+                id: rec.id,
+                data: { loans_data: JSON.stringify(remaining) }
+            });
+        } else {
+            deletePayrollMutation.mutate(rec.id);
+        }
+    };
+
+    const handleDeleteAdvance = (advItem) => {
+        if (!window.confirm(`Are you sure you want to remove this salary advance of ${currency.symbol}${advItem.advance_amount.toLocaleString()} for ${advItem.employee_name}?`)) {
+            return;
+        }
+        const rec = dbRecords.find(r => r.id === advItem.payroll_id);
+        if (!rec) {
+            deletePayrollMutation.mutate(advItem.payroll_id);
+            return;
+        }
+        let currentAdvances = [];
+        try {
+            const raw = typeof rec.advances_data === 'string' ? JSON.parse(rec.advances_data) : rec.advances_data;
+            currentAdvances = Array.isArray(raw) ? raw : [raw];
+        } catch(e) {}
+        const remaining = currentAdvances.filter(a => (a.advance_id || '') !== advItem.advance_id && parseFloat(a.advance_amount) !== advItem.advance_amount);
+
+        if (parseFloat(rec.amount) > 0 || parseFloat(rec.basic_salary) > 0) {
+            updatePayrollMutation.mutate({
+                id: rec.id,
+                data: { advances_data: remaining.length > 0 ? JSON.stringify(remaining) : null }
+            });
+        } else if (remaining.length > 0) {
+            updatePayrollMutation.mutate({
+                id: rec.id,
+                data: { advances_data: JSON.stringify(remaining) }
+            });
+        } else {
+            deletePayrollMutation.mutate(rec.id);
+        }
+    };
+
     const filteredRecords = payrollRecords.filter(rec => {
         const matchesSearch = rec.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             rec.payroll_status.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -619,21 +713,35 @@ const BusinessPayroll = () => {
                     { label: 'Monthly Salary Expense', value: formatCurrency(totalSalaryExpense), icon: CreditCard, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Compliance PF / ESI', value: `${formatCurrency(totalCompliance)} Filed`, icon: ShieldCheck, color: '#10B981', bg: '#ECFDF5' },
                     { label: 'Outstanding Loans', value: formatCurrency(totalLoanOutstanding), icon: Sliders, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Salary Advances', value: `${formatCurrency(totalAdvanceDisbursed)} Disbursed`, icon: Zap, color: '#F59E0B', bg: '#FFFBEB' },
+                    { label: 'Total Advances Disbursed', value: formatCurrency(totalAdvanceDisbursed), icon: Zap, color: '#F59E0B', bg: '#FFFBEB' },
                     { label: 'Total Payslips', value: `${payrollRecords.length} Generated`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '1.25rem 1.5rem 1.25rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', gap: '1rem' }}>
+                    <div key={idx} className="stat-card" style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '1.25rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', gap: '0.85rem', minWidth: 0 }}>
                         {/* Left Accent Pillar */}
                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '5px', background: stat.color }} />
                         
                         {/* Circular Icon Container */}
-                        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={22} />
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
                         </div>
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-                             <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
-                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.01em' }}>{stat.label}</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                             <h3 
+                                title={String(stat.value)}
+                                style={{ 
+                                    fontSize: (typeof stat.value === 'string' && stat.value.length > 13) ? '1.05rem' : '1.25rem', 
+                                    fontWeight: '900', 
+                                    color: '#0F172A', 
+                                    letterSpacing: '-0.02em', 
+                                    margin: 0,
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}
+                             >
+                                {stat.value}
+                             </h3>
+                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>{stat.label}</p>
                         </div>
                     </div>
                 ))}
@@ -747,9 +855,28 @@ const BusinessPayroll = () => {
                                                 <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', alignItems: 'center' }}>
                                                     {rec.payroll_status !== 'paid' && (
                                                         <button 
+                                                            type="button"
+                                                            disabled={releasingId === rec.payroll_id || releaseSalaryMutation.isPending}
                                                             onClick={(e) => { e.stopPropagation(); handleReleaseSalary(rec.payroll_id); }}
-                                                            style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                                        >Release Salary</button>
+                                                            style={{ 
+                                                                padding: '0.45rem 0.85rem', 
+                                                                borderRadius: '8px', 
+                                                                border: 'none', 
+                                                                background: (releasingId === rec.payroll_id) ? '#94A3B8' : '#1B6B3A', 
+                                                                color: 'white', 
+                                                                fontWeight: '750', 
+                                                                fontSize: '0.8rem', 
+                                                                cursor: (releasingId === rec.payroll_id) ? 'not-allowed' : 'pointer', 
+                                                                whiteSpace: 'nowrap',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.35rem',
+                                                                opacity: (releasingId === rec.payroll_id) ? 0.75 : 1,
+                                                                transition: 'all 0.15s ease'
+                                                            }}
+                                                        >
+                                                            {releasingId === rec.payroll_id ? 'Releasing...' : 'Release Salary'}
+                                                        </button>
                                                     )}
                                                     <button
                                                         onClick={(e) => {
@@ -863,6 +990,7 @@ const BusinessPayroll = () => {
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Remaining Loan Balance</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Deduction Duration</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -888,12 +1016,34 @@ const BusinessPayroll = () => {
                                                 {l.status}
                                             </span>
                                         </td>
+                                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteLoan(l)}
+                                                title="Delete Employee Loan"
+                                                style={{
+                                                    border: 'none',
+                                                    background: '#FEE2E2',
+                                                    color: '#DC2626',
+                                                    cursor: 'pointer',
+                                                    padding: '0.35rem 0.6rem',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: '750',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.25rem'
+                                                }}
+                                            >
+                                                <Trash2 size={12} /> Delete
+                                            </button>
+                                        </td>
                                     </tr>
                                 );
                             })}
                             {loans.length === 0 && (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                    <td colSpan="7" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
                                         No active employee loans recorded. Click "Allocate Employee Loan" to add one.
                                     </td>
                                 </tr>
@@ -946,11 +1096,7 @@ const BusinessPayroll = () => {
                                     <td style={{ padding: '1rem', textAlign: 'right' }}>
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                if (window.confirm(`Are you sure you want to remove this salary advance of ${formatCurrency(a.advance_amount)} for ${a.employee_name}?`)) {
-                                                    deletePayrollMutation.mutate(a.payroll_id);
-                                                }
-                                            }}
+                                            onClick={() => handleDeleteAdvance(a)}
                                             title="Delete Salary Advance"
                                             style={{
                                                 border: 'none',
