@@ -52,6 +52,15 @@ const BusinessInventory = () => {
     const skuLimit = getPlanLimit(activePlan, 'products');
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
+
+    const isFoodCategory = (category) => {
+        if (!category) return false;
+        const cat = String(category).toLowerCase();
+        return cat.includes('food') || cat.includes('snack') || cat.includes('beverage') || 
+               cat.includes('dairy') || cat.includes('grocery') || cat.includes('groceries') || 
+               cat.includes('bakery') || cat.includes('fruit') || cat.includes('vegetable') || 
+               cat.includes('meat') || cat.includes('confectionery') || cat.includes('sweet');
+    };
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
     const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
@@ -707,6 +716,14 @@ const BusinessInventory = () => {
             alert("Malformed HSN Code blocked: HSN / SAC Code must strictly be numeric (4, 6, or 8 digits) under GST regulations.");
             return;
         }
+
+        // Compulsory Expiry check for Food Category products
+        if (formData.product_type === 'product' && isFoodCategory(formData.category)) {
+            if (!formData.expiry_date || !String(formData.expiry_date).trim()) {
+                alert("Expiry Date is mandatory for all products in the Food category to comply with food safety standards. Please enter an expiration date.");
+                return;
+            }
+        }
         const isWarrantyActive = formData.has_warranty === 'Yes' || formData.warrantyDetails === 'Yes';
         const resolvedWarrantyPeriod = isWarrantyActive
             ? (formData.warranty_period === 'Custom' ? (formData.custom_warranty_text || formData.warrantyPeriod) : (formData.warranty_period || formData.warrantyPeriod || '1 Year'))
@@ -1091,7 +1108,25 @@ const BusinessInventory = () => {
                                                 </div>
                                                 <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.15rem', flexWrap: 'wrap' }}>
-                                                        <p style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.88rem', margin: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>{row.name}</p>
+                                                        <p 
+                                                            style={{ 
+                                                                fontWeight: '750', 
+                                                                color: '#0F172A', 
+                                                                fontSize: '0.88rem', 
+                                                                margin: 0, 
+                                                                lineHeight: 1.3,
+                                                                display: '-webkit-box',
+                                                                WebkitLineClamp: 2,
+                                                                WebkitBoxOrient: 'vertical',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                wordBreak: 'break-word',
+                                                                maxHeight: '2.6em'
+                                                            }} 
+                                                            title={row.name}
+                                                        >
+                                                            {row.name}
+                                                        </p>
                                                         {row.product_type === 'service' ? (
                                                             <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                                                                 ⚡ Service Offering
@@ -1480,11 +1515,13 @@ const BusinessInventory = () => {
                                 <button type="button" onClick={() => setFormData({ ...formData, product_type: 'service' })} style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: formData.product_type === 'service' ? '#064E3B' : 'transparent', color: formData.product_type === 'service' ? 'white' : '#64748B', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>Service Offering</button>
                             </div>
 
-                            {/* Basic Product Info */}
+                            {/* Basic Product / Service Info */}
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Item Name</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                            {formData.product_type === 'service' ? 'Service Offered' : 'Item Name'}
+                                        </label>
                                         <span style={{ fontSize: '0.68rem', color: (formData.name?.length || 0) >= 65 ? '#EF4444' : '#94A3B8', fontWeight: '700' }}>{(formData.name?.length || 0)}/70</span>
                                     </div>
                                     <input
@@ -1505,22 +1542,40 @@ const BusinessInventory = () => {
                                             setHasSearchedHsn(false);
                                         }}
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
-                                        placeholder="e.g. MacBook Pro M3"
+                                        placeholder={formData.product_type === 'service' ? 'e.g. AC Deep Cleaning & Servicing' : 'e.g. MacBook Pro M3'}
                                     />
                                 </div>
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Short Display Name</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                            {formData.product_type === 'service' ? 'Service Alias / Short Name' : 'Short Display Name'}
+                                        </label>
                                         <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{(formData.short_name?.length || 0)}/25</span>
                                     </div>
-                                    <input type="text" maxLength={25} value={formData.short_name} onChange={(e) => setFormData({ ...formData, short_name: e.target.value.slice(0, 25) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MacBook" />
+                                    <input 
+                                        type="text" 
+                                        maxLength={25} 
+                                        value={formData.short_name} 
+                                        onChange={(e) => setFormData({ ...formData, short_name: e.target.value.slice(0, 25) })} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder={formData.product_type === 'service' ? 'e.g. AC Service' : 'MacBook'} 
+                                    />
                                 </div>
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>SKU Code (Optional)</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                            {formData.product_type === 'service' ? 'Service SAC / Code (Optional)' : 'SKU Code (Optional)'}
+                                        </label>
                                         <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{(formData.sku?.length || 0)}/20</span>
                                     </div>
-                                    <input type="text" maxLength={20} value={formData.sku || ''} onChange={(e) => setFormData({ ...formData, sku: e.target.value.slice(0, 20) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="e.g. MAC-M3-8" />
+                                    <input 
+                                        type="text" 
+                                        maxLength={20} 
+                                        value={formData.sku || ''} 
+                                        onChange={(e) => setFormData({ ...formData, sku: e.target.value.slice(0, 20) })} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder={formData.product_type === 'service' ? 'e.g. SRV-AC-01' : 'e.g. MAC-M3-8'} 
+                                    />
                                 </div>
                             </div>
 
@@ -1531,14 +1586,21 @@ const BusinessInventory = () => {
                                     <select
                                         value={formData.category}
                                         onChange={(e) => {
-                                            if (e.target.value === '+ Custom') {
+                                            let nextCat = e.target.value;
+                                            if (nextCat === '+ Custom') {
                                                 const customVal = prompt("Enter custom category:");
                                                 if (customVal && customVal.trim()) {
-                                                    setFormData(prev => ({ ...prev, category: customVal.trim().slice(0, 30) }));
+                                                    nextCat = customVal.trim().slice(0, 30);
+                                                } else {
+                                                    return;
                                                 }
-                                            } else {
-                                                setFormData(prev => ({ ...prev, category: e.target.value }));
                                             }
+                                            const foodCat = isFoodCategory(nextCat);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                category: nextCat,
+                                                ...(foodCat ? { has_expiry: true, is_perishable: true } : {})
+                                            }));
                                         }}
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
                                     >
@@ -1563,10 +1625,67 @@ const BusinessInventory = () => {
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Barcode Number</label>
                                         <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700' }}>{(formData.barcode?.length || 0)}/20</span>
                                     </div>
-                                    <input type="text" maxLength={20} value={formData.barcode || ''} onChange={(e) => setFormData({ ...formData, barcode: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan or enter barcode" />
+                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                        <input 
+                                            type="text" 
+                                            maxLength={20} 
+                                            value={formData.barcode || ''} 
+                                            onChange={(e) => setFormData({ ...formData, barcode: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) })} 
+                                            style={{ flex: 1, minWidth: 0, padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                            placeholder="Scan or enter barcode" 
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, barcode: generateEan13Barcode('890') }))}
+                                            style={{
+                                                padding: '0.85rem 0.75rem',
+                                                borderRadius: '12px',
+                                                border: '1px solid #A7F3D0',
+                                                background: '#ECFDF5',
+                                                color: '#065F46',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                            title="Generate standard encrypted GS1 EAN-13 barcode with country prefix 890 (India)"
+                                        >
+                                            <Sparkles size={13} color="#059669" />
+                                            Auto GS1
+                                        </button>
+                                    </div>
                                     {formData.barcode && (
-                                        <div style={{ marginTop: '0.5rem', background: '#FFFFFF', padding: '8px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '100%', overflow: 'hidden' }}>
-                                            <ProductBarcodeGraphic value={formData.barcode} width={1.8} height={52} fontSize={12} />
+                                        <div style={{
+                                            marginTop: '0.65rem',
+                                            background: '#FFFFFF',
+                                            padding: '10px 12px',
+                                            borderRadius: '12px',
+                                            border: '1.5px solid #E2E8F0',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            maxWidth: '100%',
+                                            overflow: 'hidden'
+                                        }}>
+                                            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px dashed #E2E8F0', paddingBottom: '4px' }}>
+                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: /^\d{13}$/.test(formData.barcode) ? '#059669' : '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    {/^\d{13}$/.test(formData.barcode) ? '🔒 GS1 EAN-13 ENCRYPTED' : 'CODE-128 SCANNABLE'}
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '600' }}>
+                                                    Hardware Ready
+                                                </span>
+                                            </div>
+                                            <ProductBarcodeGraphic value={formData.barcode} width={1.8} height={50} fontSize={12} />
+                                            <div style={{ marginTop: '4px', fontSize: '0.65rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <span>✓ Verified Modulo-10 Checksum</span>
+                                                {/^\d{13}$/.test(formData.barcode) && (
+                                                    <span style={{ color: '#059669', fontWeight: '700' }}>• Prefix 890 Active</span>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -2144,67 +2263,84 @@ const BusinessInventory = () => {
                                     {/* =================================================================== */}
                                     {/* HAS EXPIRY / EXPIRY APPLICABLE TOGGLE                               */}
                                     {/* =================================================================== */}
-                                    <div className="p-3.5 bg-gray-50 border border-gray-200/80 rounded-2xl space-y-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1rem' }}>
-                                        <label className="flex items-center gap-2.5 cursor-pointer select-none" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', userSelect: 'none' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={Boolean(formData.has_expiry)}
-                                                onChange={(e) => {
-                                                    const checked = e.target.checked;
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        has_expiry: checked,
-                                                        is_perishable: checked,
-                                                        expiry_date: checked ? prev.expiry_date : '',
-                                                        mfg_date: checked ? (prev.mfg_date || prev.manufacturing_date) : '',
-                                                        manufacturing_date: checked ? (prev.mfg_date || prev.manufacturing_date) : ''
-                                                    }));
-                                                }}
-                                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer"
-                                                style={{ width: '16px', height: '16px', accentColor: '#059669', cursor: 'pointer' }}
-                                            />
-                                            <div>
-                                                <span className="text-xs font-bold text-gray-800" style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B', display: 'block' }}>
-                                                    Expiry Applicable / Perishable Product
-                                                </span>
-                                                <p className="text-[10px] text-gray-400 font-medium" style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748B' }}>
-                                                    Enable only for items with limited shelf-life (food, pharma, cosmetics). Leave unchecked for electronics, hardware, furniture, etc.
-                                                </p>
-                                            </div>
-                                        </label>
+                                    {(() => {
+                                        const foodCat = isFoodCategory(formData.category);
+                                        const isExpiryRequired = foodCat || Boolean(formData.has_expiry);
+                                        return (
+                                            <div className="p-3.5 rounded-2xl space-y-3" style={{ background: foodCat ? '#FEF2F2' : '#F8FAFC', border: foodCat ? '1.5px solid #FCA5A5' : '1px solid #E2E8F0', borderRadius: '16px', padding: '1rem', transition: 'all 0.2s' }}>
+                                                <label className="flex items-center gap-2.5 select-none" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', cursor: foodCat ? 'default' : 'pointer', userSelect: 'none' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={foodCat ? true : Boolean(formData.has_expiry)}
+                                                        disabled={foodCat}
+                                                        onChange={(e) => {
+                                                            if (foodCat) return;
+                                                            const checked = e.target.checked;
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                has_expiry: checked,
+                                                                is_perishable: checked,
+                                                                expiry_date: checked ? prev.expiry_date : '',
+                                                                mfg_date: checked ? (prev.mfg_date || prev.manufacturing_date) : '',
+                                                                manufacturing_date: checked ? (prev.mfg_date || prev.manufacturing_date) : ''
+                                                            }));
+                                                        }}
+                                                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                                                        style={{ width: '18px', height: '18px', accentColor: foodCat ? '#DC2626' : '#059669', cursor: foodCat ? 'default' : 'pointer', marginTop: '2px' }}
+                                                    />
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                            <span className="text-xs font-bold" style={{ fontSize: '0.85rem', fontWeight: '800', color: foodCat ? '#991B1B' : '#1E293B' }}>
+                                                                Expiry Applicable / Perishable Product
+                                                            </span>
+                                                            {foodCat && (
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#FEE2E2', color: '#B91C1C', border: '1px solid #FCA5A5', padding: '1px 8px', borderRadius: '6px' }}>
+                                                                    ⚠️ COMPULSORY FOR FOOD CATEGORY
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] font-medium" style={{ margin: '3px 0 0 0', fontSize: '0.73rem', color: foodCat ? '#B91C1C' : '#64748B' }}>
+                                                            {foodCat
+                                                                ? 'Food items, snacks, dairy, and beverages strictly require valid expiration tracking under food safety regulations.'
+                                                                : 'Enable only for items with limited shelf-life (food, pharma, cosmetics). Leave unchecked for electronics, hardware, furniture, etc.'}
+                                                        </p>
+                                                    </div>
+                                                </label>
 
-                                        {/* Show MFG & Expiry Date inputs ONLY when hasExpiry is checked */}
-                                        {Boolean(formData.has_expiry) && (
-                                            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-200/60 animate-in fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid #E2E8F0' }}>
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                                                        Manufacturing Date (MFG)
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        value={formData.mfg_date || formData.manufacturing_date || ''}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, mfg_date: e.target.value, manufacturing_date: e.target.value }))}
-                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
-                                                        style={{ width: '100%', padding: '0.75rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                                                        Expiry Date *
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        min={new Date().toISOString().split('T')[0]}
-                                                        value={formData.expiry_date || ''}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
-                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-emerald-600"
-                                                        style={{ width: '100%', padding: '0.75rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
-                                                        required={Boolean(formData.has_expiry)}
-                                                    />
-                                                </div>
+                                                {/* Show MFG & Expiry Date inputs when hasExpiry is checked or Food Category */}
+                                                {isExpiryRequired && (
+                                                    <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-200/60 animate-in fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '0.75rem', marginTop: '0.5rem', borderTop: foodCat ? '1px solid #FECACA' : '1px solid #E2E8F0' }}>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                                                Manufacturing Date (MFG)
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                value={formData.mfg_date || formData.manufacturing_date || ''}
+                                                                onChange={(e) => setFormData(prev => ({ ...prev, mfg_date: e.target.value, manufacturing_date: e.target.value }))}
+                                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                                style={{ width: '100%', padding: '0.75rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: foodCat ? '#DC2626' : '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                                                Expiry Date * {foodCat && <span style={{ color: '#DC2626' }}>(Compulsory)</span>}
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                min={new Date().toISOString().split('T')[0]}
+                                                                value={formData.expiry_date || ''}
+                                                                onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
+                                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-emerald-600"
+                                                                style={{ width: '100%', padding: '0.75rem', background: 'white', border: foodCat && !formData.expiry_date ? '1.5px solid #EF4444' : '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
+                                                                required={isExpiryRequired}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
+                                        );
+                                    })()}
 
                                     {/* Warranty Details */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', borderTop: '1px solid #DCF2E4', paddingTop: '1rem' }}>

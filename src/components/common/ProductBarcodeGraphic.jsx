@@ -15,23 +15,25 @@ export const ProductBarcodeGraphic = ({
 }) => {
     const svgRef = useRef(null);
     const clean = String(value || '').trim().slice(0, 24);
+    const isEan13 = /^\d{13}$/.test(clean);
 
     useEffect(() => {
         if (!svgRef.current || !clean) return;
         try {
             JsBarcode(svgRef.current, clean, {
-                format: "CODE128",
-                width,
+                format: isEan13 ? "EAN13" : "CODE128",
+                width: isEan13 ? Math.max(1.3, width) : width,
                 height,
                 fontSize,
                 displayValue,
-                margin: 2,
+                margin: 4,
                 background: "#FFFFFF",
                 lineColor: "#000000"
             });
         } catch {
             try {
                 JsBarcode(svgRef.current, clean, {
+                    format: "CODE128",
                     width,
                     height,
                     fontSize,
@@ -44,7 +46,7 @@ export const ProductBarcodeGraphic = ({
                 // gracefully ignore invalid inputs
             }
         }
-    }, [clean, width, height, fontSize, displayValue]);
+    }, [clean, width, height, fontSize, displayValue, isEan13]);
 
     if (!clean) return null;
 
