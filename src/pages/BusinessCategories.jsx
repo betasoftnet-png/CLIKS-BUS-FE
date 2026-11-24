@@ -55,6 +55,41 @@ const PRESET_IMAGES = [
     { label: 'Dairy & Cheese', url: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80' }
 ];
 
+// Client-side image compressor: ensures uploaded covers are compact (~25KB)
+// preventing network timeouts, large payloads, or 413 errors on save
+const compressImage = (file, maxWidth = 600, maxHeight = 600, quality = 0.82) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(e.target.result);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+};
+
 const BusinessCategories = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -68,6 +103,7 @@ const BusinessCategories = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [showUrlInput, setShowUrlInput] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     const [bannerMessage, setBannerMessage] = useState(null);
 
@@ -327,9 +363,11 @@ const BusinessCategories = () => {
 
     // Modal openers
     const handleOpenCreateModal = (preselectedParentId = '') => {
+        saveCategoryMutation.reset();
         setEditingCategory(null);
         setSelectedProductIds([]);
         setProductSearchQuery('');
+        setShowUrlInput(false);
         setFormData({
             category_name: '',
             parent_id: preselectedParentId ? String(preselectedParentId) : '',
@@ -341,8 +379,11 @@ const BusinessCategories = () => {
     };
 
     const handleOpenEditModal = (cat) => {
+        saveCategoryMutation.reset();
         setEditingCategory(cat);
         setProductSearchQuery('');
+        const isExternalUrl = cat.image_url && cat.image_url.startsWith('http') && !cat.image_url.includes('/cdn/') && !cat.image_url.includes('/storage/');
+        setShowUrlInput(Boolean(isExternalUrl));
         const parentId = cat.parent_id ? Number(cat.parent_id) : null;
         
         // Find existing assigned products to pre-populate selection
@@ -375,40 +416,46 @@ const BusinessCategories = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Size check (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Image must be under 5MB');
+        // Size check (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Image must be under 10MB');
             return;
         }
 
         try {
             setIsUploadingImage(true);
+
+            // 1. Try uploading to backend storage service
             const uploadFormData = new FormData();
             uploadFormData.append('file', file);
+            uploadFormData.append('module', 'categories');
             uploadFormData.append('folder', 'categories');
 
-            const res = await storageService.uploadFile(uploadFormData);
-            const fileUrl = res?.data?.url || res?.data?.file_url || res?.url;
+            try {
+                const res = await storageService.uploadFile(uploadFormData);
+                const fileUrl = res?.data?.cdnUrl || res?.data?.directUrl || res?.data?.streamUrl || res?.data?.url || res?.data?.file_url || res?.url;
 
-            if (fileUrl) {
-                setFormData(prev => ({ ...prev, image_url: fileUrl }));
-            } else {
-                // Fallback to base64 data URL preview if cloud storage is offline
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setFormData(prev => ({ ...prev, image_url: reader.result }));
-                };
-                reader.readAsDataURL(file);
+                if (fileUrl) {
+                    setFormData(prev => ({ ...prev, image_url: fileUrl }));
+                    setShowUrlInput(false);
+                    return;
+                }
+            } catch (storageErr) {
+                console.warn('[Category Modal] Storage upload fallback to client-compressed image:', storageErr);
+            }
+
+            // 2. Client-side compression fallback: produces ultra-light (~25KB) image
+            // This prevents network timeouts and large JSON payloads
+            const compressed = await compressImage(file, 600, 600, 0.82);
+            if (compressed) {
+                setFormData(prev => ({ ...prev, image_url: compressed }));
+                setShowUrlInput(false);
             }
         } catch (err) {
-            // Read as data URL fallback
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, image_url: reader.result }));
-            };
-            reader.readAsDataURL(file);
+            console.error('[Category Modal] Image upload error:', err);
         } finally {
             setIsUploadingImage(false);
+            if (e.target) e.target.value = '';
         }
     };
 
@@ -1229,73 +1276,142 @@ const BusinessCategories = () => {
 
                             {/* Category Image Options */}
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '0.4rem' }}>
-                                    Category Cover Image
-                                </label>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                        Category Cover Image
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUrlInput(prev => !prev)}
+                                        style={{ background: 'none', border: 'none', color: '#1B6B3A', fontSize: '0.74rem', fontWeight: '750', cursor: 'pointer', padding: 0 }}
+                                    >
+                                        {showUrlInput ? '← Switch to Upload Image' : '🔗 Paste Web Image URL instead'}
+                                    </button>
+                                </div>
 
-                                {/* Image Preview & Input */}
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.65rem' }}>
+                                {/* Image Preview & Input Card */}
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '0.85rem',
+                                    alignItems: 'center',
+                                    padding: '0.75rem 0.9rem',
+                                    borderRadius: '12px',
+                                    border: '1px solid #E2E8F0',
+                                    background: '#F8FAFC',
+                                    marginBottom: '0.65rem'
+                                }}>
                                     <div style={{
                                         width: '64px',
                                         height: '64px',
                                         borderRadius: '12px',
-                                        border: '1px solid #E2E8F0',
-                                        background: '#F8FAFC',
+                                        border: '1.5px solid #CBD5E1',
+                                        background: '#FFFFFF',
                                         overflow: 'hidden',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        shrink: 0
+                                        flexShrink: 0,
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
                                     }}>
                                         {formData.image_url ? (
                                             <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            <ImageIcon size={24} color="#94A3B8" />
+                                            <ImageIcon size={26} color="#94A3B8" />
                                         )}
                                     </div>
 
-                                    <div style={{ flex: 1 }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Paste Image URL (https://...)"
-                                            value={formData.image_url}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.55rem 0.75rem',
-                                                borderRadius: '8px',
-                                                border: '1px solid #CBD5E1',
-                                                fontSize: '0.82rem',
-                                                outline: 'none',
-                                                marginBottom: '0.4rem'
-                                            }}
-                                        />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        {showUrlInput ? (
+                                            <div>
+                                                <input
+                                                    type="url"
+                                                    placeholder="Paste Image URL (https://...)"
+                                                    value={formData.image_url?.startsWith('data:') ? '' : formData.image_url}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '0.55rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid #CBD5E1',
+                                                        fontSize: '0.82rem',
+                                                        outline: 'none',
+                                                        background: '#FFFFFF'
+                                                    }}
+                                                />
+                                                <p style={{ margin: '0.3rem 0 0', fontSize: '0.7rem', color: '#64748B' }}>
+                                                    Enter any direct image link from Unsplash, CDN, or web hosting.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                {formData.image_url ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                            <span style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.25rem',
+                                                                background: '#DCFCE7',
+                                                                color: '#166534',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '800',
+                                                                padding: '0.15rem 0.5rem',
+                                                                borderRadius: '6px'
+                                                            }}>
+                                                                <Check size={12} /> Cover Picture Attached
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                            <label style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.3rem',
+                                                                padding: '0.3rem 0.65rem',
+                                                                borderRadius: '6px',
+                                                                background: '#FFFFFF',
+                                                                border: '1px solid #CBD5E1',
+                                                                color: '#334155',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '750',
+                                                                cursor: 'pointer'
+                                                            }}>
+                                                                <Upload size={12} />
+                                                                <span>{isUploadingImage ? 'Uploading...' : 'Replace Picture'}</span>
+                                                                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                                                            </label>
 
-                                        <label style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.35rem',
-                                            padding: '0.35rem 0.75rem',
-                                            borderRadius: '6px',
-                                            background: '#F1F5F9',
-                                            color: '#334155',
-                                            fontSize: '0.75rem',
-                                            fontWeight: '750',
-                                            cursor: 'pointer'
-                                        }}>
-                                            <Upload size={12} />
-                                            <span>{isUploadingImage ? 'Uploading...' : 'Upload Image File'}</span>
-                                            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                                        </label>
-
-                                        {formData.image_url && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
-                                                style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: '#EF4444', fontSize: '0.72rem', fontWeight: '750', cursor: 'pointer' }}
-                                            >
-                                                Clear Image
-                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                                                                style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: '0.72rem', fontWeight: '750', cursor: 'pointer' }}
+                                                            >
+                                                                Remove Picture
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                                        <label style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            padding: '0.45rem 0.85rem',
+                                                            borderRadius: '8px',
+                                                            background: '#1B6B3A',
+                                                            color: '#FFFFFF',
+                                                            fontSize: '0.78rem',
+                                                            fontWeight: '800',
+                                                            cursor: 'pointer',
+                                                            boxShadow: '0 2px 4px rgba(27, 107, 58, 0.2)'
+                                                        }}>
+                                                            <Upload size={14} />
+                                                            <span>{isUploadingImage ? 'Processing...' : 'Upload Image File'}</span>
+                                                            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                                                        </label>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B' }}>PNG, JPG or WebP</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -1362,29 +1478,73 @@ const BusinessCategories = () => {
                                 />
                             </div>
 
-                            {/* Active Toggle */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                            {/* Category Status Toggle */}
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.85rem 1rem',
+                                background: '#F8FAFC',
+                                borderRadius: '12px',
+                                border: '1px solid #E2E8F0'
+                            }}>
                                 <div>
                                     <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', display: 'block' }}>Category Status</span>
-                                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Enable or disable this category across your catalog</span>
+                                    <span style={{ fontSize: '0.74rem', color: '#64748B' }}>Enable or disable this category across your catalog</span>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, is_active: prev.is_active === 1 ? 0 : 1 }))}
-                                    style={{
-                                        padding: '0.35rem 0.85rem',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        background: formData.is_active === 1 ? '#1B6B3A' : '#CBD5E1',
-                                        color: '#FFFFFF',
-                                        fontWeight: '800',
-                                        fontSize: '0.75rem',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {formData.is_active === 1 ? 'Active' : 'Inactive'}
-                                </button>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    background: '#E2E8F0',
+                                    padding: '3px',
+                                    borderRadius: '10px',
+                                    gap: '3px'
+                                }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, is_active: 1 }))}
+                                        style={{
+                                            padding: '0.4rem 0.95rem',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: formData.is_active === 1 ? '#166534' : 'transparent',
+                                            color: formData.is_active === 1 ? '#FFFFFF' : '#475569',
+                                            fontWeight: '800',
+                                            fontSize: '0.78rem',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            boxShadow: formData.is_active === 1 ? '0 2px 6px rgba(22, 101, 52, 0.3)' : 'none',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: formData.is_active === 1 ? '#86EFAC' : '#94A3B8' }} />
+                                        Active
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, is_active: 0 }))}
+                                        style={{
+                                            padding: '0.4rem 0.95rem',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: formData.is_active === 0 ? '#DC2626' : 'transparent',
+                                            color: formData.is_active === 0 ? '#FFFFFF' : '#475569',
+                                            fontWeight: '800',
+                                            fontSize: '0.78rem',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            boxShadow: formData.is_active === 0 ? '0 2px 6px rgba(220, 38, 38, 0.3)' : 'none',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: formData.is_active === 0 ? '#FCA5A5' : '#94A3B8' }} />
+                                        Inactive
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Product Assignment Section */}
@@ -1576,6 +1736,31 @@ const BusinessCategories = () => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Inline error if save fails */}
+                            {saveCategoryMutation.isError && (
+                                <div style={{
+                                    padding: '0.65rem 0.9rem',
+                                    borderRadius: '10px',
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FCA5A5',
+                                    color: '#991B1B',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '700',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <span>⚠️ {saveCategoryMutation.error?.response?.data?.message || saveCategoryMutation.error?.message || 'Failed to save category. Please try again.'}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => saveCategoryMutation.reset()}
+                                        style={{ background: 'none', border: 'none', color: '#991B1B', cursor: 'pointer', fontWeight: '800' }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Modal Actions */}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
