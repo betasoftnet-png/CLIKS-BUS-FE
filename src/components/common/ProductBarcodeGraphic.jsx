@@ -14,7 +14,7 @@ export const ProductBarcodeGraphic = ({
     style = {}
 }) => {
     const svgRef = useRef(null);
-    const clean = String(value || '').trim();
+    const clean = String(value || '').trim().slice(0, 24);
 
     useEffect(() => {
         if (!svgRef.current || !clean) return;
@@ -60,10 +60,12 @@ export const ProductBarcodeGraphic = ({
                 justifyContent: 'center',
                 border: '1px solid #E2E8F0',
                 boxSizing: 'border-box',
+                maxWidth: '100%',
+                overflow: 'hidden',
                 ...style 
             }}
         >
-            <svg ref={svgRef} />
+            <svg ref={svgRef} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
         </div>
     );
 };

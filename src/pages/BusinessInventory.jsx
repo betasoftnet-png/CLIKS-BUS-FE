@@ -1073,18 +1073,18 @@ const BusinessInventory = () => {
                     <div style={{ overflowX: 'auto' }}>
                         <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'product_name', label: 'Product Details', placeholder: 'Product name', style: { width: '24%', minWidth: '220px' } },
-                                { key: 'category', label: 'Classification', placeholder: 'Category', style: { width: '13%', minWidth: '120px' } },
-                                { key: 'stock', label: 'Stock Level', placeholder: 'e.g. 50', style: { width: '15%', minWidth: '130px' } },
-                                { key: 'price', label: 'Price', placeholder: 'e.g. 500', style: { width: '13%', minWidth: '120px' } },
-                                { key: 'hsn', label: 'GST & HSN', placeholder: 'HSN code', style: { width: '11%', minWidth: '100px' } },
-                                { key: 'status', label: 'Status', placeholder: 'e.g. Active', style: { width: '11%', minWidth: '100px' } },
-                                { key: '_actions', label: 'Stock Actions', noFilter: true, align: 'right', style: { width: '13%', minWidth: '140px' } }
+                                { key: 'product_name', label: 'Product Details', placeholder: 'Product name', style: { width: '23%', minWidth: '180px' } },
+                                { key: 'category', label: 'Classification', placeholder: 'Category', style: { width: '13%', minWidth: '110px' } },
+                                { key: 'stock', label: 'Stock Level', placeholder: 'e.g. 50', style: { width: '14%', minWidth: '115px' } },
+                                { key: 'price', label: 'Price', placeholder: 'e.g. 500', style: { width: '13%', minWidth: '110px' } },
+                                { key: 'hsn', label: 'GST & HSN', placeholder: 'HSN code', style: { width: '11%', minWidth: '95px' } },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Active', style: { width: '15%', minWidth: '115px' } },
+                                { key: '_actions', label: 'Stock Actions', noFilter: true, align: 'right', style: { width: '11%', minWidth: '100px' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
                                     <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background-color 0.15s' }}>
-                                        <td style={{ width: '24%', padding: '0.85rem 1rem', verticalAlign: 'middle', overflow: 'hidden' }}>
+                                        <td style={{ width: '23%', padding: '0.85rem 0.9rem', verticalAlign: 'middle', overflow: 'hidden' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
                                                 <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: row.product_type === 'service' ? '#EFF6FF' : '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: row.product_type === 'service' ? '#1D4ED8' : '#047857', flexShrink: 0 }}>
                                                     {row.product_type === 'service' ? <Zap size={18} /> : <Package size={18} />}
@@ -1151,7 +1151,7 @@ const BusinessInventory = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ width: '13%', padding: '0.85rem 1rem', verticalAlign: 'middle', overflow: 'hidden' }}>
+                                        <td style={{ width: '13%', padding: '0.85rem 0.9rem', verticalAlign: 'middle', overflow: 'hidden' }}>
                                             <div>
                                                 <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.85rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.category || (row.product_type === 'service' ? 'Services' : 'General')}</p>
                                                 <span style={{ fontSize: '0.74rem', color: '#64748B', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1164,7 +1164,7 @@ const BusinessInventory = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
+                                        <td style={{ width: '14%', padding: '0.85rem 0.9rem', verticalAlign: 'middle' }}>
                                             {row.product_type === 'service' ? (
                                                 <div>
                                                     <span style={{ fontSize: '0.78rem', color: '#1D4ED8', fontWeight: '800', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: '6px', display: 'inline-block' }}>
@@ -1218,7 +1218,7 @@ const BusinessInventory = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ width: '13%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
+                                        <td style={{ width: '13%', padding: '0.85rem 0.9rem', verticalAlign: 'middle' }}>
                                             <div>
                                                 <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#064E3B', display: 'block' }}>Sell: {formatCurrency(row.selling_price)}</span>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px', fontSize: '0.74rem', color: '#64748B' }}>
@@ -1236,7 +1236,7 @@ const BusinessInventory = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ width: '11%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
+                                        <td style={{ width: '11%', padding: '0.85rem 0.9rem', verticalAlign: 'middle' }}>
                                             <div>
                                                 <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.8rem', margin: 0 }}>
                                                     {(() => {
@@ -1255,7 +1255,7 @@ const BusinessInventory = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ width: '11%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
+                                        <td style={{ width: '15%', padding: '0.85rem 0.9rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             {(() => {
                                                 const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
                                                 if (isUnlimited) {
@@ -1265,7 +1265,8 @@ const BusinessInventory = () => {
                                                             padding: '0.25rem 0.6rem', borderRadius: '7px',
                                                             background: '#EFF6FF',
                                                             color: '#1D4ED8',
-                                                            fontSize: '0.72rem', fontWeight: '800'
+                                                            fontSize: '0.72rem', fontWeight: '800',
+                                                            whiteSpace: 'nowrap'
                                                         }}>
                                                             <span>UNLIMITED</span>
                                                         </div>
@@ -1320,19 +1321,24 @@ const BusinessInventory = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'inline-flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
-                                                {row.product_type === 'product' && (
-                                                    <div style={{ display: 'inline-flex', background: '#F8FAFC', padding: '2px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                        <button onClick={() => handleAdjust(row, 'in')} title="Induct Stock" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ArrowUpRight size={13} /></button>
-                                                        <button onClick={() => handleAdjust(row, 'out')} title="Deplete Stock" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#EF4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '2px' }}><ArrowDownRight size={13} /></button>
-                                                        <button onClick={() => handleAdjust(row, 'damaged')} title="Mark Damaged" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#DC2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '2px' }}><AlertTriangle size={13} /></button>
-                                                        <button onClick={() => handleAdjust(row, 'expired')} title="Mark Expired" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#B45309', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '2px' }}><AlertCircle size={13} /></button>
-                                                    </div>
-                                                )}
-                                                <button onClick={() => handleEdit(row)} title="Edit specifications" style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
-                                                <button onClick={() => handleDelete(row.id)} title="Delete product" style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                                            </div>
+                                        <td style={{ width: '11%', padding: '0.65rem 0.85rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            {row.product_type === 'service' ? (
+                                                <div style={{ display: 'inline-flex', gap: '4px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                    <button onClick={() => handleEdit(row)} title="Edit specifications" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}><Edit2 size={13} /></button>
+                                                    <button onClick={() => handleDelete(row.id)} title="Delete service" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}><Trash2 size={13} /></button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'inline-grid', gridTemplateColumns: 'repeat(3, 26px)', gap: '4px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                    {/* Row 1: 3 buttons */}
+                                                    <button onClick={() => handleAdjust(row, 'in')} title="Induct Stock (In)" style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}><ArrowUpRight size={13} /></button>
+                                                    <button onClick={() => handleAdjust(row, 'out')} title="Deplete Stock (Out)" style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: '#EF4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}><ArrowDownRight size={13} /></button>
+                                                    <button onClick={() => handleAdjust(row, 'damaged')} title="Mark Damaged" style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: '#DC2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}><AlertTriangle size={13} /></button>
+                                                    {/* Row 2: 3 buttons */}
+                                                    <button onClick={() => handleAdjust(row, 'expired')} title="Mark Expired" style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: '#B45309', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}><AlertCircle size={13} /></button>
+                                                    <button onClick={() => handleEdit(row)} title="Edit specifications" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}><Edit2 size={13} /></button>
+                                                    <button onClick={() => handleDelete(row.id)} title="Delete product" style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'transform 0.1s' }}><Trash2 size={13} /></button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -1450,7 +1456,7 @@ const BusinessInventory = () => {
             {/* Product Creation & Editing Modal */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto', overflowX: 'hidden' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>
@@ -1477,13 +1483,17 @@ const BusinessInventory = () => {
                             {/* Basic Product Info */}
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Item Name</label>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Item Name</label>
+                                        <span style={{ fontSize: '0.68rem', color: (formData.name?.length || 0) >= 65 ? '#EF4444' : '#94A3B8', fontWeight: '700' }}>{(formData.name?.length || 0)}/70</span>
+                                    </div>
                                     <input
                                         required
                                         type="text"
+                                        maxLength={70}
                                         value={formData.name}
                                         onChange={(e) => {
-                                            const newName = e.target.value;
+                                            const newName = e.target.value.slice(0, 70);
                                             setFormData(prev => ({
                                                 ...prev,
                                                 name: newName,
@@ -1499,12 +1509,18 @@ const BusinessInventory = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Short Display Name</label>
-                                    <input type="text" value={formData.short_name} onChange={(e) => setFormData({ ...formData, short_name: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MacBook" />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Short Display Name</label>
+                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{(formData.short_name?.length || 0)}/25</span>
+                                    </div>
+                                    <input type="text" maxLength={25} value={formData.short_name} onChange={(e) => setFormData({ ...formData, short_name: e.target.value.slice(0, 25) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MacBook" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>SKU Code (Optional)</label>
-                                    <input type="text" value={formData.sku || ''} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="e.g. MAC-M3-8" />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>SKU Code (Optional)</label>
+                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{(formData.sku?.length || 0)}/20</span>
+                                    </div>
+                                    <input type="text" maxLength={20} value={formData.sku || ''} onChange={(e) => setFormData({ ...formData, sku: e.target.value.slice(0, 20) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="e.g. MAC-M3-8" />
                                 </div>
                             </div>
 
@@ -1518,7 +1534,7 @@ const BusinessInventory = () => {
                                             if (e.target.value === '+ Custom') {
                                                 const customVal = prompt("Enter custom category:");
                                                 if (customVal && customVal.trim()) {
-                                                    setFormData(prev => ({ ...prev, category: customVal.trim() }));
+                                                    setFormData(prev => ({ ...prev, category: customVal.trim().slice(0, 30) }));
                                                 }
                                             } else {
                                                 setFormData(prev => ({ ...prev, category: e.target.value }));
@@ -1536,17 +1552,20 @@ const BusinessInventory = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Brand</label>
-                                    <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Apple" />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Brand</label>
+                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{(formData.brand?.length || 0)}/30</span>
+                                    </div>
+                                    <input type="text" maxLength={30} value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value.slice(0, 30) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Apple" />
                                 </div>
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Barcode Number</label>
-                                        <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700' }}>Hardware Gun Compatible</span>
+                                        <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700' }}>{(formData.barcode?.length || 0)}/20</span>
                                     </div>
-                                    <input type="text" value={formData.barcode || ''} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan or enter barcode" />
+                                    <input type="text" maxLength={20} value={formData.barcode || ''} onChange={(e) => setFormData({ ...formData, barcode: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan or enter barcode" />
                                     {formData.barcode && (
-                                        <div style={{ marginTop: '0.5rem', background: '#FFFFFF', padding: '8px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <div style={{ marginTop: '0.5rem', background: '#FFFFFF', padding: '8px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '100%', overflow: 'hidden' }}>
                                             <ProductBarcodeGraphic value={formData.barcode} width={1.8} height={52} fontSize={12} />
                                         </div>
                                     )}
@@ -1554,11 +1573,16 @@ const BusinessInventory = () => {
                                 <div style={{ position: 'relative' }} ref={hsnInfoRef}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
-                                        {isHsnLoading && <span style={{ fontSize: '0.7rem', color: '#064E3B', fontWeight: '600' }}>Searching...</span>}
+                                        {isHsnLoading ? (
+                                            <span style={{ fontSize: '0.7rem', color: '#064E3B', fontWeight: '600' }}>Searching...</span>
+                                        ) : (
+                                            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{(formData.hsn_code?.length || 0)}/8</span>
+                                        )}
                                     </div>
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             type="text"
+                                            maxLength={8}
                                             value={formData.hsn_code}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 8);
