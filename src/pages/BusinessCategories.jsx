@@ -107,6 +107,18 @@ const BusinessCategories = () => {
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     const [bannerMessage, setBannerMessage] = useState(null);
 
+    // Inline View Category Products state (stays in Categories tab without navigating away)
+    const [viewingCategoryProducts, setViewingCategoryProducts] = useState(null);
+    const [categoryProductSearch, setCategoryProductSearch] = useState('');
+    const [expandedGroupIds, setExpandedGroupIds] = useState({});
+
+    const toggleGroupExpand = (groupId) => {
+        setExpandedGroupIds(prev => ({
+            ...prev,
+            [groupId]: prev[groupId] === false ? true : false
+        }));
+    };
+
     // Form data state
     const [formData, setFormData] = useState({
         category_name: '',
@@ -147,21 +159,80 @@ const BusinessCategories = () => {
     const [selectedProductIds, setSelectedProductIds] = useState([]);
     const [productSearchQuery, setProductSearchQuery] = useState('');
 
-    // Extract top groups and subgroups
-    const groups = useMemo(() => {
-        if (!categoriesData) return [];
-        return categoriesData.groups || [];
-    }, [categoriesData]);
-
-    const subgroups = useMemo(() => {
-        if (!categoriesData) return [];
-        return categoriesData.subgroups || [];
-    }, [categoriesData]);
-
+    // All categories list from API
     const allCategories = useMemo(() => {
         if (!categoriesData) return [];
         return categoriesData.categories || [];
     }, [categoriesData]);
+
+    // Subcategories list (categories that have a parent_id)
+    const subgroups = useMemo(() => {
+        if (!categoriesData) return [];
+        return categoriesData.subgroups || allCategories.filter(c => !!c.parent_id);
+    }, [categoriesData, allCategories]);
+
+    // Extract top-level groups and attach matched subcategories robustly
+    const groups = useMemo(() => {
+        if (!categoriesData) return [];
+        const rawGroups = categoriesData.groups || allCategories.filter(c => !c.parent_id);
+
+        return rawGroups.map(g => {
+            const gId = Number(g.id);
+            const gName = (g.category_name || '').trim().toLowerCase();
+
+            // Match subcategories by parent_id OR parent_name
+            const existingSubs = Array.isArray(g.subcategories) ? g.subcategories : [];
+            const matchedFromSubs = subgroups.filter(sg => {
+                const pId = sg.parent_id !== null && sg.parent_id !== undefined ? Number(sg.parent_id) : null;
+                const pName = (sg.parent_name || '').trim().toLowerCase();
+                return (pId !== null && pId === gId) || (pName && pName === gName);
+            });
+
+            // Deduplicate subcategories by ID
+            const map = new Map();
+            [...existingSubs, ...matchedFromSubs].forEach(sc => {
+                const k = sc.id ? Number(sc.id) : (sc.category_name || Math.random());
+                map.set(k, sc);
+            });
+
+            return {
+                ...g,
+                subcategories: Array.from(map.values())
+            };
+        });
+    }, [categoriesData, allCategories, subgroups]);
+
+    // Filter products for the inline "View Category Products" modal (stays in Categories tab)
+    const categoryMatchedProducts = useMemo(() => {
+        if (!viewingCategoryProducts) return [];
+        const targetId = Number(viewingCategoryProducts.id);
+        const targetName = (viewingCategoryProducts.category_name || '').trim().toLowerCase();
+        const isSub = Boolean(viewingCategoryProducts.parent_id);
+
+        const list = productsList.filter(p => {
+            if (isSub) {
+                return (
+                    p.subgroup_id === targetId ||
+                    p.category?.toLowerCase() === targetName ||
+                    p.category?.toLowerCase().endsWith(` > ${targetName}`)
+                );
+            } else {
+                return (
+                    (p.group_id === targetId && (!p.subgroup_id || p.subgroup_id === 0)) ||
+                    p.category?.toLowerCase() === targetName ||
+                    p.category?.toLowerCase().startsWith(`${targetName} >`)
+                );
+            }
+        });
+
+        if (!categoryProductSearch.trim()) return list;
+        const q = categoryProductSearch.toLowerCase().trim();
+        return list.filter(p => 
+            p.name?.toLowerCase().includes(q) ||
+            p.sku?.toLowerCase().includes(q) ||
+            p.barcode?.toLowerCase().includes(q)
+        );
+    }, [viewingCategoryProducts, productsList, categoryProductSearch]);
 
     // Helper: detect if a product has no category (uncategorized)
     const isUncategorized = (p) => {
@@ -521,7 +592,10 @@ const BusinessCategories = () => {
 
     const totalSubcategoriesCount = subgroups.length;
     const totalCategoriesCount = groups.length;
-    const totalProductsCount = allCategories.reduce((sum, c) => sum + (c.product_count || 0), 0);
+    const totalProductsCount = useMemo(() => {
+        if (productsList && productsList.length > 0) return productsList.length;
+        return groups.reduce((sum, c) => sum + (Number(c.product_count) || 0), 0);
+    }, [productsList, groups]);
 
     return (
         <div style={{ padding: '1.75rem', maxWidth: '1440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', fontFamily: 'Inter, system-ui, sans-serif', color: '#0F172A' }}>
@@ -918,9 +992,15 @@ const BusinessCategories = () => {
                                         <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>
                                             {group.category_name}
                                         </h3>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#1B6B3A', background: '#F0FDF4', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setViewingCategoryProducts(group)}
+                                            style={{ border: 'none', background: '#F0FDF4', color: '#1B6B3A', padding: '0.2rem 0.55rem', borderRadius: '6px', border: '1px solid #DCFCE7', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                            title="Click to view products in this category"
+                                        >
+                                            <Package size={12} />
                                             {group.product_count || 0} Products
-                                        </span>
+                                        </button>
                                     </div>
 
                                     {group.description && (
@@ -995,9 +1075,14 @@ const BusinessCategories = () => {
                                                         </div>
 
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', shrink: 0 }}>
-                                                            <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#64748B', background: '#FFFFFF', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #E2E8F0' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setViewingCategoryProducts(sc)}
+                                                                style={{ border: 'none', fontSize: '0.7rem', fontWeight: '700', color: '#1B6B3A', background: '#F0FDF4', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #DCFCE7', cursor: 'pointer' }}
+                                                                title="Click to view products in this subcategory"
+                                                            >
                                                                 {sc.product_count || 0} items
-                                                            </span>
+                                                            </button>
                                                             {sc.id && (
                                                                 <>
                                                                     <button
@@ -1050,20 +1135,23 @@ const BusinessCategories = () => {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => navigate(`/inventory/products?category=${encodeURIComponent(group.category_name)}`)}
+                                            onClick={() => setViewingCategoryProducts(group)}
                                             style={{
                                                 border: 'none',
-                                                background: 'none',
-                                                color: '#64748B',
+                                                background: '#F1F5F9',
+                                                color: '#1E293B',
                                                 fontSize: '0.76rem',
-                                                fontWeight: '750',
+                                                fontWeight: '800',
+                                                padding: '0.35rem 0.75rem',
+                                                borderRadius: '8px',
                                                 cursor: 'pointer',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '4px'
+                                                gap: '5px'
                                             }}
+                                            title="View products in this category without leaving the page"
                                         >
-                                            View In Products Catalog <ChevronRight size={13} />
+                                            <Package size={13} color="#1B6B3A" /> View Products ({group.product_count || 0})
                                         </button>
                                     </div>
                                 </div>
@@ -1087,6 +1175,8 @@ const BusinessCategories = () => {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {filteredGroups.map(group => {
                             const subcats = group.subcategories || [];
+                            const hasSubs = subcats.length > 0;
+                            const isExpanded = expandedGroupIds[group.id] !== false; // expanded by default
 
                             return (
                                 <React.Fragment key={group.id || group.category_name}>
@@ -1099,8 +1189,21 @@ const BusinessCategories = () => {
                                         alignItems: 'center',
                                         background: '#FFFFFF'
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            {group.image_url ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            {hasSubs ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleGroupExpand(group.id)}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', color: '#64748B' }}
+                                                    title={isExpanded ? 'Collapse subcategories' : 'Expand subcategories'}
+                                                >
+                                                    <ChevronRight size={16} style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                                                </button>
+                                            ) : (
+                                                <div style={{ width: '16px' }} />
+                                            )}
+
+                                            {group.image_url && !group.image_url.includes('beta-softnet.com') ? (
                                                 <img src={group.image_url} alt={group.category_name} style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'cover' }} />
                                             ) : (
                                                 <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#E8F5E9', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1108,7 +1211,12 @@ const BusinessCategories = () => {
                                                 </div>
                                             )}
                                             <div>
-                                                <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0F172A', display: 'block' }}>{group.category_name}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0F172A' }}>{group.category_name}</span>
+                                                    <span style={{ fontSize: '0.68rem', fontWeight: '750', padding: '0.12rem 0.45rem', borderRadius: '6px', background: hasSubs ? '#DCFCE7' : '#F1F5F9', color: hasSubs ? '#166534' : '#64748B' }}>
+                                                        {hasSubs ? `🌱 ${subcats.length} subcategories` : '0 subcategories'}
+                                                    </span>
+                                                </div>
                                                 {group.description && <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{group.description}</span>}
                                             </div>
                                         </div>
@@ -1120,9 +1228,15 @@ const BusinessCategories = () => {
                                         </div>
 
                                         <div>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A' }}>
-                                                {group.product_count || 0} products
-                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewingCategoryProducts(group)}
+                                                style={{ border: 'none', background: 'none', padding: 0, fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                title="View products in this category"
+                                            >
+                                                <span>{group.product_count || 0} products</span>
+                                                <ExternalLink size={11} />
+                                            </button>
                                         </div>
 
                                         <div>
@@ -1164,7 +1278,7 @@ const BusinessCategories = () => {
                                     </div>
 
                                     {/* Nested Subcategories Rows */}
-                                    {subcats.map(sc => (
+                                    {isExpanded && subcats.map(sc => (
                                         <div 
                                             key={sc.id || sc.category_name}
                                             style={{
@@ -1178,7 +1292,7 @@ const BusinessCategories = () => {
                                         >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <span style={{ color: '#CBD5E1', fontSize: '0.85rem' }}>↳</span>
-                                                {sc.image_url ? (
+                                                {sc.image_url && !sc.image_url.includes('beta-softnet.com') ? (
                                                     <img src={sc.image_url} alt={sc.category_name} style={{ width: '26px', height: '26px', borderRadius: '6px', objectFit: 'cover' }} />
                                                 ) : (
                                                     <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
@@ -1197,9 +1311,15 @@ const BusinessCategories = () => {
                                             </div>
 
                                             <div>
-                                                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748B' }}>
-                                                    {sc.product_count || 0} products
-                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setViewingCategoryProducts(sc)}
+                                                    style={{ border: 'none', background: 'none', padding: 0, fontSize: '0.8rem', fontWeight: '700', color: '#1B6B3A', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                    title="View products in this subcategory"
+                                                >
+                                                    <span>{sc.product_count || 0} products</span>
+                                                    <ExternalLink size={10} />
+                                                </button>
                                             </div>
 
                                             <div>
@@ -1851,6 +1971,148 @@ const BusinessCategories = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Inline Category Products Viewer Modal (stays within Categories tab) */}
+            {viewingCategoryProducts && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ background: '#FFFFFF', borderRadius: '24px', maxWidth: '850px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column' }}>
+                        {/* Modal Header */}
+                        <div style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#E8F5E9', border: '1px solid #DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    {viewingCategoryProducts.image_url && !viewingCategoryProducts.image_url.includes('beta-softnet.com') ? (
+                                        <img src={viewingCategoryProducts.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <FolderTree size={22} color="#1B6B3A" />
+                                    )}
+                                </div>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <h2 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>
+                                            {viewingCategoryProducts.category_name}
+                                        </h2>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', padding: '0.15rem 0.55rem', borderRadius: '6px', background: viewingCategoryProducts.parent_id ? '#EFF6FF' : '#DCFCE7', color: viewingCategoryProducts.parent_id ? '#1D4ED8' : '#166534' }}>
+                                            {viewingCategoryProducts.parent_id ? 'Subcategory' : 'Main Category'}
+                                        </span>
+                                    </div>
+                                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                                        {categoryMatchedProducts.length} products assigned to this category
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => { setViewingCategoryProducts(null); setCategoryProductSearch(''); }}
+                                style={{ width: '34px', height: '34px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: '800' }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Search Bar within Category */}
+                        <div style={{ padding: '0.85rem 1.75rem', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flex: 1, minWidth: '240px', maxWidth: '400px' }}>
+                                <Search size={15} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search products in this category..."
+                                    value={categoryProductSearch}
+                                    onChange={(e) => setCategoryProductSearch(e.target.value)}
+                                    style={{ width: '100%', padding: '0.5rem 0.75rem 0.5rem 2.25rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', outline: 'none', background: '#FFFFFF' }}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const target = viewingCategoryProducts;
+                                    setViewingCategoryProducts(null);
+                                    handleOpenEditModal(target);
+                                }}
+                                style={{ padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#1B6B3A', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                                <Edit2 size={12} /> Manage Category / Assign
+                            </button>
+                        </div>
+
+                        {/* Products List Table */}
+                        <div style={{ padding: '1rem 1.75rem', overflowY: 'auto', flex: 1 }}>
+                            {categoryMatchedProducts.length === 0 ? (
+                                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                                    <Package size={36} color="#CBD5E1" style={{ margin: '0 auto 0.75rem' }} />
+                                    <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.95rem', fontWeight: '800', color: '#334155' }}>
+                                        {categoryProductSearch ? 'No matching products in this category' : 'No products in this category yet'}
+                                    </h4>
+                                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8' }}>
+                                        {categoryProductSearch ? 'Try clearing or changing your search query' : 'Use "Manage Category / Assign" to link products to this category.'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '0.65rem 1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>
+                                        <div>Product Name</div>
+                                        <div>SKU / Barcode</div>
+                                        <div>Price</div>
+                                        <div style={{ textAlign: 'right' }}>Stock Status</div>
+                                    </div>
+                                    {categoryMatchedProducts.map((p, idx) => {
+                                        const isOut = p.stock_quantity !== undefined && p.stock_quantity <= 0;
+                                        return (
+                                            <div key={p.id || idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '0.65rem 1rem', borderBottom: idx < categoryMatchedProducts.length - 1 ? '1px solid #F1F5F9' : 'none', alignItems: 'center', fontSize: '0.82rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                    <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                        {p.image_url ? (
+                                                            <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
+                                                        ) : (
+                                                            <Package size={14} color="#64748B" />
+                                                        )}
+                                                    </div>
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <span style={{ fontWeight: '800', color: '#0F172A', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                                            {p.name}
+                                                        </span>
+                                                        {p.brand && <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{p.brand}</span>}
+                                                    </div>
+                                                </div>
+                                                <div style={{ color: '#64748B', fontWeight: '600', fontSize: '0.78rem' }}>
+                                                    {p.sku || p.barcode || p.item_code || '-'}
+                                                </div>
+                                                <div style={{ fontWeight: '800', color: '#0F172A' }}>
+                                                    ₹{(Number(p.selling_price) || Number(p.price) || 0).toLocaleString()}
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <span style={{
+                                                        padding: '0.2rem 0.5rem',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '750',
+                                                        background: isOut ? '#FEF2F2' : '#F0FDF4',
+                                                        color: isOut ? '#DC2626' : '#166534',
+                                                        border: `1px solid ${isOut ? '#FCA5A5' : '#BBF7D0'}`
+                                                    }}>
+                                                        {isOut ? 'Out of stock' : `${p.stock_quantity ?? p.stock ?? 'In Stock'} in stock`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{ padding: '1rem 1.75rem', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', background: '#F8FAFC' }}>
+                            <button
+                                type="button"
+                                onClick={() => { setViewingCategoryProducts(null); setCategoryProductSearch(''); }}
+                                style={{ padding: '0.55rem 1.25rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#475569', fontSize: '0.82rem', fontWeight: '800', cursor: 'pointer' }}
+                            >
+                                Done
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
