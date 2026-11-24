@@ -34,7 +34,12 @@ import {
     Sliders,
     Sun,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    RefreshCw,
+    CalendarCheck,
+    Check
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -154,7 +159,14 @@ const BusinessStaffing = () => {
     // Dynamic Annual Holidays Roster States
     const [selectedHolidayYear, setSelectedHolidayYear] = useState(() => new Date().getFullYear());
     const [isAddHolidayModalOpen, setIsAddHolidayModalOpen] = useState(false);
+    const [isEditHolidayModalOpen, setIsEditHolidayModalOpen] = useState(false);
+    const [editingHoliday, setEditingHoliday] = useState(null);
     const [newHolidayForm, setNewHolidayForm] = useState({
+        name: '',
+        date: '',
+        type: 'Public Holiday'
+    });
+    const [editHolidayForm, setEditHolidayForm] = useState({
         name: '',
         date: '',
         type: 'Public Holiday'
@@ -162,8 +174,76 @@ const BusinessStaffing = () => {
 
     const getDefaultHolidaysForYear = (year) => {
         const y = parseInt(year, 10) || new Date().getFullYear();
+        
+        // Accurate year-specific official gazetted & festival dates
+        if (y === 2025) {
+            return [
+                { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: "New Year's Day", type: 'General Holiday' },
+                { id: `pg-${y}`, date: `${y}-01-14`, displayDate: `14 Jan ${y}`, name: 'Pongal / Makar Sankranti', type: 'Festival' },
+                { id: `rd-${y}`, date: `${y}-01-26`, displayDate: `26 Jan ${y}`, name: 'Republic Day', type: 'National Holiday' },
+                { id: `ms-${y}`, date: `${y}-02-26`, displayDate: `26 Feb ${y}`, name: 'Maha Shivaratri', type: 'Festival' },
+                { id: `hl-${y}`, date: `${y}-03-14`, displayDate: `14 Mar ${y}`, name: 'Holi', type: 'Festival' },
+                { id: `ed-${y}`, date: `${y}-03-31`, displayDate: `31 Mar ${y}`, name: 'Eid-ul-Fitr', type: 'Festival' },
+                { id: `gf-${y}`, date: `${y}-04-18`, displayDate: `18 Apr ${y}`, name: 'Good Friday', type: 'Festival' },
+                { id: `md-${y}`, date: `${y}-05-01`, displayDate: `01 May ${y}`, name: 'May Day / Labor Day', type: 'State Holiday' },
+                { id: `id-${y}`, date: `${y}-08-15`, displayDate: `15 Aug ${y}`, name: 'Independence Day', type: 'National Holiday' },
+                { id: `gj-${y}`, date: `${y}-10-02`, displayDate: `02 Oct ${y}`, name: 'Gandhi Jayanti', type: 'National Holiday' },
+                { id: `dw-${y}`, date: `${y}-10-20`, displayDate: `20 Oct ${y}`, name: 'Diwali / Deepavali', type: 'Festival' },
+                { id: `xm-${y}`, date: `${y}-12-25`, displayDate: `25 Dec ${y}`, name: 'Christmas', type: 'Festival' }
+            ];
+        }
+
+        if (y === 2026) {
+            return [
+                { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: "New Year's Day", type: 'General Holiday' },
+                { id: `pg-${y}`, date: `${y}-01-15`, displayDate: `15 Jan ${y}`, name: 'Pongal / Makar Sankranti', type: 'Festival' },
+                { id: `rd-${y}`, date: `${y}-01-26`, displayDate: `26 Jan ${y}`, name: 'Republic Day', type: 'National Holiday' },
+                { id: `ms-${y}`, date: `${y}-02-15`, displayDate: `15 Feb ${y}`, name: 'Maha Shivaratri', type: 'Festival' },
+                { id: `hl-${y}`, date: `${y}-03-04`, displayDate: `04 Mar ${y}`, name: 'Holi', type: 'Festival' },
+                { id: `ed-${y}`, date: `${y}-03-21`, displayDate: `21 Mar ${y}`, name: 'Eid-ul-Fitr', type: 'Festival' },
+                { id: `gf-${y}`, date: `${y}-04-03`, displayDate: `03 Apr ${y}`, name: 'Good Friday', type: 'Festival' },
+                { id: `md-${y}`, date: `${y}-05-01`, displayDate: `01 May ${y}`, name: 'May Day / Labor Day', type: 'State Holiday' },
+                { id: `id-${y}`, date: `${y}-08-15`, displayDate: `15 Aug ${y}`, name: 'Independence Day', type: 'National Holiday' },
+                { id: `gj-${y}`, date: `${y}-10-02`, displayDate: `02 Oct ${y}`, name: 'Gandhi Jayanti', type: 'National Holiday' },
+                { id: `ap-${y}`, date: `${y}-10-20`, displayDate: `20 Oct ${y}`, name: 'Ayudha Pooja / Diwali', type: 'Festival' },
+                { id: `xm-${y}`, date: `${y}-12-25`, displayDate: `25 Dec ${y}`, name: 'Christmas', type: 'Festival' }
+            ];
+        }
+
+        if (y === 2027) {
+            return [
+                { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: "New Year's Day", type: 'General Holiday' },
+                { id: `pg-${y}`, date: `${y}-01-15`, displayDate: `15 Jan ${y}`, name: 'Pongal / Makar Sankranti', type: 'Festival' },
+                { id: `rd-${y}`, date: `${y}-01-26`, displayDate: `26 Jan ${y}`, name: 'Republic Day', type: 'National Holiday' },
+                { id: `ed-${y}`, date: `${y}-03-10`, displayDate: `10 Mar ${y}`, name: 'Eid-ul-Fitr', type: 'Festival' },
+                { id: `hl-${y}`, date: `${y}-03-23`, displayDate: `23 Mar ${y}`, name: 'Holi', type: 'Festival' },
+                { id: `gf-${y}`, date: `${y}-03-26`, displayDate: `26 Mar ${y}`, name: 'Good Friday', type: 'Festival' },
+                { id: `md-${y}`, date: `${y}-05-01`, displayDate: `01 May ${y}`, name: 'May Day / Labor Day', type: 'State Holiday' },
+                { id: `id-${y}`, date: `${y}-08-15`, displayDate: `15 Aug ${y}`, name: 'Independence Day', type: 'National Holiday' },
+                { id: `gj-${y}`, date: `${y}-10-02`, displayDate: `02 Oct ${y}`, name: 'Gandhi Jayanti', type: 'National Holiday' },
+                { id: `dw-${y}`, date: `${y}-11-08`, displayDate: `08 Nov ${y}`, name: 'Diwali / Deepavali', type: 'Festival' },
+                { id: `xm-${y}`, date: `${y}-12-25`, displayDate: `25 Dec ${y}`, name: 'Christmas', type: 'Festival' }
+            ];
+        }
+
+        if (y === 2028) {
+            return [
+                { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: "New Year's Day", type: 'General Holiday' },
+                { id: `pg-${y}`, date: `${y}-01-15`, displayDate: `15 Jan ${y}`, name: 'Pongal / Makar Sankranti', type: 'Festival' },
+                { id: `rd-${y}`, date: `${y}-01-26`, displayDate: `26 Jan ${y}`, name: 'Republic Day', type: 'National Holiday' },
+                { id: `hl-${y}`, date: `${y}-03-11`, displayDate: `11 Mar ${y}`, name: 'Holi', type: 'Festival' },
+                { id: `gf-${y}`, date: `${y}-04-14`, displayDate: `14 Apr ${y}`, name: 'Good Friday', type: 'Festival' },
+                { id: `md-${y}`, date: `${y}-05-01`, displayDate: `01 May ${y}`, name: 'May Day / Labor Day', type: 'State Holiday' },
+                { id: `id-${y}`, date: `${y}-08-15`, displayDate: `15 Aug ${y}`, name: 'Independence Day', type: 'National Holiday' },
+                { id: `gj-${y}`, date: `${y}-10-02`, displayDate: `02 Oct ${y}`, name: 'Gandhi Jayanti', type: 'National Holiday' },
+                { id: `dw-${y}`, date: `${y}-10-28`, displayDate: `28 Oct ${y}`, name: 'Diwali / Deepavali', type: 'Festival' },
+                { id: `xm-${y}`, date: `${y}-12-25`, displayDate: `25 Dec ${y}`, name: 'Christmas', type: 'Festival' }
+            ];
+        }
+
+        // Generic fallback for any other calendar year
         return [
-            { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: 'New Year Day', type: 'General Holiday' },
+            { id: `ny-${y}`, date: `${y}-01-01`, displayDate: `01 Jan ${y}`, name: "New Year's Day", type: 'General Holiday' },
             { id: `rd-${y}`, date: `${y}-01-26`, displayDate: `26 Jan ${y}`, name: 'Republic Day', type: 'National Holiday' },
             { id: `md-${y}`, date: `${y}-05-01`, displayDate: `01 May ${y}`, name: 'May Day / Labor Day', type: 'State Holiday' },
             { id: `id-${y}`, date: `${y}-08-15`, displayDate: `15 Aug ${y}`, name: 'Independence Day', type: 'National Holiday' },
@@ -230,7 +310,50 @@ const BusinessStaffing = () => {
         handleSaveHolidaysForYear(selectedHolidayYear, updated);
         setIsAddHolidayModalOpen(false);
         setNewHolidayForm({ name: '', date: '', type: 'Company Holiday' });
-        alert(`Holiday "${newEntry.name}" added to the ${selectedHolidayYear} leaves schedule!`);
+    };
+
+    const handleOpenEditHoliday = (holiday) => {
+        setEditingHoliday(holiday);
+        setEditHolidayForm({
+            name: holiday.name,
+            date: holiday.date,
+            type: holiday.type || 'Company Holiday'
+        });
+        setIsEditHolidayModalOpen(true);
+    };
+
+    const handleSaveEditedHoliday = (e) => {
+        e.preventDefault();
+        if (!editHolidayForm.name || !editHolidayForm.date) {
+            alert('Please enter holiday name and date.');
+            return;
+        }
+
+        let formattedDate = editHolidayForm.date;
+        try {
+            const parts = editHolidayForm.date.split('-');
+            if (parts.length === 3) {
+                const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                formattedDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            }
+        } catch (err) {}
+
+        const updated = activeYearHolidays.map(h => {
+            if (h.id === editingHoliday.id) {
+                return {
+                    ...h,
+                    name: editHolidayForm.name.trim(),
+                    date: editHolidayForm.date,
+                    displayDate: formattedDate,
+                    type: editHolidayForm.type
+                };
+            }
+            return h;
+        }).sort((a, b) => a.date.localeCompare(b.date));
+
+        handleSaveHolidaysForYear(selectedHolidayYear, updated);
+        setIsEditHolidayModalOpen(false);
+        setEditingHoliday(null);
     };
 
     const handleDeleteHoliday = (holidayId) => {
@@ -2149,50 +2272,96 @@ const BusinessStaffing = () => {
 
                         {/* Public Holidays Card for Employees - Dynamic Year & Custom Leaves Schedule */}
                         <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.75rem 2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.85rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                    <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Calendar size={20} />
+                            {/* Card Header & Controls */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Calendar size={22} />
                                     </div>
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                            <h4 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                                            <h4 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>
                                                 Official Public Holidays Roster ({selectedHolidayYear})
                                             </h4>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-                                                {activeYearHolidays.length} Holidays
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '0.15rem 0.55rem', borderRadius: '8px' }}>
+                                                {activeYearHolidays.length} Holidays Scheduled
                                             </span>
                                         </div>
-                                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
-                                            Customizable workforce holiday calendar updated annually for {selectedHolidayYear}
+                                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: '#64748B', fontWeight: '600' }}>
+                                            Annual workforce holiday calendar & leaves schedule for calendar year {selectedHolidayYear}
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* Year Switcher & Management Actions */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: '10px', padding: '0.15rem 0.45rem' }}>
-                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginRight: '0.35rem' }}>Year:</span>
-                                        <select
-                                            value={selectedHolidayYear}
-                                            onChange={(e) => setSelectedHolidayYear(parseInt(e.target.value, 10))}
+                                {/* Year Switcher & Quick Actions */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                                    {/* Interactive Year Selector Pills */}
+                                    <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', padding: '0.25rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedHolidayYear(y => y - 1)}
+                                            title="Previous Year"
                                             style={{
                                                 border: 'none',
                                                 background: 'transparent',
-                                                fontSize: '0.82rem',
-                                                fontWeight: '850',
-                                                color: '#064E3B',
+                                                color: '#64748B',
                                                 cursor: 'pointer',
-                                                outline: 'none',
-                                                padding: '0.2rem 0.35rem'
+                                                padding: '0.35rem 0.45rem',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
                                             }}
                                         >
-                                            {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(yr => (
-                                                <option key={yr} value={yr}>{yr} Schedule</option>
-                                            ))}
-                                        </select>
+                                            <ChevronLeft size={16} />
+                                        </button>
+
+                                        {[2024, 2025, 2026, 2027, 2028].map(yr => {
+                                            const isSelected = selectedHolidayYear === yr;
+                                            return (
+                                                <button
+                                                    key={yr}
+                                                    type="button"
+                                                    onClick={() => setSelectedHolidayYear(yr)}
+                                                    style={{
+                                                        border: 'none',
+                                                        background: isSelected ? '#047857' : 'transparent',
+                                                        color: isSelected ? 'white' : '#64748B',
+                                                        padding: '0.35rem 0.65rem',
+                                                        borderRadius: '10px',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: isSelected ? '850' : '700',
+                                                        cursor: 'pointer',
+                                                        boxShadow: isSelected ? '0 2px 6px rgba(4, 120, 87, 0.25)' : 'none',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {yr}
+                                                </button>
+                                            );
+                                        })}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedHolidayYear(y => y + 1)}
+                                            title="Next Year"
+                                            style={{
+                                                border: 'none',
+                                                background: 'transparent',
+                                                color: '#64748B',
+                                                cursor: 'pointer',
+                                                padding: '0.35rem 0.45rem',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
                                     </div>
 
+                                    {/* Add Holiday Button */}
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -2207,45 +2376,110 @@ const BusinessStaffing = () => {
                                             border: 'none',
                                             background: '#047857',
                                             color: 'white',
-                                            padding: '0.5rem 0.95rem',
-                                            borderRadius: '10px',
+                                            padding: '0.55rem 1rem',
+                                            borderRadius: '12px',
                                             fontWeight: '800',
-                                            fontSize: '0.75rem',
+                                            fontSize: '0.78rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            boxShadow: '0 2px 6px rgba(4, 120, 87, 0.2)',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <Plus size={15} /> Add Holiday
+                                    </button>
+
+                                    {/* Reset Defaults Button */}
+                                    <button
+                                        type="button"
+                                        onClick={handleResetYearHolidays}
+                                        title={`Reset ${selectedHolidayYear} to official public holidays`}
+                                        style={{
+                                            border: '1px solid #CBD5E1',
+                                            background: '#F8FAFC',
+                                            color: '#475569',
+                                            padding: '0.55rem 0.9rem',
+                                            borderRadius: '12px',
+                                            fontWeight: '750',
+                                            fontSize: '0.78rem',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '0.35rem',
-                                            boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)',
                                             transition: 'all 0.2s'
                                         }}
                                     >
-                                        <Plus size={14} /> Add Holiday
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleResetYearHolidays}
-                                        title={`Reset ${selectedHolidayYear} to standard public holidays`}
-                                        style={{
-                                            border: '1px solid #E2E8F0',
-                                            background: '#F8FAFC',
-                                            color: '#64748B',
-                                            padding: '0.5rem 0.85rem',
-                                            borderRadius: '10px',
-                                            fontWeight: '750',
-                                            fontSize: '0.75rem',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        Reset Defaults
+                                        <RefreshCw size={13} /> Reset Defaults
                                     </button>
                                 </div>
                             </div>
 
+                            {/* Leaves Schedule Integration Summary Banner */}
+                            <div style={{ 
+                                background: '#F8FAFC', 
+                                border: '1px solid #E2E8F0', 
+                                borderRadius: '16px', 
+                                padding: '0.85rem 1.25rem', 
+                                marginBottom: '1.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.75rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                        <span style={{ fontSize: '0.95rem' }}>🌴</span>
+                                        <div>
+                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', display: 'block' }}>Monthly Leave Policy</span>
+                                            <span style={{ fontSize: '0.84rem', fontWeight: '850', color: '#0F172A' }}>{defaultLeaveQuota} Days / mo ({(defaultLeaveQuota * 12).toFixed(1)} / yr)</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ width: '1px', height: '24px', background: '#E2E8F0' }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                        <span style={{ fontSize: '0.95rem' }}>🏛️</span>
+                                        <div>
+                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', display: 'block' }}>Public Holidays</span>
+                                            <span style={{ fontSize: '0.84rem', fontWeight: '850', color: '#047857' }}>{activeYearHolidays.length} Days in {selectedHolidayYear}</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ width: '1px', height: '24px', background: '#E2E8F0' }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                        <span style={{ fontSize: '0.95rem' }}>✨</span>
+                                        <div>
+                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', display: 'block' }}>Total Annual Off Schedule</span>
+                                            <span style={{ fontSize: '0.84rem', fontWeight: '850', color: '#2563EB' }}>{(defaultLeaveQuota * 12 + activeYearHolidays.length).toFixed(1)} Days Total Available Off</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setTempQuota(defaultLeaveQuota);
+                                        setApplyToAll(false);
+                                        setIsQuotaModalOpen(true);
+                                    }}
+                                    style={{
+                                        border: '1px solid #A7F3D0',
+                                        background: '#ECFDF5',
+                                        color: '#047857',
+                                        padding: '0.35rem 0.75rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.74rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Adjust Leave Policy Quota
+                                </button>
+                            </div>
+
                             {/* Holidays Grid */}
                             {activeYearHolidays.length > 0 ? (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.85rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(225px, 1fr))', gap: '1rem' }}>
                                     {activeYearHolidays.map((ph) => {
                                         const typeLower = (ph.type || '').toLowerCase();
                                         const badgeBg = typeLower.includes('national') ? '#ECFDF5' : (typeLower.includes('state') ? '#EFF6FF' : (typeLower.includes('festival') ? '#FDF4FF' : '#F8FAFC'));
@@ -2253,34 +2487,85 @@ const BusinessStaffing = () => {
                                         const badgeBorder = typeLower.includes('national') ? '#A7F3D0' : (typeLower.includes('state') ? '#BFDBFE' : (typeLower.includes('festival') ? '#F5D0FE' : '#E2E8F0'));
 
                                         return (
-                                            <div key={ph.id || ph.name} style={{ background: '#F8FAFC', border: '1px solid #F1F5F9', padding: '0.85rem 1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
+                                            <div 
+                                                key={ph.id || ph.name} 
+                                                style={{ 
+                                                    background: '#F8FAFC', 
+                                                    border: '1px solid #E2E8F0', 
+                                                    padding: '1rem 1.15rem', 
+                                                    borderRadius: '18px', 
+                                                    display: 'flex', 
+                                                    flexDirection: 'column', 
+                                                    gap: '6px', 
+                                                    position: 'relative',
+                                                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                            >
+                                                {/* Date & Action Buttons */}
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '850' }}>{ph.displayDate || ph.date}</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDeleteHoliday(ph.id)}
-                                                        title="Remove from schedule"
-                                                        style={{
-                                                            border: 'none',
-                                                            background: 'transparent',
-                                                            color: '#94A3B8',
-                                                            cursor: 'pointer',
-                                                            fontSize: '0.72rem',
-                                                            padding: '2px 4px',
-                                                            borderRadius: '4px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.color = '#EF4444'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                                    >
-                                                        ✕
-                                                    </button>
+                                                    <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: '850', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                                                        {ph.displayDate || ph.date}
+                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        {/* Edit Holiday Button */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenEditHoliday(ph)}
+                                                            title={`Edit ${ph.name} for ${selectedHolidayYear} schedule`}
+                                                            style={{
+                                                                border: 'none',
+                                                                background: '#F1F5F9',
+                                                                color: '#475569',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.7rem',
+                                                                padding: '3px 6px',
+                                                                borderRadius: '6px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.2rem',
+                                                                fontWeight: '700'
+                                                            }}
+                                                            onMouseEnter={(e) => { e.currentTarget.style.color = '#047857'; e.currentTarget.style.background = '#ECFDF5'; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#F1F5F9'; }}
+                                                        >
+                                                            <Edit2 size={11} /> Edit
+                                                        </button>
+
+                                                        {/* Delete Holiday Button */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteHoliday(ph.id)}
+                                                            title="Remove from schedule"
+                                                            style={{
+                                                                border: 'none',
+                                                                background: '#F1F5F9',
+                                                                color: '#94A3B8',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.7rem',
+                                                                padding: '3px 6px',
+                                                                borderRadius: '6px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}
+                                                            onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.background = '#FEF2F2'; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.color = '#94A3B8'; e.currentTarget.style.background = '#F1F5F9'; }}
+                                                        >
+                                                            <Trash2 size={11} />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <span style={{ fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', lineHeight: '1.3' }}>{ph.name}</span>
+
+                                                {/* Holiday Title */}
+                                                <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A', lineHeight: '1.3' }}>
+                                                    {ph.name}
+                                                </span>
+
+                                                {/* Holiday Category Badge */}
                                                 <div style={{ marginTop: '2px' }}>
-                                                    <span style={{ fontSize: '0.65rem', color: badgeColor, background: badgeBg, border: `1px solid ${badgeBorder}`, fontWeight: '750', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                                                    <span style={{ fontSize: '0.67rem', color: badgeColor, background: badgeBg, border: `1px solid ${badgeBorder}`, fontWeight: '750', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
                                                         {ph.type}
                                                     </span>
                                                 </div>
@@ -2289,14 +2574,14 @@ const BusinessStaffing = () => {
                                     })}
                                 </div>
                             ) : (
-                                <div style={{ textAlign: 'center', padding: '2rem 1rem', background: '#F8FAFC', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
+                                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: '#F8FAFC', borderRadius: '18px', border: '1px dashed #CBD5E1' }}>
                                     <p style={{ margin: '0 0 0.75rem 0', color: '#64748B', fontSize: '0.85rem', fontWeight: '600' }}>
                                         No holidays recorded in the schedule for {selectedHolidayYear}.
                                     </p>
                                     <button
                                         type="button"
                                         onClick={handleResetYearHolidays}
-                                        style={{ border: 'none', background: '#047857', color: 'white', padding: '0.5rem 1rem', borderRadius: '10px', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
+                                        style={{ border: 'none', background: '#047857', color: 'white', padding: '0.55rem 1.15rem', borderRadius: '12px', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)' }}
                                     >
                                         Load Standard {selectedHolidayYear} Holidays
                                     </button>
@@ -2309,13 +2594,13 @@ const BusinessStaffing = () => {
                 {/* Modal: Add Custom Holiday for Selected Year */}
                 {isAddHolidayModalOpen && (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
-                        <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                                 <div>
-                                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#0F172A' }}>
+                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>
                                         Add Holiday to {selectedHolidayYear} Schedule
                                     </h4>
-                                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Annual leave roster for workforce</span>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Configure workforce leave calendar</span>
                                 </div>
                                 <button
                                     type="button"
@@ -2381,15 +2666,111 @@ const BusinessStaffing = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsAddHolidayModalOpen(false)}
-                                        style={{ flex: 1, padding: '0.6rem', background: '#F1F5F9', border: 'none', color: '#475569', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
+                                        style={{ flex: 1, padding: '0.65rem', background: '#F1F5F9', border: 'none', color: '#475569', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        style={{ flex: 1, padding: '0.6rem', background: '#047857', border: 'none', color: 'white', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)' }}
+                                        style={{ flex: 1, padding: '0.65rem', background: '#047857', border: 'none', color: 'white', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)' }}
                                     >
                                         Save to {selectedHolidayYear} Roster
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal: Edit Existing Holiday for Selected Year */}
+                {isEditHolidayModalOpen && editingHoliday && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>
+                                        Edit Holiday Schedule ({selectedHolidayYear})
+                                    </h4>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Update holiday date or details for {selectedHolidayYear}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditHolidayModalOpen(false);
+                                        setEditingHoliday(null);
+                                    }}
+                                    style={{ border: 'none', background: '#F1F5F9', color: '#64748B', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveEditedHoliday} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', textAlign: 'left' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                                        Holiday Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editHolidayForm.name}
+                                        onChange={(e) => setEditHolidayForm({ ...editHolidayForm, name: e.target.value })}
+                                        style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                                        Date ({selectedHolidayYear}) *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        min={`${selectedHolidayYear}-01-01`}
+                                        max={`${selectedHolidayYear}-12-31`}
+                                        value={editHolidayForm.date}
+                                        onChange={(e) => setEditHolidayForm({ ...editHolidayForm, date: e.target.value })}
+                                        style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
+                                    />
+                                    <span style={{ fontSize: '0.65rem', color: '#64748B', display: 'block', marginTop: '0.2rem' }}>
+                                        Change date according to {selectedHolidayYear} calendar leaves schedule
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                                        Holiday Category
+                                    </label>
+                                    <select
+                                        value={editHolidayForm.type}
+                                        onChange={(e) => setEditHolidayForm({ ...editHolidayForm, type: e.target.value })}
+                                        style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="National Holiday">National Holiday</option>
+                                        <option value="State Holiday">State Holiday</option>
+                                        <option value="Festival">Festival</option>
+                                        <option value="Company Holiday">Company Off / Holiday</option>
+                                        <option value="General Holiday">General Holiday</option>
+                                        <option value="Optional / Restricted">Optional / Restricted Holiday</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsEditHolidayModalOpen(false);
+                                            setEditingHoliday(null);
+                                        }}
+                                        style={{ flex: 1, padding: '0.65rem', background: '#F1F5F9', border: 'none', color: '#475569', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        style={{ flex: 1, padding: '0.65rem', background: '#047857', border: 'none', color: 'white', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)' }}
+                                    >
+                                        Update Holiday
                                     </button>
                                 </div>
                             </form>
