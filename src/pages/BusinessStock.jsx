@@ -542,6 +542,10 @@ const BusinessStock = () => {
         return true;
     });
 
+    const displayedSellingHistory = filteredSellingHistory.filter(item => 
+        applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})
+    );
+
     // Set default product for history when stock loads
     useEffect(() => {
         if (!selectedHistoryProductId && stocks.length > 0) {
@@ -629,12 +633,45 @@ const BusinessStock = () => {
         const list = [];
         const seenIds = new Set();
 
+        const resolveWarehouseInfo = (rawWhId, rawWhName, rawLoc) => {
+            const candidates = [rawWhId, rawWhName, rawLoc].filter(Boolean).map(c => String(c).trim());
+            for (const cand of candidates) {
+                const found = (dbWarehouses || []).find(w => 
+                    String(w.id) === cand || 
+                    String(w.warehouse_id) === cand || 
+                    (w.code && String(w.code).toLowerCase() === cand.toLowerCase()) || 
+                    (w.name && String(w.name).toLowerCase() === cand.toLowerCase())
+                );
+                if (found) return found;
+            }
+            for (const cand of candidates) {
+                const foundStock = (stocks || []).find(s => 
+                    String(s.id) === cand || 
+                    (s.warehouse_name && String(s.warehouse_name).toLowerCase() === cand.toLowerCase())
+                );
+                if (foundStock && foundStock.warehouse_name) {
+                    const whFromStock = (dbWarehouses || []).find(w => String(w.name).toLowerCase() === foundStock.warehouse_name.toLowerCase());
+                    if (whFromStock) return whFromStock;
+                    return { id: cand, name: foundStock.warehouse_name, address: foundStock.warehouse_name };
+                }
+            }
+            if (dbWarehouses && dbWarehouses.length > 0) {
+                return dbWarehouses[0];
+            }
+            return null;
+        };
+
         const safeProducts = Array.isArray(dbProducts) ? dbProducts : [];
         safeProducts.forEach(p => {
             if (p && p.id != null) {
                 const idKey = `prod_${p.id}`;
                 if (!seenIds.has(idKey)) {
                     seenIds.add(idKey);
+                    const wh = resolveWarehouseInfo(p.warehouse_id, p.warehouse_name, p.warehouse || p.location);
+                    const whId = wh ? String(wh.id) : (p.warehouse_id ? String(p.warehouse_id) : '');
+                    const whName = wh ? wh.name : (p.warehouse_name || p.warehouse || 'Main Godown');
+                    const whAddress = wh ? [wh.address, wh.location, wh.city].filter(Boolean).join(', ') : '';
+
                     list.push({
                         id: p.id,
                         unique_id: idKey,
@@ -645,7 +682,11 @@ const BusinessStock = () => {
                         available_stock: parseFloat(p.quantity) || 0,
                         purchase_price: parseFloat(p.purchase_price || p.unit_price || p.price || 0),
                         unit: p.unit || 'PCS',
-                        warehouse_name: p.warehouse_id || p.warehouse_name || p.location || 'Main Godown'
+                        warehouse_id: whId,
+                        warehouse_name: whName,
+                        warehouse_address: whAddress,
+                        rack_number: p.rack_number || '',
+                        shelf_number: p.shelf_number || ''
                     });
                 }
             }
@@ -658,6 +699,11 @@ const BusinessStock = () => {
                 const nameMatches = list.some(item => item.name.toLowerCase() === (s.product_name || '').toLowerCase());
                 if (!nameMatches && !seenIds.has(idKey)) {
                     seenIds.add(idKey);
+                    const wh = resolveWarehouseInfo(s.id, s.warehouse_name, s.location || s.warehouse);
+                    const whId = wh ? String(wh.id) : '';
+                    const whName = wh ? wh.name : (s.warehouse_name || 'Main Godown');
+                    const whAddress = wh ? [wh.address, wh.location, wh.city].filter(Boolean).join(', ') : '';
+
                     list.push({
                         id: s.id,
                         unique_id: idKey,
@@ -668,14 +714,18 @@ const BusinessStock = () => {
                         available_stock: parseFloat(s.available_stock) || 0,
                         purchase_price: parseFloat(s.average_cost) || 0,
                         unit: 'PCS',
-                        warehouse_name: s.warehouse_name || 'Main Godown'
+                        warehouse_id: whId,
+                        warehouse_name: whName,
+                        warehouse_address: whAddress,
+                        rack_number: s.rack_number || '',
+                        shelf_number: s.shelf_number || ''
                     });
                 }
             }
         });
 
         return list;
-    }, [dbProducts, stocks]);
+    }, [dbProducts, stocks, dbWarehouses]);
 
     // Initialize forms when product list and warehouses are available
     useEffect(() => {
@@ -704,18 +754,63 @@ const BusinessStock = () => {
         }
     }, [transferProductsList]);
 
-    useEffect(() => {
-        if (dbWarehouses.length > 1) {
-            const timer = setTimeout(() => {
-                setTransferForm(prev => prev.from_warehouse_id ? prev : {
-                    ...prev,
-                    from_warehouse_id: dbWarehouses[0].id.toString(),
-                    to_warehouse_id: dbWarehouses[1].id.toString()
-                });
-            }, 0);
-            return () => clearTimeout(timer);
+    const openTransferModal = (targetProduct = null) => {
+        let prod = targetProduct;
+        if (!prod && transferProductsList.length > 0) {
+            prod = transferProductsList[0];
         }
-    }, [dbWarehouses]);
+        let fromWhId = '';
+        if (prod) {
+            fromWhId = prod.warehouse_id ? String(prod.warehouse_id) : '';
+            if (fromWhId && !dbWarehouses.some(w => String(w.id) === String(fromWhId))) {
+                const matched = dbWarehouses.find(w => 
+                    String(w.name).toLowerCase() === String(prod.warehouse_name || '').toLowerCase()
+                );
+                if (matched) fromWhId = String(matched.id);
+            }
+        }
+        if (!fromWhId && dbWarehouses.length > 0) {
+            fromWhId = String(dbWarehouses[0].id);
+        }
+        const destWh = dbWarehouses.find(w => String(w.id) !== String(fromWhId));
+        const toWhId = destWh ? String(destWh.id) : (dbWarehouses[1] ? String(dbWarehouses[1].id) : '');
+
+        setTransferForm({
+            product_id: prod ? String(prod.id) : '',
+            from_warehouse_id: fromWhId,
+            to_warehouse_id: toWhId,
+            qty: '',
+            reference: ''
+        });
+        setIsTransferModalOpen(true);
+    };
+
+    useEffect(() => {
+        if (transferProductsList.length > 0 && dbWarehouses.length > 0) {
+            setTransferForm(prev => {
+                if (prev.product_id && prev.from_warehouse_id) return prev;
+                const firstProd = transferProductsList[0];
+                let fromWhId = firstProd?.warehouse_id ? String(firstProd.warehouse_id) : '';
+                if (fromWhId && !dbWarehouses.some(w => String(w.id) === String(fromWhId))) {
+                    const matched = dbWarehouses.find(w => 
+                        String(w.name).toLowerCase() === String(firstProd?.warehouse_name || '').toLowerCase()
+                    );
+                    if (matched) fromWhId = String(matched.id);
+                }
+                if (!fromWhId && dbWarehouses.length > 0) {
+                    fromWhId = String(dbWarehouses[0].id);
+                }
+                const destWh = dbWarehouses.find(w => String(w.id) !== String(fromWhId));
+                const toWhId = destWh ? String(destWh.id) : (dbWarehouses[1] ? String(dbWarehouses[1].id) : '');
+                return {
+                    ...prev,
+                    product_id: prev.product_id || String(firstProd?.id || ''),
+                    from_warehouse_id: prev.from_warehouse_id || fromWhId,
+                    to_warehouse_id: prev.to_warehouse_id || toWhId
+                };
+            });
+        }
+    }, [transferProductsList, dbWarehouses]);
 
     const adjustMutation = useMutation({
         mutationFn: ({ id, delta }) => stockService.adjustQuantity(id, delta),
@@ -857,14 +952,7 @@ const BusinessStock = () => {
                         <Sliders size={15} /> Adjust Stock Counts
                     </button>
                     <button 
-                        onClick={() => {
-                            setTransferForm(prev => ({
-                                ...prev,
-                                reference: '',
-                                qty: ''
-                            }));
-                            setIsTransferModalOpen(true);
-                        }}
+                        onClick={() => openTransferModal()}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <ArrowRightLeft size={15} /> Warehouse Transfer
@@ -934,7 +1022,10 @@ const BusinessStock = () => {
                 ].map(tab => (
                     <button 
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => {
+                            setActiveTab(tab.id);
+                            setColFilters({});
+                        }}
                         title={`${tab.description}\nExample: ${tab.example}`}
                         style={{ 
                             padding: '0.5rem 1rem', borderRadius: '8px', 
@@ -1127,14 +1218,7 @@ const BusinessStock = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Warehouse Branch transfers</h3>
                         <button 
-                            onClick={() => {
-                                setTransferForm(prev => ({
-                                    ...prev,
-                                    reference: '',
-                                    qty: ''
-                                }));
-                                setIsTransferModalOpen(true);
-                            }} 
+                            onClick={() => openTransferModal()} 
                             style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}
                         >
                             + Transfer Stock
@@ -1194,7 +1278,7 @@ const BusinessStock = () => {
                         <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tracked Catalog Items</p>
-                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#0F172A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>{filteredSellingHistory.length} Products</h3>
+                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#0F172A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>{displayedSellingHistory.length} Products</h3>
                             </div>
                             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', flexShrink: 0 }}>
                                 <Layers size={22} />
@@ -1471,7 +1555,7 @@ const BusinessStock = () => {
                                     ...(visibleColumns.customers ? [{ key: 'customers', label: 'CUSTOMERS', placeholder: 'Customer' }] : [])
                                 ]} onFilterChange={setColFilters} />
                                 <tbody>
-                                    {filteredSellingHistory.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item) => (
+                                    {displayedSellingHistory.map((item) => (
                                         <tr key={item.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                             {/* 1. PRODUCT DETAILS */}
                                             <td style={{ padding: '1.25rem 1.75rem' }}>
@@ -1581,10 +1665,10 @@ const BusinessStock = () => {
                                             )}
                                         </tr>
                                     ))}
-                                    {filteredSellingHistory.length === 0 && (
+                                    {displayedSellingHistory.length === 0 && (
                                         <tr>
                                             <td colSpan={6} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94A3B8', fontWeight: '600' }}>
-                                                No products found matching your search.
+                                                No products found matching your search or filters.
                                             </td>
                                         </tr>
                                     )}
@@ -1796,7 +1880,36 @@ const BusinessStock = () => {
                         <form onSubmit={handleSaveTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
-                                <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                <select 
+                                    value={transferForm.product_id} 
+                                    onChange={(e) => {
+                                        const prodId = e.target.value;
+                                        const prod = transferProductsList.find(p => String(p.id) === String(prodId));
+                                        let fromWhId = '';
+                                        if (prod) {
+                                            fromWhId = prod.warehouse_id ? String(prod.warehouse_id) : '';
+                                            if (fromWhId && !dbWarehouses.some(w => String(w.id) === String(fromWhId))) {
+                                                const matched = dbWarehouses.find(w => 
+                                                    String(w.name).toLowerCase() === String(prod.warehouse_name || '').toLowerCase()
+                                                );
+                                                if (matched) fromWhId = String(matched.id);
+                                            }
+                                        }
+                                        if (!fromWhId && dbWarehouses.length > 0) {
+                                            fromWhId = String(dbWarehouses[0].id);
+                                        }
+                                        const destWh = dbWarehouses.find(w => String(w.id) !== String(fromWhId));
+                                        const toWhId = destWh ? String(destWh.id) : (dbWarehouses[1] ? String(dbWarehouses[1].id) : '');
+
+                                        setTransferForm(prev => ({
+                                            ...prev,
+                                            product_id: prodId,
+                                            from_warehouse_id: fromWhId,
+                                            to_warehouse_id: toWhId
+                                        }));
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
                                     <option value="">-- Select Product --</option>
                                     {transferProductsList.map(p => <option key={p.id} value={p.id}>{p.name} (Avail: {p.quantity} {p.unit})</option>)}
                                 </select>
@@ -1804,8 +1917,14 @@ const BusinessStock = () => {
                                 {(() => {
                                     const selectedProd = transferProductsList.find(p => String(p.id) === String(transferForm.product_id));
                                     if (!selectedProd) return null;
+                                    const matchingWh = dbWarehouses.find(w => String(w.id) === String(transferForm.from_warehouse_id)) ||
+                                        dbWarehouses.find(w => String(w.id) === String(selectedProd.warehouse_id)) ||
+                                        dbWarehouses.find(w => String(w.name).toLowerCase() === String(selectedProd.warehouse_name || '').toLowerCase());
+                                    const displayWhName = matchingWh?.name || selectedProd.warehouse_name || 'Main Warehouse';
+                                    const displayWhAddress = matchingWh?.address || matchingWh?.location || selectedProd.warehouse_address || '';
+
                                     return (
-                                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem', marginTop: '0.5rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem' }}>
+                                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.85rem 1rem', marginTop: '0.5rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.name}</span>
                                                 <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>{selectedProd.quantity} {selectedProd.unit} available</span>
@@ -1814,11 +1933,17 @@ const BusinessStock = () => {
                                                 <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.sku}</strong></span>
                                                 <span>Unit Price: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.purchase_price)}</strong></span>
                                             </div>
-                                            {selectedProd.warehouse_name && (
-                                                <div style={{ color: '#64748B' }}>
-                                                    Current Location: <strong style={{ color: '#334155' }}>{selectedProd.warehouse_name}</strong>
+                                            <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0F172A', fontWeight: '750' }}>
+                                                    <MapPin size={13} style={{ color: '#2563EB', flexShrink: 0 }} />
+                                                    <span>Current Location: <span style={{ color: '#2563EB', fontWeight: '850' }}>{displayWhName}</span></span>
                                                 </div>
-                                            )}
+                                                {displayWhAddress && (
+                                                    <div style={{ paddingLeft: '1.2rem', color: '#64748B', fontSize: '0.72rem' }}>
+                                                        📍 {displayWhAddress}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })()}
@@ -1827,13 +1952,23 @@ const BusinessStock = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Warehouse</label>
                                     <select value={transferForm.from_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, from_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        {dbWarehouses.length === 0 && <option value="">No Warehouses</option>}
+                                        {dbWarehouses.map(w => (
+                                            <option key={w.id} value={w.id}>
+                                                {w.name} {w.address || w.location ? `(${w.address || w.location})` : ''}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Warehouse</label>
                                     <select value={transferForm.to_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, to_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        {dbWarehouses.length === 0 && <option value="">No Warehouses</option>}
+                                        {dbWarehouses.map(w => (
+                                            <option key={w.id} value={w.id}>
+                                                {w.name} {w.address || w.location ? `(${w.address || w.location})` : ''}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>

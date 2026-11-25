@@ -6,6 +6,11 @@ export const applyTableFilters = (item, filters) => {
         if (!val || typeof val !== 'string' || !val.trim()) return true;
         const searchVal = val.trim().toLowerCase();
         
+        // Stock status calculation for current_stock
+        const currentQty = Number(item.current_stock !== undefined ? item.current_stock : (item.quantity !== undefined ? item.quantity : 0)) || 0;
+        const minStock = Number(item.minimum_stock ?? item.min_stock ?? item.reorder_level ?? 5) || 5;
+        const stockStatusText = currentQty <= 0 ? 'out of stock out_of_stock' : currentQty <= minStock ? 'low stock low_stock' : 'in stock in_stock';
+
         // Try to match specific keys based on common mappings
         const valMap = {
             'date': item.date || item.created_at || item.expense_date || item.dispatch_date,
@@ -22,20 +27,21 @@ export const applyTableFilters = (item, filters) => {
             'bank_account': item.bank_account || item.account_number || item.bank_name,
             'opening_balance': item.opening_balance,
             'current_balance': item.current_balance,
-            'product_name': item.product_name || item.name || item.product_id || item.sku,
-            'starting_quantity': item.starting_quantity !== undefined ? item.starting_quantity : item.opening_stock,
-            'current_stock': item.current_stock !== undefined ? item.current_stock : item.quantity,
-            'available_stock': item.available_stock !== undefined ? item.available_stock : item.current_stock,
-            'daily_sales': item.daily_sales !== undefined ? item.daily_sales : `${item.dailyQty || 0} ${item.dailyAmount || 0}`,
-            'weekly_sales': item.weekly_sales !== undefined ? item.weekly_sales : `${item.weeklyQty || 0} ${item.weeklyAmount || 0}`,
-            'interval_sales': item.interval_sales !== undefined ? item.interval_sales : `${item.intervalQty || 0} ${item.intervalAmount || 0}`,
-            'customers': item.customers !== undefined ? item.customers : (Array.isArray(item.uniqueCustomers) ? item.uniqueCustomers.join(', ') : ''),
+            'product_name': `${item.product_name || item.name || ''} ${item.product_id || ''} ${item.sku || ''} ${item.barcode || ''} ${item.item_code || ''} ${item.selling_value || ''} ${item.purchase_cost || ''} ${item.category || ''}`,
+            'starting_quantity': `${item.starting_quantity ?? item.opening_stock ?? 0} units pcs`,
+            'current_stock': `${currentQty} ${item.unit || 'pcs units'} ${stockStatusText}`,
+            'available_stock': `${item.available_stock !== undefined ? item.available_stock : currentQty} pcs units`,
+            'daily_sales': `${item.dailyQty ?? 0} units pcs ₹${item.dailyAmount ?? 0} ${item.dailyAmount ?? 0}`,
+            'weekly_sales': `${item.weeklyQty ?? 0} units pcs ₹${item.weeklyAmount ?? 0} ${item.weeklyAmount ?? 0}`,
+            'interval_sales': `${item.intervalQty ?? 0} units pcs ₹${item.intervalAmount ?? 0} ${item.intervalAmount ?? 0}`,
+            'customers': `${Array.isArray(item.uniqueCustomers) ? item.uniqueCustomers.join(' ') : (item.customers || '')} ${item.customerCount ?? 0} buyers customers`,
+            'warehouse': `${item.warehouse_name || item.warehouse || item.location || ''} ${item.rack_number || ''}`,
+            'warehouse_location': `${item.warehouse_name || item.warehouse || item.location || ''} ${item.rack_number || ''}`,
             'employee': item.employee_name || item.name,
             'employee_name': item.employee_name || item.name,
             'in_transit': item.in_transit_stock !== undefined ? item.in_transit_stock : item.in_transit,
-            'current_stock': item.current_stock !== undefined ? item.current_stock : item.quantity,
-            'damaged': item.damaged_qty !== undefined ? item.damaged_qty : (item.damaged_stock !== undefined ? item.damaged_stock : item.damaged),
-            'valuation': item.warehouse_stock_value !== undefined ? item.warehouse_stock_value : item.valuation,
+            'damaged': `${item.damaged_qty ?? item.damaged_stock ?? item.damaged ?? 0} dmg ${item.expired_stock ?? item.expired ?? 0} exp`,
+            'valuation': `${item.warehouse_stock_value !== undefined ? item.warehouse_stock_value : item.valuation || Math.round(currentQty * (item.average_cost || item.purchase_price || 0))} ₹`,
             'base_salary': item.base_salary !== undefined ? item.base_salary : (item.basic_salary !== undefined ? item.basic_salary : item.salary),
             'basic_salary': item.basic_salary !== undefined ? item.basic_salary : item.base_salary,
             'salary': item.salary !== undefined ? item.salary : (item.basic_salary !== undefined ? item.basic_salary : item.base_salary),
@@ -59,20 +65,25 @@ export const applyTableFilters = (item, filters) => {
             const cleanTarget = strVal.replace(/[₹$,\s]/g, '');
             if (cleanSearch && cleanTarget.includes(cleanSearch)) return true;
 
-            // Numeric comparisons and locale formats
-            if (typeof targetVal === 'number' || (!isNaN(Number(targetVal)) && !isNaN(parseFloat(targetVal)))) {
-                const num = Number(targetVal);
+            // Numeric comparisons and locale formats (support both raw number or column-specific numeric value)
+            let compNumTarget = typeof targetVal === 'number' ? targetVal : NaN;
+            if (isNaN(compNumTarget)) {
+                if (key === 'current_stock') compNumTarget = currentQty;
+                else if (key === 'starting_quantity') compNumTarget = Number(item.starting_quantity ?? item.opening_stock ?? 0);
+                else if (key === 'daily_sales') compNumTarget = Number(item.dailyQty ?? 0);
+                else if (key === 'weekly_sales') compNumTarget = Number(item.weeklyQty ?? 0);
+                else if (key === 'customers') compNumTarget = Number(item.customerCount ?? 0);
+                else if (!isNaN(parseFloat(targetVal))) compNumTarget = parseFloat(targetVal);
+            }
+
+            if (!isNaN(compNumTarget)) {
+                const num = Number(compNumTarget);
                 const inFormatted = num.toLocaleString('en-IN').toLowerCase();
                 const usFormatted = num.toLocaleString('en-US').toLowerCase();
                 if (inFormatted.includes(searchVal) || usFormatted.includes(searchVal)) return true;
 
-                // Support abs search for deductions (e.g. typing 200 or -200 matches deductions of 200 or -200)
-                const absSearch = cleanSearch.replace(/^-/, '');
-                const absTarget = cleanTarget.replace(/^-/, '');
-                if (absSearch && absTarget.includes(absSearch)) return true;
-
-                // Support comparison operators e.g. >5000, <10000, >=6000, <=5800
-                const compMatch = searchVal.match(/^([><]=?)\s*([0-9.,]+)$/);
+                // Support comparison operators e.g. >0, <10, >=5, <=0, =0
+                const compMatch = searchVal.match(/^([><]=?|=)\s*([0-9.,]+)$/);
                 if (compMatch) {
                     const op = compMatch[1];
                     const compNum = parseFloat(compMatch[2].replace(/,/g, ''));
@@ -81,6 +92,7 @@ export const applyTableFilters = (item, filters) => {
                         if (op === '>=' && num >= compNum) return true;
                         if (op === '<' && num < compNum) return true;
                         if (op === '<=' && num <= compNum) return true;
+                        if (op === '=' && num === compNum) return true;
                         return false;
                     }
                 }
