@@ -45,8 +45,6 @@ export default function SetTeamBudgetModal({
     }
   }, [initialData, isOpen]);
 
-  if (!isOpen) return null;
-
   // 1. Block negative sign (-), decimal point (.), and exponential (e) keys
   const handleKeyDown = (e) => {
     if (['-', '+', '.', 'e', 'E', 'Decimal'].includes(e.key)) {
@@ -116,6 +114,8 @@ export default function SetTeamBudgetModal({
     }
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">

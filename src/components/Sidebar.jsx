@@ -96,10 +96,6 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const activePlan = selectedPlan || user?.tier || 'Free Plan';
     const displayLabel = (t && typeof t === 'function') ? t(item.label, item.label) : item.label;
 
-    if (item.permission && !hasAccess(user, item.permission)) {
-        return null;
-    }
-    
     const IconComp = item.icon;
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
@@ -123,6 +119,10 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             return false;
         });
     }, [hasChildren, item.children, activeItem, location.pathname]);
+
+    if (item.permission && !hasAccess(user, item.permission)) {
+        return null;
+    }
 
     const isBetaClub = item.label === 'PARTNER LAUNCH DESK' || item.label === 'CAPITAL MATRIX' || item.label === 'BETA Club';
     const isCa = item.label === 'FIN-PRO';

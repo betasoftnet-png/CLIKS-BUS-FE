@@ -77,16 +77,14 @@ const POSReceiptModal = ({
     onTogglePrintShowGst = undefined,
     onChangeReceiptPrinterSize = undefined
 }) => {
-    if (!isOpen || !lastOrderData) return null;
-
     const queryClient = useQueryClient();
-    const { shopName, address, phone, email, gstin, tagline } = resolveShopDetails(shopDetails, lastOrderData);
+    const { shopName, address, phone, email, gstin, tagline } = resolveShopDetails(shopDetails, lastOrderData || {});
     
     // Dedicated Loyalty Program Settings (sourced directly from Backend API: business_loyalty_settings)
     const { data: loyaltyProgramSettings } = useQuery({
         queryKey: ['loyalty-program-settings'],
         queryFn: loyaltyService.getProgramSettings,
-        enabled: printShowLoyaltyProp === undefined || printShowCreditProp === undefined || printShowGstProp === undefined || receiptPrinterSizeProp === undefined || loyaltyEnabledProp === undefined,
+        enabled: Boolean(isOpen && lastOrderData) && (printShowLoyaltyProp === undefined || printShowCreditProp === undefined || printShowGstProp === undefined || receiptPrinterSizeProp === undefined || loyaltyEnabledProp === undefined),
         refetchOnWindowFocus: false
     });
 
@@ -169,6 +167,8 @@ const POSReceiptModal = ({
     const loyaltyEnabled = loyaltyEnabledProp !== undefined 
         ? Boolean(loyaltyEnabledProp)
         : Boolean(loyaltyProgramSettings?.loyaltyEnabled ?? (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0 || lastOrderData?.loyalty_points_earned > 0));
+
+    if (!isOpen || !lastOrderData) return null;
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>

@@ -23,8 +23,6 @@ export default function EditInvoiceModal({
         ? Boolean(cfg.loyaltyEnabled) 
         : (cfg.loyalty !== undefined ? Boolean(cfg.loyalty) : false));
 
-  if (!isOpen) return null;
-
   // 1. Calculate dynamic totals over ALL items (whether 4 or 20+)
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, it) => {
@@ -65,6 +63,8 @@ export default function EditInvoiceModal({
       setItems(items.filter((_, i) => i !== index));
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">

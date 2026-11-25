@@ -357,6 +357,13 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     const [isSearching, setIsSearching] = React.useState(false);
     const [activeResultIdx, setActiveResultIdx] = React.useState(0);
     const searchContainerRef = React.useRef(null);
+    const searchInputRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (isSearchExpanded) {
+            searchInputRef.current?.focus();
+        }
+    }, [isSearchExpanded]);
 
     React.useEffect(() => {
         const handleClickOutside = (e) => {
@@ -460,6 +467,52 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
 
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
+
+    const handleSelectResult = (item) => {
+        if (!item) return;
+        let pathWithQuery = item.path;
+        if (item.state?.invoiceNumber) {
+            pathWithQuery += `?q=${encodeURIComponent(item.state.invoiceNumber)}`;
+        } else if (item.state?.customerName) {
+            pathWithQuery += `?q=${encodeURIComponent(item.state.customerName)}`;
+        } else if (item.state?.productName) {
+            pathWithQuery += `?q=${encodeURIComponent(item.state.productName)}`;
+        } else if (item.state?.warehouseName) {
+            pathWithQuery += `?q=${encodeURIComponent(item.state.warehouseName)}`;
+        }
+        
+        if (item.path.startsWith('/social/')) {
+            sessionStorage.setItem('active_cliks_module', 'social');
+        } else if (item.path.startsWith('/payments/')) {
+            sessionStorage.setItem('active_cliks_module', 'payments');
+        } else {
+            sessionStorage.setItem('active_cliks_module', 'books');
+        }
+        navigate(pathWithQuery);
+        if (pathWithQuery.includes('reconcile') && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
+            }, 150);
+        }
+        setIsSearchExpanded(false);
+        setSearchQuery('');
+    };
+
+    const getCategoryTheme = (mod, type) => {
+        const m = (mod || '').toLowerCase();
+        const t = (type || '').toLowerCase();
+        if (m === 'pos' || t.includes('pos')) return { bg: '#F5F3FF', text: '#7C3AED', border: '#DDD6FE', pillBg: '#EDE9FE', pillText: '#6D28D9' };
+        if (m === 'sales' || t.includes('invoice') || t.includes('challan')) return { bg: '#EFF6FF', text: '#2563EB', border: '#BFDBFE', pillBg: '#DBEAFE', pillText: '#1D4ED8' };
+        if (m === 'purchases' || t.includes('supplier')) return { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A', pillBg: '#FEF3C7', pillText: '#B45309' };
+        if (m === 'inventory' || t.includes('product') || t.includes('warehouse') || t.includes('stock')) return { bg: '#ECFDF5', text: '#059669', border: '#A7F3D0', pillBg: '#D1FAE5', pillText: '#047857' };
+        if (m === 'finance' || t.includes('accounting') || t.includes('expenses')) return { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0', pillBg: '#DCFCE7', pillText: '#15803D' };
+        if (m === 'hr' || t.includes('staff')) return { bg: '#F0FDFA', text: '#0D9488', border: '#99F6E4', pillBg: '#CCFBF1', pillText: '#0F766E' };
+        if (m === 'compliance' || m === 'audit' || t.includes('tax') || t.includes('gst')) return { bg: '#FFF1F2', text: '#E11D48', border: '#FECDD3', pillBg: '#FFE4E6', pillText: '#BE123C' };
+        if (m === 'payments' || t.includes('people')) return { bg: '#ECFDF5', text: '#10B981', border: '#A7F3D0', pillBg: '#D1FAE5', pillText: '#047857' };
+        if (m === 'access kit') return { bg: '#F8FAFC', text: '#475569', border: '#E2E8F0', pillBg: '#F1F5F9', pillText: '#334155' };
+        return { bg: '#F8FAFC', text: '#3B82F6', border: '#E2E8F0', pillBg: '#F1F5F9', pillText: '#1D4ED8' };
+    };
 
     const [isNotificationOpen, setIsNotificationOpen] = React.useState(false);
     const {
@@ -665,63 +718,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '0' }}>
                 {/* Search circular button */}
-                {(() => {
-                    const searchInputRef = React.useRef(null);
-                    React.useEffect(() => {
-                        if (isSearchExpanded) {
-                            searchInputRef.current?.focus();
-                        }
-                    }, [isSearchExpanded]);
-
-                    const handleSelectResult = (item) => {
-                        if (!item) return;
-                        let pathWithQuery = item.path;
-                        if (item.state?.invoiceNumber) {
-                            pathWithQuery += `?q=${encodeURIComponent(item.state.invoiceNumber)}`;
-                        } else if (item.state?.customerName) {
-                            pathWithQuery += `?q=${encodeURIComponent(item.state.customerName)}`;
-                        } else if (item.state?.productName) {
-                            pathWithQuery += `?q=${encodeURIComponent(item.state.productName)}`;
-                        } else if (item.state?.warehouseName) {
-                            pathWithQuery += `?q=${encodeURIComponent(item.state.warehouseName)}`;
-                        }
-                        
-                        if (item.path.startsWith('/social/')) {
-                            sessionStorage.setItem('active_cliks_module', 'social');
-                        } else if (item.path.startsWith('/payments/')) {
-                            sessionStorage.setItem('active_cliks_module', 'payments');
-                        } else {
-                            sessionStorage.setItem('active_cliks_module', 'books');
-                        }
-                        navigate(pathWithQuery);
-                        if (pathWithQuery.includes('reconcile') && typeof window !== 'undefined') {
-                            window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
-                            setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
-                            }, 150);
-                        }
-                        setIsSearchExpanded(false);
-                        setSearchQuery('');
-                    };
-
-                    const getCategoryTheme = (mod, type) => {
-                        const m = (mod || '').toLowerCase();
-                        const t = (type || '').toLowerCase();
-                        if (m === 'pos' || t.includes('pos')) return { bg: '#F5F3FF', text: '#7C3AED', border: '#DDD6FE', pillBg: '#EDE9FE', pillText: '#6D28D9' };
-                        if (m === 'sales' || t.includes('invoice') || t.includes('challan')) return { bg: '#EFF6FF', text: '#2563EB', border: '#BFDBFE', pillBg: '#DBEAFE', pillText: '#1D4ED8' };
-                        if (m === 'purchases' || t.includes('supplier')) return { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A', pillBg: '#FEF3C7', pillText: '#B45309' };
-                        if (m === 'inventory' || t.includes('product') || t.includes('warehouse') || t.includes('stock')) return { bg: '#ECFDF5', text: '#059669', border: '#A7F3D0', pillBg: '#D1FAE5', pillText: '#047857' };
-                        if (m === 'finance' || t.includes('accounting') || t.includes('expenses')) return { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0', pillBg: '#DCFCE7', pillText: '#15803D' };
-                        if (m === 'hr' || t.includes('staff')) return { bg: '#F0FDFA', text: '#0D9488', border: '#99F6E4', pillBg: '#CCFBF1', pillText: '#0F766E' };
-                        if (m === 'compliance' || m === 'audit' || t.includes('tax') || t.includes('gst')) return { bg: '#FFF1F2', text: '#E11D48', border: '#FECDD3', pillBg: '#FFE4E6', pillText: '#BE123C' };
-                        if (m === 'payments' || t.includes('people')) return { bg: '#ECFDF5', text: '#10B981', border: '#A7F3D0', pillBg: '#D1FAE5', pillText: '#047857' };
-                        if (m === 'access kit') return { bg: '#F8FAFC', text: '#475569', border: '#E2E8F0', pillBg: '#F1F5F9', pillText: '#334155' };
-                        return { bg: '#F8FAFC', text: '#3B82F6', border: '#E2E8F0', pillBg: '#F1F5F9', pillText: '#1D4ED8' };
-                    };
-
-                    return (
-                        <div ref={searchContainerRef} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-                            {isSearchExpanded ? (
+                <div ref={searchContainerRef} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                    {isSearchExpanded ? (
                                 <div className="topbar-search-input-box" style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -928,9 +926,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                     <Search size={18} />
                                 </button>
                             )}
-                        </div>
-                    );
-                })()}
+                </div>
 
                 {/* Notification Bell Button */}
                 <div style={{ position: 'relative' }}>

@@ -44,6 +44,12 @@ const BusinessFinancePurchases = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [colFilters, setColFilters] = useState({});
+    const [receiveDataFilter, setReceiveDataFilter] = useState('YES');
+
+    const { data: merchantCards = [], isLoading: isLoadingMerchants } = useQuery({
+        queryKey: ['customer-merchants', receiveDataFilter],
+        queryFn: () => apiClient.get('/customer/merchants', { params: { receiveData: receiveDataFilter } }).then(res => res.data.data || res.data || [])
+    });
 
     // Determine active tab from path
     const getTabFromPath = (path) => {
@@ -747,14 +753,6 @@ const NewPurchaseForm = ({ suppliers, products, bankAccounts, onSubmit, isSubmit
             </div>
         </form>
     );
-
-    // --- State & Render for Purchase Details view ---
-    const [receiveDataFilter, setReceiveDataFilter] = useState('YES');
-
-    const { data: merchantCards = [], isLoading: isLoadingMerchants } = useQuery({
-        queryKey: ['customer-merchants', receiveDataFilter],
-        queryFn: () => apiClient.get('/customer/merchants', { params: { receiveData: receiveDataFilter } }).then(res => res.data.data || res.data || [])
-    });
 
     const renderPurchaseDetails = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

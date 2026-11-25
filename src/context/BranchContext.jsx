@@ -8,12 +8,7 @@ const BranchContext = createContext(null);
 
 export const BranchProvider = ({ children }) => {
     const { user, isAuthenticated } = useAuth();
-    let queryClient = null;
-    try {
-        queryClient = useQueryClient();
-    } catch (e) {
-        // Safe fallback if mounted outside QueryClientProvider
-    }
+    const queryClient = useQueryClient();
 
     const isSubId = Boolean(user && (user.is_sub_id === true || user.role === 'sub_id' || user.role === 'SUB_ID'));
     const userBranchId = user?.branch_id ? String(user.branch_id) : null;

@@ -23,11 +23,6 @@ const BusinessBranches = () => {
 
     const isOwner = !user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID';
 
-    // Strictly Owner Only - immediately redirect managers and staff
-    if (user && !isOwner) {
-        return <Navigate to="/dashboard" replace />;
-    }
-
     const [activeTab, setActiveTab] = useState('branches'); // 'branches' | 'stock' | 'low_stock' | 'transfers'
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBranchForStock, setSelectedBranchForStock] = useState(null);
@@ -494,6 +489,11 @@ const BusinessBranches = () => {
         p.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
     ) : [];
+
+    // Strictly Owner Only - immediately redirect managers and staff
+    if (user && !isOwner) {
+        return <Navigate to="/dashboard" replace />;
+    }
 
     return (
         <div style={{ padding: '1.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
