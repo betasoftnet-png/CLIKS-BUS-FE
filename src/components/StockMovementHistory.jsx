@@ -34,19 +34,41 @@ export default function StockMovementHistory({
             const rawEvents = [];
 
             txList.forEach(t => {
-                const isPositive = t.type === 'in';
+                const isPositive = t.type === 'in' || t.type === 'IN';
                 const qtyVal = parseFloat(t.quantity) || 0;
                 rawEvents.push({
-                    date: t.date || (t.created_at ? t.created_at.split('T')[0] : nowStr),
+                    date: t.date ? t.date.split('T')[0] : (t.created_at ? t.created_at.split('T')[0] : nowStr),
                     rawTime: new Date(t.created_at || t.date || Date.now()).getTime(),
                     event: isPositive 
-                        ? (t.purchase_bill_ref ? `Goods Inward Receipt (${t.purchase_bill_ref})` : 'Goods Inward Receipt') 
-                        : 'Sales Dispatch',
+                        ? (t.purchase_bill_ref ? `Goods Inward Receipt (${t.purchase_bill_ref})` : (t.notes || 'Goods Inward Receipt')) 
+                        : (t.notes || 'Sales Dispatch'),
                     type: isPositive ? 'inward' : 'dispatch',
                     delta: isPositive ? qtyVal : -qtyVal,
                     qtyFormatted: isPositive ? `+${qtyVal} pcs` : `-${qtyVal} pcs`,
                     color: isPositive ? '#15803d' : '#DC2626',
-                    ref: t.purchase_bill_ref || (t.received_by ? `Received by: ${t.received_by}` : null)
+                    ref: t.purchase_bill_ref || (t.received_by ? `Handled by: ${t.received_by}` : (t.notes || null))
+                });
+            });
+
+            // Match inwards from reportsData not already present in txList
+            matchedInwards.forEach(inw => {
+                const inwRef = inw.purchase_bill_ref || inw.purchase_id || inw.inward_id;
+                const alreadyInTx = txList.some(t => 
+                    (t.id && inw.id && String(t.id) === String(inw.id)) ||
+                    (inwRef && t.purchase_bill_ref && t.purchase_bill_ref === inwRef)
+                );
+                if (alreadyInTx) return;
+
+                const inwQty = parseFloat(inw.quantity || inw.received_quantity) || 0;
+                rawEvents.push({
+                    date: inw.date ? inw.date.split('T')[0] : (inw.created_at ? inw.created_at.split('T')[0] : nowStr),
+                    rawTime: new Date(inw.created_at || inw.date || Date.now()).getTime(),
+                    event: inwRef ? `Goods Inward Receipt (${inwRef})` : 'Goods Inward Receipt',
+                    type: 'inward',
+                    delta: inwQty,
+                    qtyFormatted: `+${inwQty} pcs`,
+                    color: '#15803d',
+                    ref: inw.received_by ? `Received by: ${inw.received_by}` : (inwRef ? `Ref: ${inwRef}` : null)
                 });
             });
 
@@ -91,17 +113,23 @@ export default function StockMovementHistory({
                 };
             });
 
-            // Append Opening Audit entry
-            computed.push({
-                date: '2026-05-01',
-                event: 'Opening Stock Audit',
-                type: 'opening',
-                delta: running,
-                qtyFormatted: `${running} pcs`,
-                balance: running,
-                color: '#6B21A8',
-                ref: 'Audited Physical Ledger Baseline'
-            });
+            // Append Initial Opening Balance entry if initial stock existed prior to logged events
+            if (running > 0) {
+                const initialDate = selectedStock.created_at 
+                    ? selectedStock.created_at.split('T')[0] 
+                    : (rawEvents.length > 0 ? rawEvents[rawEvents.length - 1].date : nowStr);
+
+                computed.push({
+                    date: initialDate,
+                    event: 'Opening Stock Balance',
+                    type: 'opening',
+                    delta: running,
+                    qtyFormatted: `${running} pcs`,
+                    balance: running,
+                    color: '#059669',
+                    ref: 'Physical Baseline Inventory'
+                });
+            }
 
             return computed;
         }

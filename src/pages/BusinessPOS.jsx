@@ -2030,7 +2030,27 @@ const BusinessPOS = () => {
 
     // 7. Increase Stock Mutation
     const increaseStockMutation = useMutation({
-        mutationFn: async ({ id, newStock, source }) => {
+        mutationFn: async ({ id, newStock, source, delta }) => {
+            const cleanId = String(id).replace(/^(stk|prod|inv)[_-]/i, '').trim();
+            const staffName = user?.name || user?.username || 'POS Cashier';
+            const changeQty = delta != null ? Number(delta) : Math.max(0, Number(newStock) - (Number(stockTargetProduct?.quantity) || 0));
+
+            // Record transaction in stock engine and audit log
+            if (changeQty > 0) {
+                try {
+                    await stockService.adjustQuantity(cleanId, {
+                        delta: changeQty,
+                        notes: `POS Stock Inward / Added via POS Billing (${stockTargetProduct?.name || ''})`,
+                        received_by: staffName,
+                        staff_name: staffName,
+                        zone: 'Zone A',
+                        date: new Date().toISOString()
+                    });
+                } catch (stkErr) {
+                    console.warn('[POS Stock Inward Sync Warning]:', stkErr);
+                }
+            }
+
             const payload = { name: stockTargetProduct?.name, stock: newStock, quantity: newStock };
             if (source === 'inventory') {
                 try {
@@ -2050,6 +2070,12 @@ const BusinessPOS = () => {
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['stock'] });
+            queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-history'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseStock'] });
             setIsIncreaseStockModalOpen(false);
             setStockTargetProduct(null);
             setAddedStockQty('');
@@ -2062,7 +2088,26 @@ const BusinessPOS = () => {
 
     // 7b. Decrease Stock Mutation
     const decreaseStockMutation = useMutation({
-        mutationFn: async ({ id, newStock, source }) => {
+        mutationFn: async ({ id, newStock, source, delta }) => {
+            const cleanId = String(id).replace(/^(stk|prod|inv)[_-]/i, '').trim();
+            const staffName = user?.name || user?.username || 'POS Cashier';
+            const changeQty = delta != null ? Number(delta) : Math.max(0, (Number(stockTargetProduct?.quantity) || 0) - Number(newStock));
+
+            // Record outward transaction in stock engine and audit log
+            if (changeQty > 0) {
+                try {
+                    await stockService.adjustQuantity(cleanId, {
+                        delta: -Math.abs(changeQty),
+                        notes: `POS Stock Outward / Adjusted via POS Billing (${stockTargetProduct?.name || ''})`,
+                        received_by: staffName,
+                        staff_name: staffName,
+                        date: new Date().toISOString()
+                    });
+                } catch (stkErr) {
+                    console.warn('[POS Stock Outward Sync Warning]:', stkErr);
+                }
+            }
+
             const payload = { name: stockTargetProduct?.name, stock: newStock, quantity: newStock };
             if (source === 'inventory') {
                 try {
@@ -2082,6 +2127,12 @@ const BusinessPOS = () => {
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['stock'] });
+            queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-history'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseStock'] });
             setIsDecreaseStockModalOpen(false);
             setStockTargetProduct(null);
             setDecreasedStockQty('');
@@ -8318,7 +8369,8 @@ const BusinessPOS = () => {
                                     increaseStockMutation.mutate({
                                         id: stockTargetProduct.id,
                                         newStock,
-                                        source: stockTargetProduct.source
+                                        source: stockTargetProduct.source,
+                                        delta: qtyToAdd
                                     });
                                 }}
                                 style={{ padding: '0.55rem 1.1rem', borderRadius: '10px', border: 'none', background: '#10B981', color: '#FFF', fontWeight: '750', cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 2px 6px rgba(16,185,129,0.3)', opacity: increaseStockMutation.isPending ? 0.7 : 1 }}
@@ -8409,7 +8461,8 @@ const BusinessPOS = () => {
                                     decreaseStockMutation.mutate({
                                         id: stockTargetProduct.id,
                                         newStock,
-                                        source: stockTargetProduct.source
+                                        source: stockTargetProduct.source,
+                                        delta: qtyToSub
                                     });
                                 }}
                                 style={{ padding: '0.55rem 1.1rem', borderRadius: '10px', border: 'none', background: '#F59E0B', color: '#FFF', fontWeight: '750', cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 2px 6px rgba(245,158,11,0.3)', opacity: decreaseStockMutation.isPending ? 0.7 : 1 }}

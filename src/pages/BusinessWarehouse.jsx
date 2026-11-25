@@ -297,9 +297,11 @@ const BusinessWarehouse = () => {
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
     const whStocks = React.useMemo(() => {
+        const validWarehouseIds = new Set(warehouses.map(w => String(w.id)));
         const dbTransfers = reportsData?.transfers || [];
         const activeTransfers = dbTransfers.filter(t => 
-            t.status === 'In Transit' || t.status === 'Pending' || t.status === 'Dispatched'
+            (t.status === 'In Transit' || t.status === 'Pending' || t.status === 'Dispatched') &&
+            (validWarehouseIds.has(String(t.from_warehouse_id)) && validWarehouseIds.has(String(t.to_warehouse_id)))
         );
 
         // Map existing stock rows
@@ -397,57 +399,7 @@ const BusinessWarehouse = () => {
             };
         });
 
-        // Also check if any active inbound transfers target a warehouse that doesn't yet have this stock item
-        const extraRows = [];
-        activeTransfers.forEach((t, tIdx) => {
-            const destWh = warehouses.find(w => String(w.id) === String(t.to_warehouse_id)) || { warehouse_name: t.to_warehouse_name || `Warehouse #${t.to_warehouse_id}` };
-            const prodName = t.product_name || `Product #${t.stock_id}`;
-            const existsInBase = baseRows.some(r => 
-                ((r.warehouse_id && String(r.warehouse_id) === String(t.to_warehouse_id)) || (r.warehouse_name && r.warehouse_name.toLowerCase() === destWh.warehouse_name.toLowerCase())) &&
-                r.product_name.toLowerCase() === prodName.toLowerCase()
-            );
-
-            if (!existsInBase) {
-                const qty = parseFloat(t.quantity) || 0;
-                const existingExtra = extraRows.find(r =>
-                    ((r.warehouse_id && String(r.warehouse_id) === String(t.to_warehouse_id)) || (r.warehouse_name && r.warehouse_name.toLowerCase() === destWh.warehouse_name.toLowerCase())) &&
-                    r.product_name.toLowerCase() === prodName.toLowerCase()
-                );
-
-                if (existingExtra) {
-                    existingExtra.in_transit_stock += qty;
-                    existingExtra.in_transit += qty;
-                    existingExtra.in_transit_in += qty;
-                } else {
-                    extraRows.push({
-                        wh_stock_id: `WHS-TRF-${t.id || tIdx}`,
-                        id: `trf-${t.id || tIdx}`,
-                        product_id: t.sku || `PROD-TRF-${t.id}`,
-                        product_name: prodName,
-                        warehouse_name: destWh.warehouse_name,
-                        warehouse_id: t.to_warehouse_id,
-                        current_stock: 0,
-                        reserved_stock: 0,
-                        damaged_stock: 0,
-                        damaged_qty: 0,
-                        damaged: 0,
-                        expired_stock: 0,
-                        in_transit_stock: qty,
-                        in_transit: qty,
-                        in_transit_out: 0,
-                        in_transit_in: qty,
-                        rack_number: 'In Transit',
-                        shelf_number: '',
-                        bin_number: '',
-                        zone: 'En Route',
-                        warehouse_stock_value: 0,
-                        valuation: 0
-                    });
-                }
-            }
-        });
-
-        return [...baseRows, ...extraRows];
+        return baseRows;
     }, [dbStocks, dbProducts, reportsData?.transfers, warehouses]);
 
     // Stateful Stock Transfer Database mapped from live DB warehouse transfers
@@ -474,6 +426,8 @@ const BusinessWarehouse = () => {
         return {
             transfer_id: `TRF-${t.id || (idx + 100)}`,
             id: t.id,
+            from_warehouse_id: t.from_warehouse_id,
+            to_warehouse_id: t.to_warehouse_id,
             source_warehouse: fromWH.warehouse_name,
             destination_warehouse: toWH.warehouse_name,
             product_name: t.product_name || product.name,
@@ -664,6 +618,23 @@ const BusinessWarehouse = () => {
         // Sort alphabetically by product name for consistent and clean selection
         return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }, [dbProducts, dbStocks]);
+
+    const resetInwardForm = React.useCallback(() => {
+        const defaultProduct = inwardProductsList.length > 0 ? inwardProductsList[0] : null;
+        const defaultWh = dbWarehouses.length > 0 ? dbWarehouses[0] : null;
+        const defaultStaff = user?.name || user?.username || 'Authorized Staff';
+        setNewInward({
+            purchase_id: '',
+            stock_id: defaultProduct ? defaultProduct.id.toString() : '',
+            received_quantity: '',
+            received_by: defaultStaff,
+            staff_name: defaultStaff,
+            warehouse_id: defaultWh ? defaultWh.id.toString() : '',
+            destination_warehouse_id: defaultWh ? defaultWh.id.toString() : '',
+            warehouse_name: defaultWh ? (defaultWh.name || defaultWh.warehouse_name || 'Main Godown') : 'Main Godown',
+            zone: 'Zone A'
+        });
+    }, [inwardProductsList, dbWarehouses, user]);
 
     // Set default select values when database lists load
     useEffect(() => {
@@ -1026,12 +997,15 @@ const BusinessWarehouse = () => {
                 queryClient.invalidateQueries({ queryKey: ['stocks'] }),
                 queryClient.invalidateQueries({ queryKey: ['warehouseReports'] }),
                 queryClient.invalidateQueries({ queryKey: ['stockHistory'] }),
+                queryClient.invalidateQueries({ queryKey: ['stock-history'] }),
+                queryClient.invalidateQueries({ queryKey: ['products'] }),
                 queryClient.invalidateQueries({ queryKey: ['warehouses'] }),
                 queryClient.refetchQueries({ queryKey: ['stocks'] }),
                 queryClient.refetchQueries({ queryKey: ['warehouseReports'] }),
                 queryClient.refetchQueries({ queryKey: ['warehouses'] })
             ]);
             alert(`Goods Inward receipt logged! Allocated to ${newInward.warehouse_name || 'Warehouse'} (${newInward.zone || 'Zone A'}). Warehouse inventory adjusted automatically.`);
+            resetInwardForm();
             setIsInwardModalOpen(false);
         }
     });
@@ -1185,7 +1159,10 @@ const BusinessWarehouse = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button
-                        onClick={() => setIsInwardModalOpen(true)}
+                        onClick={() => {
+                            resetInwardForm();
+                            setIsInwardModalOpen(true);
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                         <Truck size={15} /> Goods Inward Receiving
@@ -1212,7 +1189,17 @@ const BusinessWarehouse = () => {
                 {[
                     { label: 'Active Godown Facilities', value: `${warehouses.length} Active`, icon: WarehouseIcon, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Multi-Warehouse Worth', value: formatCurrency(totalWarehouseValue), icon: DollarSign, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Active Shipments', value: `${transfers.filter(t => t.transfer_status === 'Pending' || t.transfer_status === 'In Transit').length} In Transit`, icon: Truck, color: '#F59E0B', bg: '#FEF3C7' },
+                    { 
+                        label: 'Active Shipments', 
+                        value: `${transfers.filter(t => 
+                            (t.transfer_status === 'Pending' || t.transfer_status === 'In Transit') &&
+                            warehouses.some(w => String(w.id) === String(t.from_warehouse_id)) &&
+                            warehouses.some(w => String(w.id) === String(t.to_warehouse_id))
+                        ).length} In Transit`, 
+                        icon: Truck, 
+                        color: '#F59E0B', 
+                        bg: '#FEF3C7' 
+                    },
                     { label: 'Inward Receipts Audited', value: `${inwards.length} Records`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -1625,7 +1612,7 @@ const BusinessWarehouse = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Goods Inward Receipt</h3>
-                            <button onClick={() => setIsInwardModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            <button onClick={() => { resetInwardForm(); setIsInwardModalOpen(false); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleLogInward} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

@@ -284,15 +284,15 @@ export default function StockItemDetailView() {
                     id: key,
                     date: tx.date || tx.created_at || new Date().toISOString(),
                     type: isIn ? 'PURCHASE_INWARD' : 'DISPATCH_OUTWARD',
-                    reference_no: tx.purchase_bill_ref || (isIn ? `PO-${1000 + (tx.id || idx)}` : `DISP-${2000 + (tx.id || idx)}`),
+                    reference_no: tx.purchase_bill_ref || (isIn ? `INW-${tx.id || idx}` : `DISP-${tx.id || idx}`),
                     when_purchased: tx.date ? tx.date.split('T')[0] : (tx.created_at ? tx.created_at.split('T')[0] : 'N/A'),
-                    who_received: tx.received_by || (isIn ? 'Ramesh Kumar (Store In-charge)' : 'Cashier Counter #1'),
-                    counterparty: tx.supplier_name || (isIn ? (currentItem.supplier_name || 'Standard Procurement Ltd') : 'Retail Customer Walk-in'),
+                    who_received: tx.received_by || (isIn ? 'Store In-charge' : 'POS Cashier'),
+                    counterparty: tx.supplier_name || currentItem.supplier_name || (isIn ? 'Vendor Supply' : 'Direct Customer'),
                     quantity_in: isIn ? qtyNum : 0,
                     quantity_out: !isIn ? qtyNum : 0,
                     unit_price: parseFloat(tx.unit_price || currentItem.purchase_cost || 0),
                     warehouse: tx.warehouse_name || currentItem.warehouse_name,
-                    notes: tx.notes || (isIn ? 'PO delivery receipt verified' : 'Dispatched to sales floor')
+                    notes: tx.notes || (isIn ? 'Goods received and verified in godown' : 'Dispatched to customer')
                 });
             });
         }
@@ -311,8 +311,8 @@ export default function StockItemDetailView() {
                     type: 'PURCHASE_INWARD',
                     reference_no: po.bill_number || po.purchase_number || `BILL-${3000 + idx}`,
                     when_purchased: po.bill_date || po.date || po.created_at?.split('T')[0] || 'N/A',
-                    who_received: po.received_by || po.created_by || 'Storekeeper (Warehouse Receiving)',
-                    counterparty: po.supplier_name || po.vendor_name || currentItem.supplier_name || 'Direct Vendor Supply',
+                    who_received: po.received_by || po.created_by || 'Storekeeper',
+                    counterparty: po.supplier_name || po.vendor_name || currentItem.supplier_name || 'Vendor Supply',
                     quantity_in: qtyNum,
                     quantity_out: 0,
                     unit_price: parseFloat(po.unit_price || po.rate || currentItem.purchase_cost || 0),
@@ -336,8 +336,8 @@ export default function StockItemDetailView() {
                     type: 'DISPATCH_OUTWARD',
                     reference_no: so.order_number || `INV-${4000 + idx}`,
                     when_purchased: '—',
-                    who_received: so.created_by || 'POS Terminal Operator',
-                    counterparty: so.customer_name || 'Retail Supermarket Customer',
+                    who_received: so.created_by || 'POS Cashier',
+                    counterparty: so.customer_name || 'Retail Customer',
                     quantity_in: 0,
                     quantity_out: qtyNum,
                     unit_price: parseFloat(so.unit_price || currentItem.selling_value || 0),
@@ -545,30 +545,30 @@ export default function StockItemDetailView() {
         }}>
             <style>{`
                 @media print {
-                    body * {
-                        visibility: hidden !important;
+                    @page {
+                        margin: 1.2cm;
+                        size: auto;
                     }
-                    #stock-item-detail-view,
-                    #stock-item-detail-view * {
-                        visibility: visible !important;
+                    html, body {
+                        background: white !important;
+                        color: #0F172A !important;
+                        overflow: visible !important;
+                        height: auto !important;
+                    }
+                    nav, header, aside, .sidebar, .no-print, .no-print * {
+                        display: none !important;
                     }
                     #stock-item-detail-view {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
+                        position: static !important;
                         width: 100% !important;
                         max-width: 100% !important;
                         margin: 0 !important;
-                        padding: 1rem 1.5rem !important;
+                        padding: 0 !important;
                         background: white !important;
                         color: #0F172A !important;
                         box-shadow: none !important;
                         display: block !important;
-                    }
-                    .no-print,
-                    .no-print * {
-                        display: none !important;
-                        visibility: hidden !important;
+                        overflow: visible !important;
                     }
                 }
             `}</style>
