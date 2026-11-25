@@ -44,7 +44,7 @@ const BusinessStock = () => {
     const { formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('registry');
-    const [colFilters, setColFilters] = React.useState({}); // 'registry', 'movement', 'warehouse', 'batch', 'selling_history'
+    const [colFilters, setColFilters] = React.useState({}); // per-tab column filters
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -52,12 +52,25 @@ const BusinessStock = () => {
     const [selectedStock, setSelectedStock] = useState(null);
 
     // Selling History & Date Interval Customization
-    const [dateInterval, setDateInterval] = useState('7days'); // 'today' | '7days' | 'custom'
+    const [dateInterval, setDateInterval] = useState('7days'); // 'today' | '7days' | '30days' | 'all' | 'custom'
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
     const [isCustomizeViewOpen, setIsCustomizeViewOpen] = useState(false);
     const [customerListModal, setCustomerListModal] = useState(null);
     const [savedBills, setSavedBills] = useState([]);
+    const [stockStatusFilter, setStockStatusFilter] = useState('all'); // 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'
+    const [visibleColumns, setVisibleColumns] = useState({
+        starting_quantity: true,
+        current_stock: true,
+        daily_sales: true,
+        weekly_sales: true,
+        customers: true
+    });
+
+    // Reset table column filters when user switches tabs to avoid cross-tab filtering bugs
+    useEffect(() => {
+        setColFilters({});
+    }, [activeTab]);
 
     useEffect(() => {
         try {
@@ -427,6 +440,7 @@ const BusinessStock = () => {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
         return stocks.map(product => {
             const rawProductSales = allSalesTransactions.filter(tx => matchesProduct(tx, product));
@@ -438,8 +452,8 @@ const BusinessStock = () => {
                 const dt = new Date(tx.date);
                 return dt.toISOString().split('T')[0] === todayStr || (now.getTime() - dt.getTime() < 24 * 60 * 60 * 1000 && dt.getDate() === now.getDate());
             });
-            const dailyQty = dailySales.reduce((sum, tx) => sum + tx.quantity, 0);
-            const dailyAmount = dailySales.reduce((sum, tx) => sum + (tx.total || (tx.quantity * tx.price)), 0);
+            const dailyQty = dailySales.reduce((sum, tx) => Number(sum) + (Number(tx.quantity) || 0), 0);
+            const dailyAmount = dailySales.reduce((sum, tx) => Number(sum) + (Number(tx.total) || ((Number(tx.quantity) || 0) * (Number(tx.price) || 0)) || 0), 0);
 
             // Weekly sales (last 7 days)
             const weeklySales = productSales.filter(tx => {
@@ -447,8 +461,8 @@ const BusinessStock = () => {
                 const dt = new Date(tx.date);
                 return dt >= sevenDaysAgo && dt <= now;
             });
-            const weeklyQty = weeklySales.reduce((sum, tx) => sum + tx.quantity, 0);
-            const weeklyAmount = weeklySales.reduce((sum, tx) => sum + (tx.total || (tx.quantity * tx.price)), 0);
+            const weeklyQty = weeklySales.reduce((sum, tx) => Number(sum) + (Number(tx.quantity) || 0), 0);
+            const weeklyAmount = weeklySales.reduce((sum, tx) => Number(sum) + (Number(tx.total) || ((Number(tx.quantity) || 0) * (Number(tx.price) || 0)) || 0), 0);
 
             // Custom / Selected interval sales
             let intervalSales = productSales;
@@ -456,6 +470,14 @@ const BusinessStock = () => {
                 intervalSales = dailySales;
             } else if (dateInterval === '7days') {
                 intervalSales = weeklySales;
+            } else if (dateInterval === '30days') {
+                intervalSales = productSales.filter(tx => {
+                    if (!tx.date) return false;
+                    const dt = new Date(tx.date);
+                    return dt >= thirtyDaysAgo && dt <= now;
+                });
+            } else if (dateInterval === 'all') {
+                intervalSales = productSales;
             } else if (dateInterval === 'custom' && (customStartDate || customEndDate)) {
                 intervalSales = productSales.filter(tx => {
                     if (!tx.date) return false;
@@ -465,39 +487,60 @@ const BusinessStock = () => {
                     return dt >= start && dt <= end;
                 });
             }
-            const intervalQty = intervalSales.reduce((sum, tx) => sum + tx.quantity, 0);
-            const intervalAmount = intervalSales.reduce((sum, tx) => sum + (tx.total || (tx.quantity * tx.price)), 0);
+            const intervalQty = intervalSales.reduce((sum, tx) => Number(sum) + (Number(tx.quantity) || 0), 0);
+            const intervalAmount = intervalSales.reduce((sum, tx) => Number(sum) + (Number(tx.total) || ((Number(tx.quantity) || 0) * (Number(tx.price) || 0)) || 0), 0);
 
             // Unique customers who bought this item
             const uniqueCustomers = Array.from(new Set(productSales.map(tx => (tx.customerName || 'Walk-in Customer').trim())));
 
             return {
                 ...product,
-                starting_quantity: product.opening_stock ?? 0,
-                dailyQty,
-                dailyAmount,
-                weeklyQty,
-                weeklyAmount,
-                intervalQty,
-                intervalAmount,
+                starting_quantity: parseFloat(product.opening_stock ?? 0) || 0,
+                dailyQty: Number(dailyQty) || 0,
+                dailyAmount: Number(dailyAmount) || 0,
+                daily_sales: `${Number(dailyQty) || 0} units ₹${Number(dailyAmount) || 0}`,
+                weeklyQty: Number(weeklyQty) || 0,
+                weeklyAmount: Number(weeklyAmount) || 0,
+                weekly_sales: `${Number(weeklyQty) || 0} units ₹${Number(weeklyAmount) || 0}`,
+                intervalQty: Number(intervalQty) || 0,
+                intervalAmount: Number(intervalAmount) || 0,
+                interval_sales: `${Number(intervalQty) || 0} units ₹${Number(intervalAmount) || 0}`,
                 purchases: productSales,
                 customerCount: uniqueCustomers.length,
-                uniqueCustomers
+                uniqueCustomers,
+                customers: uniqueCustomers.join(', ') || 'Walk-in Customer'
             };
         });
     }, [stocks, allSalesTransactions, dateInterval, customStartDate, customEndDate]);
 
-    const totalDailySoldQty = productSellingHistoryData.reduce((sum, p) => sum + p.dailyQty, 0);
-    const totalDailySoldAmount = productSellingHistoryData.reduce((sum, p) => sum + p.dailyAmount, 0);
-    const totalWeeklySoldQty = productSellingHistoryData.reduce((sum, p) => sum + p.weeklyQty, 0);
-    const totalWeeklySoldAmount = productSellingHistoryData.reduce((sum, p) => sum + p.weeklyAmount, 0);
+    const totalDailySoldQty = productSellingHistoryData.reduce((sum, p) => Number(sum) + (Number(p.dailyQty) || 0), 0);
+    const totalDailySoldAmount = productSellingHistoryData.reduce((sum, p) => Number(sum) + (Number(p.dailyAmount) || 0), 0);
+    const totalWeeklySoldQty = productSellingHistoryData.reduce((sum, p) => Number(sum) + (Number(p.weeklyQty) || 0), 0);
+    const totalWeeklySoldAmount = productSellingHistoryData.reduce((sum, p) => Number(sum) + (Number(p.weeklyAmount) || 0), 0);
+    const totalIntervalSoldQty = productSellingHistoryData.reduce((sum, p) => Number(sum) + (Number(p.intervalQty) || 0), 0);
+    const totalIntervalSoldAmount = productSellingHistoryData.reduce((sum, p) => Number(sum) + (Number(p.intervalAmount) || 0), 0);
 
-    const filteredSellingHistory = productSellingHistoryData.filter(item =>
-        (item.product_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.product_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.warehouse_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.uniqueCustomers.some(c => c.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredSellingHistory = productSellingHistoryData.filter(item => {
+        // Stock Status filter
+        if (stockStatusFilter === 'in_stock' && (item.current_stock <= item.minimum_stock || item.current_stock <= 0)) return false;
+        if (stockStatusFilter === 'low_stock' && (item.current_stock > item.minimum_stock || item.current_stock <= 0)) return false;
+        if (stockStatusFilter === 'out_of_stock' && item.current_stock > 0) return false;
+
+        // Search Term filter
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            const matches = (
+                (item.product_name || '').toLowerCase().includes(term) ||
+                (item.product_id || '').toLowerCase().includes(term) ||
+                (item.warehouse_name || '').toLowerCase().includes(term) ||
+                (item.customers || '').toLowerCase().includes(term) ||
+                item.uniqueCustomers.some(c => c.toLowerCase().includes(term))
+            );
+            if (!matches) return false;
+        }
+
+        return true;
+    });
 
     // Set default product for history when stock loads
     useEffect(() => {
@@ -777,7 +820,7 @@ const BusinessStock = () => {
                 to_warehouse_id: toWhId,
                 stock_id: productIdStr,
                 qty: transQty,
-                reference: transferForm.reference || 'MIG-TRF-12'
+                reference: transferForm.reference?.trim() || `TRF-${Date.now().toString().slice(-6)}`
             });
         }
     };
@@ -814,7 +857,14 @@ const BusinessStock = () => {
                         <Sliders size={15} /> Adjust Stock Counts
                     </button>
                     <button 
-                        onClick={() => setIsTransferModalOpen(true)}
+                        onClick={() => {
+                            setTransferForm(prev => ({
+                                ...prev,
+                                reference: '',
+                                qty: ''
+                            }));
+                            setIsTransferModalOpen(true);
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <ArrowRightLeft size={15} /> Warehouse Transfer
@@ -1076,7 +1126,19 @@ const BusinessStock = () => {
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Warehouse Branch transfers</h3>
-                        <button onClick={() => setIsTransferModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Transfer Stock</button>
+                        <button 
+                            onClick={() => {
+                                setTransferForm(prev => ({
+                                    ...prev,
+                                    reference: '',
+                                    qty: ''
+                                }));
+                                setIsTransferModalOpen(true);
+                            }} 
+                            style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+                        >
+                            + Transfer Stock
+                        </button>
                     </div>
                     <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 280px)', minHeight: '380px' }}>
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
@@ -1132,7 +1194,7 @@ const BusinessStock = () => {
                         <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tracked Catalog Items</p>
-                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#0F172A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>{stocks.length} Products</h3>
+                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#0F172A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>{filteredSellingHistory.length} Products</h3>
                             </div>
                             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', flexShrink: 0 }}>
                                 <Layers size={22} />
@@ -1141,9 +1203,11 @@ const BusinessStock = () => {
 
                         <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Daily Sold Volume (Today)</p>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {dateInterval === 'today' ? 'Daily Sold Volume (Today)' : `Selected Interval (${dateInterval === '7days' ? 'Last 7 Days' : dateInterval === '30days' ? 'Last 30 Days' : dateInterval === 'all' ? 'All Time' : 'Custom Period'})`}
+                                </p>
                                 <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#16A34A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
-                                    {totalDailySoldQty} Units <span style={{ fontSize: '1rem', fontWeight: '700', color: '#059669' }}>({formatCurrency(totalDailySoldAmount)})</span>
+                                    {dateInterval === 'today' ? totalDailySoldQty : totalIntervalSoldQty} Units <span style={{ fontSize: '1rem', fontWeight: '700', color: '#059669' }}>({formatCurrency(dateInterval === 'today' ? totalDailySoldAmount : totalIntervalSoldAmount)})</span>
                                 </h3>
                             </div>
                             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', flexShrink: 0 }}>
@@ -1181,7 +1245,7 @@ const BusinessStock = () => {
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
                                 <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: '700', background: '#F1F5F9', padding: '0.45rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                                    📅 Interval: <strong style={{ color: '#0F172A' }}>{dateInterval === 'today' ? 'Today' : dateInterval === '7days' ? 'Last 7 Days' : `${customStartDate || 'Start'} to ${customEndDate || 'End'}`}</strong>
+                                    📅 Interval: <strong style={{ color: '#0F172A' }}>{dateInterval === 'today' ? 'Today' : dateInterval === '7days' ? 'Last 7 Days' : dateInterval === '30days' ? 'Last 30 Days' : dateInterval === 'all' ? 'All Time' : `${customStartDate || 'Start'} to ${customEndDate || 'End'}`}</strong>
                                 </span>
 
                                 {/* Customize View (⚙️) Button */}
@@ -1212,11 +1276,11 @@ const BusinessStock = () => {
                                         position: 'absolute',
                                         top: 'calc(100% + 8px)',
                                         right: 0,
-                                        width: '320px',
+                                        width: '340px',
                                         background: 'white',
                                         borderRadius: '20px',
-                                        border: '1px solid #E2E8F0',
-                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                        border: '1px solid #CBD5E1',
+                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
                                         padding: '1.25rem',
                                         zIndex: 100,
                                         display: 'flex',
@@ -1226,30 +1290,34 @@ const BusinessStock = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.6rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                                 <span style={{ fontSize: '1rem' }}>⚙️</span>
-                                                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>Customize Date Interval</h4>
+                                                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>Customize View & Filters</h4>
                                             </div>
                                             <button onClick={() => setIsCustomizeViewOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
                                         </div>
 
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Select Interval</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+                                        {/* Date Interval Presets */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Time Interval</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
                                                 {[
                                                     { id: 'today', label: 'Today' },
-                                                    { id: '7days', label: 'Last 7 Days' },
+                                                    { id: '7days', label: '7 Days' },
+                                                    { id: '30days', label: '30 Days' },
+                                                    { id: 'all', label: 'All Time' },
                                                     { id: 'custom', label: 'Custom' }
                                                 ].map(preset => (
                                                     <button
                                                         key={preset.id}
+                                                        type="button"
                                                         onClick={() => setDateInterval(preset.id)}
                                                         style={{
-                                                            padding: '0.5rem 0.4rem',
+                                                            padding: '0.45rem 0.3rem',
                                                             borderRadius: '8px',
                                                             border: dateInterval === preset.id ? '2px solid #2563EB' : '1px solid #E2E8F0',
                                                             background: dateInterval === preset.id ? '#EFF6FF' : 'white',
                                                             color: dateInterval === preset.id ? '#1D4ED8' : '#475569',
                                                             fontWeight: '800',
-                                                            fontSize: '0.78rem',
+                                                            fontSize: '0.75rem',
                                                             cursor: 'pointer'
                                                         }}
                                                     >
@@ -1260,44 +1328,132 @@ const BusinessStock = () => {
                                         </div>
 
                                         {dateInterval === 'custom' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: '#F8FAFC', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#475569', marginBottom: '0.25rem' }}>Start Date</label>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '750', color: '#475569', marginBottom: '0.2rem' }}>Start Date</label>
                                                     <input 
                                                         type="date" 
                                                         value={customStartDate} 
                                                         onChange={(e) => setCustomStartDate(e.target.value)} 
-                                                        style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', background: 'white' }}
+                                                        style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.78rem', background: 'white' }}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#475569', marginBottom: '0.25rem' }}>End Date</label>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '750', color: '#475569', marginBottom: '0.2rem' }}>End Date</label>
                                                     <input 
                                                         type="date" 
                                                         value={customEndDate} 
                                                         onChange={(e) => setCustomEndDate(e.target.value)} 
-                                                        style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', background: 'white' }}
+                                                        style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.78rem', background: 'white' }}
                                                     />
                                                 </div>
                                             </div>
                                         )}
 
-                                        <button
-                                            onClick={() => setIsCustomizeViewOpen(false)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.6rem',
-                                                borderRadius: '10px',
-                                                background: '#064E3B',
-                                                color: 'white',
-                                                border: 'none',
-                                                fontSize: '0.82rem',
-                                                fontWeight: '800',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Apply Interval
-                                        </button>
+                                        {/* Stock Status Filter */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Filter Stock Status</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.35rem' }}>
+                                                {[
+                                                    { id: 'all', label: 'All Items' },
+                                                    { id: 'in_stock', label: 'In Stock' },
+                                                    { id: 'low_stock', label: 'Low Stock' },
+                                                    { id: 'out_of_stock', label: 'Out of Stock' }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        onClick={() => setStockStatusFilter(opt.id)}
+                                                        style={{
+                                                            padding: '0.4rem',
+                                                            borderRadius: '8px',
+                                                            border: stockStatusFilter === opt.id ? '2px solid #064E3B' : '1px solid #E2E8F0',
+                                                            background: stockStatusFilter === opt.id ? '#F0FDF4' : 'white',
+                                                            color: stockStatusFilter === opt.id ? '#064E3B' : '#64748B',
+                                                            fontWeight: '750',
+                                                            fontSize: '0.75rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Column Visibility Toggles */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Visible Columns</label>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                                {[
+                                                    { key: 'starting_quantity', label: 'Starting Quantity' },
+                                                    { key: 'current_stock', label: 'Current Stock' },
+                                                    { key: 'daily_sales', label: 'Daily Sales (Qty / ₹)' },
+                                                    { key: 'weekly_sales', label: 'Weekly Sales (Qty / ₹)' },
+                                                    { key: 'customers', label: 'Customers' }
+                                                ].map(col => (
+                                                    <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', fontWeight: '600', color: '#334155', cursor: 'pointer' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={visibleColumns[col.key]}
+                                                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, [col.key]: e.target.checked }))}
+                                                            style={{ accentColor: '#064E3B', width: '15px', height: '15px', cursor: 'pointer' }}
+                                                        />
+                                                        {col.label}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons: Reset & Apply */}
+                                        <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.2rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setDateInterval('7days');
+                                                    setCustomStartDate('');
+                                                    setCustomEndDate('');
+                                                    setStockStatusFilter('all');
+                                                    setVisibleColumns({
+                                                        starting_quantity: true,
+                                                        current_stock: true,
+                                                        daily_sales: true,
+                                                        weekly_sales: true,
+                                                        customers: true
+                                                    });
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.55rem',
+                                                    borderRadius: '10px',
+                                                    background: '#F1F5F9',
+                                                    color: '#475569',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: '750',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Reset Default
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCustomizeViewOpen(false)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.55rem',
+                                                    borderRadius: '10px',
+                                                    background: '#064E3B',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: '800',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1308,11 +1464,11 @@ const BusinessStock = () => {
                             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
                                 <FilterableTableHead columns={[
                                     { key: 'product_name', label: 'PRODUCT DETAILS', placeholder: 'Name/SKU' },
-                                    { key: 'starting_quantity', label: 'STARTING QUANTITY', placeholder: 'Qty' },
-                                    { key: 'current_stock', label: 'CURRENT STOCK', placeholder: 'Stock' },
-                                    { key: 'daily_sales', label: 'DAILY SALES (QTY / ₹)', placeholder: 'Qty / ₹' },
-                                    { key: 'weekly_sales', label: 'WEEKLY SALES (QTY / ₹)', placeholder: 'Qty / ₹' },
-                                    { key: 'customers', label: 'CUSTOMERS', placeholder: 'Customer' }
+                                    ...(visibleColumns.starting_quantity ? [{ key: 'starting_quantity', label: 'STARTING QUANTITY', placeholder: 'Qty' }] : []),
+                                    ...(visibleColumns.current_stock ? [{ key: 'current_stock', label: 'CURRENT STOCK', placeholder: 'Stock' }] : []),
+                                    ...(visibleColumns.daily_sales ? [{ key: 'daily_sales', label: 'DAILY SALES (QTY / ₹)', placeholder: 'Qty / ₹' }] : []),
+                                    ...(visibleColumns.weekly_sales ? [{ key: 'weekly_sales', label: 'WEEKLY SALES (QTY / ₹)', placeholder: 'Qty / ₹' }] : []),
+                                    ...(visibleColumns.customers ? [{ key: 'customers', label: 'CUSTOMERS', placeholder: 'Customer' }] : [])
                                 ]} onFilterChange={setColFilters} />
                                 <tbody>
                                     {filteredSellingHistory.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item) => (
@@ -1332,87 +1488,97 @@ const BusinessStock = () => {
                                             </td>
 
                                             {/* 2. STARTING QUANTITY */}
-                                            <td style={{ padding: '1.25rem 1.75rem' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                                    <span style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.9rem' }}>
-                                                        {item.starting_quantity} Units
-                                                    </span>
-                                                    <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Initial Setup Stock</span>
-                                                </div>
-                                            </td>
+                                            {visibleColumns.starting_quantity && (
+                                                <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                                        <span style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.9rem' }}>
+                                                            {item.starting_quantity} Units
+                                                        </span>
+                                                        <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Initial Setup Stock</span>
+                                                    </div>
+                                                </td>
+                                            )}
 
                                             {/* 3. CURRENT STOCK */}
-                                            <td style={{ padding: '1.25rem 1.75rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span style={{ fontWeight: '850', color: item.current_stock <= 0 ? '#EF4444' : item.current_stock <= item.minimum_stock ? '#F59E0B' : '#0F172A', fontSize: '0.95rem' }}>
-                                                        {item.current_stock}
-                                                    </span>
-                                                    <span style={{
-                                                        padding: '0.2rem 0.55rem',
-                                                        borderRadius: '6px',
-                                                        fontSize: '0.72rem',
-                                                        fontWeight: '800',
-                                                        background: item.current_stock <= 0 ? '#FEF2F2' : item.current_stock <= item.minimum_stock ? '#FFFBEB' : '#F0FDF4',
-                                                        color: item.current_stock <= 0 ? '#EF4444' : item.current_stock <= item.minimum_stock ? '#D97706' : '#16A34A',
-                                                        border: item.current_stock <= 0 ? '1px solid #FECACA' : item.current_stock <= item.minimum_stock ? '1px solid #FDE68A' : '1px solid #BBF7D0'
-                                                    }}>
-                                                        {item.current_stock <= 0 ? 'Out of Stock' : item.current_stock <= item.minimum_stock ? 'Low Stock' : 'In Stock'}
-                                                    </span>
-                                                </div>
-                                            </td>
+                                            {visibleColumns.current_stock && (
+                                                <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span style={{ fontWeight: '850', color: item.current_stock <= 0 ? '#EF4444' : item.current_stock <= item.minimum_stock ? '#F59E0B' : '#0F172A', fontSize: '0.95rem' }}>
+                                                            {item.current_stock}
+                                                        </span>
+                                                        <span style={{
+                                                            padding: '0.2rem 0.55rem',
+                                                            borderRadius: '6px',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: '800',
+                                                            background: item.current_stock <= 0 ? '#FEF2F2' : item.current_stock <= item.minimum_stock ? '#FFFBEB' : '#F0FDF4',
+                                                            color: item.current_stock <= 0 ? '#EF4444' : item.current_stock <= item.minimum_stock ? '#D97706' : '#16A34A',
+                                                            border: item.current_stock <= 0 ? '1px solid #FECACA' : item.current_stock <= item.minimum_stock ? '1px solid #FDE68A' : '1px solid #BBF7D0'
+                                                        }}>
+                                                            {item.current_stock <= 0 ? 'Out of Stock' : item.current_stock <= item.minimum_stock ? 'Low Stock' : 'In Stock'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            )}
 
                                             {/* 4. DAILY SALES (QTY / ₹) */}
-                                            <td style={{ padding: '1.25rem 1.75rem' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                                    <span style={{ fontWeight: '850', color: item.dailyQty > 0 ? '#16A34A' : '#64748B', fontSize: '0.9rem' }}>
-                                                        {item.dailyQty} Units
-                                                    </span>
-                                                    <span style={{ fontSize: '0.78rem', color: item.dailyAmount > 0 ? '#15803D' : '#94A3B8', fontWeight: '700' }}>
-                                                        {formatCurrency(item.dailyAmount)}
-                                                    </span>
-                                                </div>
-                                            </td>
+                                            {visibleColumns.daily_sales && (
+                                                <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                                        <span style={{ fontWeight: '850', color: item.dailyQty > 0 ? '#16A34A' : '#64748B', fontSize: '0.9rem' }}>
+                                                            {item.dailyQty} Units
+                                                        </span>
+                                                        <span style={{ fontSize: '0.78rem', color: item.dailyAmount > 0 ? '#15803D' : '#94A3B8', fontWeight: '700' }}>
+                                                            {formatCurrency(item.dailyAmount)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            )}
 
                                             {/* 5. WEEKLY SALES (QTY / ₹) */}
-                                            <td style={{ padding: '1.25rem 1.75rem' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                                    <span style={{ fontWeight: '850', color: item.weeklyQty > 0 ? '#2563EB' : '#64748B', fontSize: '0.9rem' }}>
-                                                        {item.weeklyQty} Units
-                                                    </span>
-                                                    <span style={{ fontSize: '0.78rem', color: item.weeklyAmount > 0 ? '#1D4ED8' : '#94A3B8', fontWeight: '700' }}>
-                                                        {formatCurrency(item.weeklyAmount)}
-                                                    </span>
-                                                </div>
-                                            </td>
+                                            {visibleColumns.weekly_sales && (
+                                                <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                                        <span style={{ fontWeight: '850', color: item.weeklyQty > 0 ? '#2563EB' : '#64748B', fontSize: '0.9rem' }}>
+                                                            {item.weeklyQty} Units
+                                                        </span>
+                                                        <span style={{ fontSize: '0.78rem', color: item.weeklyAmount > 0 ? '#1D4ED8' : '#94A3B8', fontWeight: '700' }}>
+                                                            {formatCurrency(item.weeklyAmount)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            )}
 
                                             {/* 6. CUSTOMERS */}
-                                            <td style={{ padding: '1.25rem 1.75rem' }}>
-                                                <button
-                                                    onClick={() => setCustomerListModal({ product: item, purchases: item.purchases })}
-                                                    style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.4rem',
-                                                        padding: '0.45rem 0.85rem',
-                                                        borderRadius: '8px',
-                                                        background: item.customerCount > 0 ? '#EFF6FF' : '#F8FAFC',
-                                                        border: item.customerCount > 0 ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
-                                                        color: item.customerCount > 0 ? '#1D4ED8' : '#64748B',
-                                                        fontSize: '0.78rem',
-                                                        fontWeight: '750',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s ease'
-                                                    }}
-                                                    onMouseOver={(e) => {
-                                                        if (item.customerCount > 0) e.currentTarget.style.background = '#DBEAFE';
-                                                    }}
-                                                    onMouseOut={(e) => {
-                                                        if (item.customerCount > 0) e.currentTarget.style.background = '#EFF6FF';
-                                                    }}
-                                                >
-                                                    <Users size={14} /> View Customers ({item.customerCount})
-                                                </button>
-                                            </td>
+                                            {visibleColumns.customers && (
+                                                <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                    <button
+                                                        onClick={() => setCustomerListModal({ product: item, purchases: item.purchases })}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            padding: '0.45rem 0.85rem',
+                                                            borderRadius: '8px',
+                                                            background: item.customerCount > 0 ? '#EFF6FF' : '#F8FAFC',
+                                                            border: item.customerCount > 0 ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
+                                                            color: item.customerCount > 0 ? '#1D4ED8' : '#64748B',
+                                                            fontSize: '0.78rem',
+                                                            fontWeight: '750',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseOver={(e) => {
+                                                            if (item.customerCount > 0) e.currentTarget.style.background = '#DBEAFE';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            if (item.customerCount > 0) e.currentTarget.style.background = '#EFF6FF';
+                                                        }}
+                                                    >
+                                                        <Users size={14} /> View Customers ({item.customerCount})
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                     {filteredSellingHistory.length === 0 && (
@@ -1661,13 +1827,13 @@ const BusinessStock = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Warehouse</label>
                                     <select value={transferForm.from_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, from_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {dbWarehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Warehouse</label>
                                     <select value={transferForm.to_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, to_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {dbWarehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -1686,8 +1852,8 @@ const BusinessStock = () => {
                                     }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Ref / ID</label>
-                                <input required type="text" placeholder="e.g. TRF-2026-001" value={transferForm.reference} onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Ref / ID (Optional)</label>
+                                <input type="text" placeholder="e.g. TRF-2026-001" value={transferForm.reference || ''} onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>

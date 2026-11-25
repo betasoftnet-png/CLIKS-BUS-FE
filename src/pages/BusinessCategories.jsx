@@ -995,7 +995,7 @@ const BusinessCategories = () => {
                                         <button 
                                             type="button"
                                             onClick={() => setViewingCategoryProducts(group)}
-                                            style={{ border: 'none', background: '#F0FDF4', color: '#1B6B3A', padding: '0.2rem 0.55rem', borderRadius: '6px', border: '1px solid #DCFCE7', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                            style={{ background: '#F0FDF4', color: '#1B6B3A', padding: '0.2rem 0.55rem', borderRadius: '6px', border: '1px solid #DCFCE7', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                             title="Click to view products in this category"
                                         >
                                             <Package size={12} />
@@ -1078,7 +1078,7 @@ const BusinessCategories = () => {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setViewingCategoryProducts(sc)}
-                                                                style={{ border: 'none', fontSize: '0.7rem', fontWeight: '700', color: '#1B6B3A', background: '#F0FDF4', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #DCFCE7', cursor: 'pointer' }}
+                                                                style={{ fontSize: '0.7rem', fontWeight: '700', color: '#1B6B3A', background: '#F0FDF4', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #DCFCE7', cursor: 'pointer' }}
                                                                 title="Click to view products in this subcategory"
                                                             >
                                                                 {sc.product_count || 0} items
