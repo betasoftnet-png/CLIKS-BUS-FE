@@ -625,11 +625,11 @@ export default function StockItemDetailView() {
                         <span>/</span>
                         <span>Stock Register</span>
                         <span>/</span>
-                        <span style={{ color: '#1E293B', fontWeight: '750' }}>{currentItem.product_name}</span>
+                        <span style={{ color: '#1E293B', fontWeight: '750', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{currentItem.product_name}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                        <h1 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                        <h1 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                             {currentItem.product_name}
                         </h1>
                         <span style={{

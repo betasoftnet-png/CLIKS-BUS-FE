@@ -106,77 +106,53 @@ export default function StockMovementHistory({
             return computed;
         }
 
-        // Live dynamic ledger synthesized to reconcile exactly to current stock
-        const inwardQty = Math.max(1, Math.round(currentStockQty * 0.35));
-        const dispatchQty = Math.max(1, Math.round(currentStockQty * 0.12));
-        const transferQty = Math.max(1, Math.round(currentStockQty * 0.20));
-        const openingQty = Math.max(0, currentStockQty - inwardQty + dispatchQty - transferQty + damagedStockQty);
+        // If no transaction events exist, return real baseline opening stock or empty list
+        if (currentStockQty > 0) {
+            return [
+                {
+                    date: nowStr,
+                    event: 'Opening Stock Balance',
+                    type: 'opening',
+                    qtyFormatted: `${currentStockQty} pcs`,
+                    balance: currentStockQty,
+                    color: '#059669',
+                    ref: 'Physical Current Inventory'
+                }
+            ];
+        }
 
-        let bal = currentStockQty;
-        return [
-            {
-                date: nowStr,
-                event: 'Goods Inward Receipt',
-                type: 'inward',
-                qtyFormatted: `+${inwardQty} pcs`,
-                balance: bal,
-                color: '#15803d',
-                ref: 'Receipt Inward Ref #INW-295'
-            },
-            {
-                date: '2026-05-20',
-                event: 'Sales Dispatch',
-                type: 'dispatch',
-                qtyFormatted: `-${dispatchQty} pcs`,
-                balance: (bal = bal - inwardQty + dispatchQty),
-                color: '#DC2626',
-                ref: 'B2B Sales Delivery Challan'
-            },
-            {
-                date: '2026-05-15',
-                event: 'Inter-Warehouse Transfer In',
-                type: 'transfer',
-                qtyFormatted: `+${transferQty} pcs`,
-                balance: (bal = bal - dispatchQty + transferQty),
-                color: '#2563EB',
-                ref: 'Branch Dispatch Transfer'
-            },
-            {
-                date: '2026-05-10',
-                event: 'Damage Write-off',
-                type: 'damage',
-                qtyFormatted: `-${damagedStockQty} pcs`,
-                balance: (bal = Math.max(0, bal - transferQty)),
-                color: '#D97706',
-                ref: 'Inspection Quarantine'
-            },
-            {
-                date: '2026-05-01',
-                event: 'Opening Stock Audit',
-                type: 'opening',
-                qtyFormatted: `${openingQty} pcs`,
-                balance: openingQty,
-                color: '#6B21A8',
-                ref: 'Physical Master Verification'
-            }
-        ];
+        return [];
     }, [selectedStock, currentStockQty, damagedStockQty, rawStockHistory, reportsData]);
 
     if (!selectedStock) return null;
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-            <div style={{ background: 'white', width: '100%', maxWidth: '560px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>
+            <div style={{ background: 'white', width: '100%', maxWidth: '560px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '1rem' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ 
+                            fontSize: '1.15rem', 
+                            fontWeight: '900', 
+                            color: '#064E3B', 
+                            margin: 0,
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere',
+                            lineHeight: '1.4'
+                        }}>
                             📦 {selectedStock.product_name}
                         </h3>
-                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>
-                            {selectedStock.product_id} · {selectedStock.warehouse_name}
+                        <p style={{ 
+                            fontSize: '0.8rem', 
+                            color: '#64748B', 
+                            margin: '4px 0 0 0',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere'
+                        }}>
+                            {selectedStock.product_id} · {(!selectedStock.warehouse_name || selectedStock.warehouse_name.toLowerCase() === 'unassigned') ? 'General' : selectedStock.warehouse_name}
                         </p>
                     </div>
-                    <button onClick={onClose} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>
+                    <button onClick={onClose} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', flexShrink: 0 }}>
                         <X size={20} />
                     </button>
                 </div>
@@ -223,7 +199,7 @@ export default function StockMovementHistory({
                         </div>
                         <div>
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>SKU</p>
-                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{selectedStock.product_id}</p>
+                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{selectedStock.product_id}</p>
                         </div>
                     </div>
                 </div>
@@ -239,30 +215,37 @@ export default function StockMovementHistory({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {timelineEvents.map((entry, idx, arr) => (
-                        <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: entry.color, flexShrink: 0, marginTop: '4px' }} />
-                                {idx < arr.length - 1 && (
-                                    <div style={{ width: '2px', flex: 1, background: '#E2E8F0', minHeight: '20px' }} />
-                                )}
-                            </div>
-                            <div style={{ flex: 1, background: '#F8FAFC', padding: '8px 12px', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <p style={{ margin: 0, fontWeight: '800', fontSize: '0.82rem', color: '#0F172A' }}>
-                                        {entry.event} — <span style={{ color: entry.color, fontWeight: '850' }}>{entry.qtyFormatted}</span>
-                                    </p>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '1px 6px', borderRadius: '4px' }}>
-                                        Bal: {entry.balance} pcs
-                                    </span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
-                                    <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{entry.date}</span>
-                                    {entry.ref && <span style={{ fontSize: '0.7rem', color: '#64748B', fontStyle: 'italic' }}>{entry.ref}</span>}
-                                </div>
-                            </div>
+                    {timelineEvents.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '1.75rem 1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
+                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>No Stock Movements Recorded</p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>Transactions such as inward receipts, transfers, or delivery dispatches will be recorded here live.</p>
                         </div>
-                    ))}
+                    ) : (
+                        timelineEvents.map((entry, idx, arr) => (
+                            <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: entry.color, flexShrink: 0, marginTop: '4px' }} />
+                                    {idx < arr.length - 1 && (
+                                        <div style={{ width: '2px', flex: 1, background: '#E2E8F0', minHeight: '20px' }} />
+                                    )}
+                                </div>
+                                <div style={{ flex: 1, background: '#F8FAFC', padding: '8px 12px', borderRadius: '10px', border: '1px solid #F1F5F9', minWidth: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                                        <p style={{ margin: 0, fontWeight: '800', fontSize: '0.82rem', color: '#0F172A', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                            {entry.event} — <span style={{ color: entry.color, fontWeight: '850' }}>{entry.qtyFormatted}</span>
+                                        </p>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '1px 6px', borderRadius: '4px', flexShrink: 0 }}>
+                                            Bal: {entry.balance} pcs
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{entry.date}</span>
+                                        {entry.ref && <span style={{ fontSize: '0.7rem', color: '#64748B', fontStyle: 'italic', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{entry.ref}</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

@@ -37,10 +37,10 @@ export default function WarehouseStockRegistryTab({
                   onClick={() => onSelectStock && onSelectStock(item)}
                   className="hover:bg-emerald-50/50 cursor-pointer transition-colors"
                 >
-                  <td className="py-3.5 px-4 font-extrabold text-[#064E3B]">
-                    {item.warehouse_name || item.warehouse || 'Main Facility'}
+                  <td className="py-3.5 px-4 font-extrabold text-[#064E3B] max-w-[200px] break-words [overflow-wrap:anywhere]">
+                    {((item.warehouse_name || item.warehouse || '').toLowerCase() === 'unassigned' || (!item.warehouse_name && !item.warehouse)) ? 'General' : (item.warehouse_name || item.warehouse)}
                   </td>
-                  <td className="py-3.5 px-4 font-bold text-gray-800">
+                  <td className="py-3.5 px-4 font-bold text-gray-800 max-w-[280px] break-words [overflow-wrap:anywhere]">
                     {item.product_name || item.name || 'Stock Item'}
                   </td>
                   <td className="py-3.5 px-4">
@@ -63,7 +63,7 @@ export default function WarehouseStockRegistryTab({
                         <div className="flex flex-col">
                           <span className="font-bold text-gray-600">{displayZone}</span>
                           <span className="text-[10px] text-gray-400">
-                            {coords.length > 0 ? coords.join(' | ') : 'Open Floor / Unassigned'}
+                            {coords.length > 0 ? coords.join(' | ') : 'Open Floor / General'}
                           </span>
                         </div>
                       );

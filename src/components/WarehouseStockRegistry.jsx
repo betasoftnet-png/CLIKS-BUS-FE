@@ -37,15 +37,15 @@ export default function WarehouseStockRegistry({
                                 className="hover:bg-slate-50/80"
                             >
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#0F172A' }}>{st.wh_stock_id}</td>
-                                <td style={{ padding: '1.5rem 2rem' }}>
+                                <td style={{ padding: '1.5rem 2rem', maxWidth: '300px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: '800', color: '#0F172A' }}>{st.product_name}</span>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{st.product_id}</span>
+                                        <span style={{ fontWeight: '800', color: '#0F172A', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{st.product_name}</span>
+                                        <span style={{ fontSize: '0.8rem', color: '#64748B', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{st.product_id}</span>
                                     </div>
                                 </td>
-                                <td style={{ padding: '1.5rem 2rem' }}>
-                                    <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '10px', background: '#F1F5F9', color: '#334155', fontSize: '0.8rem', fontWeight: '800' }}>
-                                        {st.warehouse_name}
+                                <td style={{ padding: '1.5rem 2rem', maxWidth: '240px' }}>
+                                    <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '10px', background: '#F1F5F9', color: '#334155', fontSize: '0.8rem', fontWeight: '800', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                        {(!st.warehouse_name || st.warehouse_name.toLowerCase() === 'unassigned') ? 'General' : st.warehouse_name}
                                     </span>
                                 </td>
                                 <td style={{ padding: '1.5rem 2rem' }}>
@@ -68,7 +68,7 @@ export default function WarehouseStockRegistry({
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontWeight: '700', color: '#475569' }}>{displayZone}</span>
                                                 <span style={{ fontSize: '0.8rem', color: coords.length > 0 ? '#64748B' : '#94A3B8' }}>
-                                                    {coords.length > 0 ? coords.join(' | ') : 'Open Floor / Unassigned'}
+                                                    {coords.length > 0 ? coords.join(' | ') : 'Open Floor / General'}
                                                 </span>
                                             </div>
                                         );

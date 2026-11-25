@@ -305,7 +305,7 @@ const BusinessWarehouse = () => {
         // Map existing stock rows
         const baseRows = dbStocks.map(s => {
             const product = dbProducts.find(p => p.sku === s.sku || p.name === s.name) || {};
-            let warehouseName = s.location || s.warehouse || 'Unassigned';
+            let warehouseName = s.location || s.warehouse || 'General';
 
             const cleanVal = (v) => {
                 if (v === null || v === undefined) return '';
@@ -323,6 +323,10 @@ const BusinessWarehouse = () => {
                 } else {
                     warehouseName = s.location;
                 }
+            }
+
+            if (!warehouseName || warehouseName.trim().toLowerCase() === 'unassigned' || warehouseName.trim().toLowerCase() === 'null') {
+                warehouseName = 'General';
             }
 
             const rackNumber = cleanVal(s.rack_number) || cleanVal(product.rack_number) || locRack;
@@ -1390,11 +1394,13 @@ const BusinessWarehouse = () => {
                                 <tbody>
                                     {whStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => (
                                         <tr key={st.wh_stock_id} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onClick={() => setSelectedStock(st)} onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{st.warehouse_name}</p>
+                                            <td style={{ padding: '1.5rem 2rem', maxWidth: '240px' }}>
+                                                <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                                    {(!st.warehouse_name || st.warehouse_name.toLowerCase() === 'unassigned') ? 'General' : st.warehouse_name}
+                                                </p>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <p style={{ fontWeight: '700', color: '#1E293B' }}>{st.product_name}</p>
+                                            <td style={{ padding: '1.5rem 2rem', maxWidth: '300px' }}>
+                                                <p style={{ fontWeight: '700', color: '#1E293B', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{st.product_name}</p>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 {(() => {
@@ -1412,7 +1418,7 @@ const BusinessWarehouse = () => {
                                                     }
 
                                                     const displayZone = st.zone && st.zone !== 'N/A' ? st.zone : (coords.length > 0 ? 'Zone A' : 'Storage Zone');
-                                                    const displayCoords = coords.length > 0 ? coords.join(' | ') : 'Open Floor / Unassigned';
+                                                    const displayCoords = coords.length > 0 ? coords.join(' | ') : 'Open Floor / General';
 
                                                     return (
                                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
