@@ -567,18 +567,18 @@ const BusinessStock = () => {
     const [adjustmentForm, setAdjustmentForm] = useState({
         product_id: '',
         adjustment_type: 'add', // 'add' or 'reduce'
-        qty: 10,
-        reason: 'Physical stock reconciliation audit',
+        qty: '',
+        reason: '',
         warehouse_name: 'Main Godown'
     });
 
     // Form inputs for Warehouse Transfers
     const [transferForm, setTransferForm] = useState({
         product_id: '',
-        qty: 15,
+        qty: '',
         from_warehouse_id: '',
         to_warehouse_id: '',
-        reference: 'MIG-TRF-12'
+        reference: ''
     });
 
     // Map registered catalog products (Inventory -> Products) & dbStocks into a unified list for Stock Transfer
@@ -1593,7 +1593,8 @@ const BusinessStock = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Adjustment Qty</label>
-                                <input required type="number" min="1" value={adjustmentForm.qty === 0 ? '' : adjustmentForm.qty} 
+                                <input required type="number" min="1" value={adjustmentForm.qty} 
+                                    placeholder="e.g. 10"
                                     onKeyDown={(e) => {
                                         if (['e', 'E', '+', '-'].includes(e.key)) {
                                             e.preventDefault();
@@ -1601,10 +1602,7 @@ const BusinessStock = () => {
                                     }}
                                     onChange={(e) => {
                                         let val = e.target.value.replace(/^0+/, ''); // prevent leading zero
-                                        if (val === '') val = '0';
-                                        let num = parseInt(val) || 0;
-                                        if (num < 0) num = 0;
-                                        setAdjustmentForm({ ...adjustmentForm, qty: num });
+                                        setAdjustmentForm({ ...adjustmentForm, qty: val });
                                     }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
@@ -1675,7 +1673,8 @@ const BusinessStock = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Quantity to Move</label>
-                                <input required type="number" min="1" value={transferForm.qty === 0 ? '' : transferForm.qty} 
+                                <input required type="number" min="1" value={transferForm.qty} 
+                                    placeholder="e.g. 15"
                                     onKeyDown={(e) => {
                                         if (['e', 'E', '+', '-'].includes(e.key)) {
                                             e.preventDefault();
@@ -1683,15 +1682,12 @@ const BusinessStock = () => {
                                     }}
                                     onChange={(e) => {
                                         let val = e.target.value.replace(/^0+/, ''); // prevent leading zero
-                                        if (val === '') val = '0';
-                                        let num = parseInt(val) || 0;
-                                        if (num < 0) num = 0;
-                                        setTransferForm({ ...transferForm, qty: num });
+                                        setTransferForm({ ...transferForm, qty: val });
                                     }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Ref / ID</label>
-                                <input required type="text" value={transferForm.reference} onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                <input required type="text" placeholder="e.g. TRF-2026-001" value={transferForm.reference} onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>

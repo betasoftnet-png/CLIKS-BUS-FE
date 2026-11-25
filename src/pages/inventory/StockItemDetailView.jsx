@@ -49,21 +49,21 @@ export default function StockItemDetailView() {
     // Form states
     const [inwardForm, setInwardForm] = useState({
         purchase_date: new Date().toISOString().split('T')[0],
-        purchase_bill_ref: `PO-${Math.floor(1000 + Math.random() * 9000)}`,
+        purchase_bill_ref: '',
         supplier_name: '',
-        received_by: 'Storekeeper (Inward Desk)',
-        quantity: 10,
+        received_by: '',
+        quantity: '',
         unit_price: '',
         warehouse_name: 'Main Godown',
-        notes: 'Inspected and verified inward stock'
+        notes: ''
     });
 
     const [adjustmentForm, setAdjustmentForm] = useState({
         type: 'add',
-        quantity: 5,
+        quantity: '',
         reason: 'Physical Count Audit',
-        adjusted_by: 'Auditor (Verification)',
-        notes: 'Routine periodic cycle count reconciliation'
+        adjusted_by: '',
+        notes: ''
     });
 
     const showToast = (msg) => {
@@ -347,54 +347,22 @@ export default function StockItemDetailView() {
             });
         }
 
-        // D. High-Quality Seeded Events if none exist
-        if (events.length === 0) {
-            const now = Date.now();
-            const createdTs = new Date(currentItem.created_at).getTime() || (now - 20 * 86400000);
-
+        // D. Initial Opening Balance Event if current stock exists but no ledger events yet
+        if (events.length === 0 && (Number(currentItem.current_stock) > 0 || Number(currentItem.opening_stock) > 0)) {
+            const stockQty = Number(currentItem.current_stock || currentItem.opening_stock || 0);
             events.push({
-                id: 'init-inward-1',
-                date: new Date(createdTs).toISOString(),
+                id: `init-stock-${currentItem.id || targetItemId}`,
+                date: currentItem.created_at || new Date().toISOString(),
                 type: 'PURCHASE_INWARD',
-                reference_no: 'PO-2026-0819',
-                when_purchased: new Date(createdTs).toISOString().split('T')[0],
-                who_received: 'Ramesh Kumar (Senior Store In-charge)',
-                counterparty: currentItem.supplier_name || 'National Wholesale Hub Ltd',
-                quantity_in: (currentItem.current_stock || 200) + 15,
+                reference_no: currentItem.sku ? `INIT-${currentItem.sku}` : 'INIT-OPENING-STK',
+                when_purchased: currentItem.created_at ? currentItem.created_at.split('T')[0] : 'Opening Balance',
+                who_received: 'Store In-charge',
+                counterparty: currentItem.supplier_name && currentItem.supplier_name !== 'Standard Procurement Ltd' ? currentItem.supplier_name : 'Initial Opening Balance',
+                quantity_in: stockQty,
                 quantity_out: 0,
-                unit_price: currentItem.purchase_cost || 450,
-                warehouse: currentItem.warehouse_name || 'Central Godown',
-                notes: 'Primary consignment received in intact seal, batch tested and passed QC'
-            });
-
-            events.push({
-                id: 'mid-dispatch-1',
-                date: new Date(createdTs + 5 * 86400000).toISOString(),
-                type: 'DISPATCH_OUTWARD',
-                reference_no: 'POS-BIL-9932',
-                when_purchased: '—',
-                who_received: 'Pooja Verma (Billing Counter #2)',
-                counterparty: 'Supermarket Walk-in Shopper',
-                quantity_in: 0,
-                quantity_out: 10,
-                unit_price: currentItem.selling_value || 599,
-                warehouse: currentItem.warehouse_name || 'Central Godown',
-                notes: 'Customer POS retail billing scan checkout'
-            });
-
-            events.push({
-                id: 'audit-reconcile-1',
-                date: new Date(now - 2 * 86400000).toISOString(),
-                type: 'ADJUSTMENT',
-                reference_no: 'AUD-ADJ-4102',
-                when_purchased: '—',
-                who_received: 'S. K. Sharma (Inventory Internal Auditor)',
-                counterparty: 'Internal Warehouse Audit',
-                quantity_in: 0,
-                quantity_out: 5,
-                unit_price: currentItem.purchase_cost || 450,
-                warehouse: currentItem.warehouse_name || 'Central Godown',
-                notes: 'Routine shelf count audit & damaged packaging write-down'
+                unit_price: currentItem.purchase_cost || currentItem.average_cost || 0,
+                warehouse: currentItem.warehouse_name || 'Main Godown',
+                notes: 'Initial recorded stock balance at catalog registration'
             });
         }
 
@@ -564,7 +532,7 @@ export default function StockItemDetailView() {
     const resolvedBarcode = currentItem.sku || currentItem.barcode || (currentItem.id ? `SKU-${currentItem.id}` : '');
 
     return (
-        <div style={{
+        <div id="stock-item-detail-view" style={{
             padding: '1.75rem 2.25rem',
             background: '#F8FAFC',
             minHeight: '100%',
@@ -575,9 +543,39 @@ export default function StockItemDetailView() {
             boxSizing: 'border-box',
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
         }}>
+            <style>{`
+                @media print {
+                    body * {
+                        visibility: hidden !important;
+                    }
+                    #stock-item-detail-view,
+                    #stock-item-detail-view * {
+                        visibility: visible !important;
+                    }
+                    #stock-item-detail-view {
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        margin: 0 !important;
+                        padding: 1rem 1.5rem !important;
+                        background: white !important;
+                        color: #0F172A !important;
+                        box-shadow: none !important;
+                        display: block !important;
+                    }
+                    .no-print,
+                    .no-print * {
+                        display: none !important;
+                        visibility: hidden !important;
+                    }
+                }
+            `}</style>
+
             {/* Toast Notification */}
             {toastMessage && (
-                <div style={{
+                <div className="no-print" style={{
                     position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
                     background: '#064E3B', color: 'white', padding: '0.85rem 1.5rem',
                     borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
@@ -600,6 +598,7 @@ export default function StockItemDetailView() {
             }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     <button
+                        className="no-print"
                         onClick={() => navigate('/inventory/stock')}
                         style={{
                             display: 'inline-flex',
@@ -662,15 +661,19 @@ export default function StockItemDetailView() {
                 </div>
 
                 {/* Right Action Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => {
-                            setInwardForm(prev => ({
-                                ...prev,
-                                supplier_name: currentItem.supplier_name || 'Standard Supplier Ltd',
-                                unit_price: currentItem.purchase_cost || 450,
-                                warehouse_name: currentItem.warehouse_name || 'Main Godown'
-                            }));
+                            setInwardForm({
+                                purchase_date: new Date().toISOString().split('T')[0],
+                                purchase_bill_ref: '',
+                                supplier_name: currentItem.supplier_name && currentItem.supplier_name !== 'Standard Procurement Ltd' ? currentItem.supplier_name : '',
+                                received_by: '',
+                                quantity: '',
+                                unit_price: currentItem.purchase_cost ? String(currentItem.purchase_cost) : '',
+                                warehouse_name: currentItem.warehouse_name || 'Main Godown',
+                                notes: ''
+                            });
                             setIsInwardModalOpen(true);
                         }}
                         style={{
@@ -1027,7 +1030,7 @@ export default function StockItemDetailView() {
                 </div>
 
                 {/* Search Bar & Interval Filter */}
-                <div style={{
+                <div className="no-print" style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -1341,7 +1344,7 @@ export default function StockItemDetailView() {
 
             {/* MODAL 1: RECORD PURCHASE / INWARD */}
             {isInwardModalOpen && (
-                <div style={{
+                <div className="no-print" style={{
                     position: 'fixed', inset: 0, zIndex: 9999,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', padding: '1rem'
@@ -1436,6 +1439,7 @@ export default function StockItemDetailView() {
                                         type="number"
                                         min="1"
                                         required
+                                        placeholder="e.g. 10"
                                         value={inwardForm.quantity}
                                         onChange={e => setInwardForm({ ...inwardForm, quantity: e.target.value })}
                                         style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
@@ -1462,6 +1466,7 @@ export default function StockItemDetailView() {
                                 </label>
                                 <textarea
                                     rows={2}
+                                    placeholder="e.g. Inspected and verified inward stock"
                                     value={inwardForm.notes}
                                     onChange={e => setInwardForm({ ...inwardForm, notes: e.target.value })}
                                     style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '600' }}
@@ -1491,7 +1496,7 @@ export default function StockItemDetailView() {
 
             {/* MODAL 2: AUDIT COUNT ADJUSTMENT */}
             {isAdjustmentModalOpen && (
-                <div style={{
+                <div className="no-print" style={{
                     position: 'fixed', inset: 0, zIndex: 9999,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', padding: '1rem'
@@ -1570,6 +1575,7 @@ export default function StockItemDetailView() {
                                         type="number"
                                         min="1"
                                         required
+                                        placeholder="e.g. 5"
                                         value={adjustmentForm.quantity}
                                         onChange={e => setAdjustmentForm({ ...adjustmentForm, quantity: e.target.value })}
                                         style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
@@ -1582,6 +1588,7 @@ export default function StockItemDetailView() {
                                     <input
                                         type="text"
                                         required
+                                        placeholder="e.g. S. Sharma / Store Auditor"
                                         value={adjustmentForm.adjusted_by}
                                         onChange={e => setAdjustmentForm({ ...adjustmentForm, adjusted_by: e.target.value })}
                                         style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
@@ -1612,6 +1619,7 @@ export default function StockItemDetailView() {
                                 </label>
                                 <textarea
                                     rows={2}
+                                    placeholder="e.g. Routine periodic cycle count reconciliation"
                                     value={adjustmentForm.notes}
                                     onChange={e => setAdjustmentForm({ ...adjustmentForm, notes: e.target.value })}
                                     style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '600' }}

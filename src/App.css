@@ -2739,10 +2739,12 @@ th {
     body * {
         visibility: hidden;
     }
-    #invoice-print-area, #invoice-print-area * {
+    #invoice-print-area, #invoice-print-area *,
+    #stock-item-detail-view, #stock-item-detail-view * {
         visibility: visible;
     }
-    #invoice-print-area .no-print, #invoice-print-area .no-print * {
+    #invoice-print-area .no-print, #invoice-print-area .no-print *,
+    #stock-item-detail-view .no-print, #stock-item-detail-view .no-print * {
         display: none !important;
         visibility: hidden !important;
     }
