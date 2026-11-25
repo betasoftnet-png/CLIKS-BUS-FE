@@ -34,11 +34,12 @@ import {
 import '../App.css';
 import { useCurrency, useAuth } from '../context';
 
-export const BNX_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/;
+export const BNX_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export const validateBnxEmail = (email) => {
-    if (!email || !BNX_EMAIL_REGEX.test(email.trim())) {
-        return "Only official @bnxmail.com email addresses are allowed";
+    if (!email || !email.trim()) return null;
+    if (!BNX_EMAIL_REGEX.test(email.trim())) {
+        return "Please enter a valid official email address";
     }
     return null;
 };
@@ -289,8 +290,10 @@ const BusinessWarehouse = () => {
             contact_person: w.contact_person || 'Not Assigned',
             phone_number: w.phone_number || '',
             email: w.email || '',
+            total_capacity: w.total_capacity || 10000,
             capacity_utilization: w.capacity_utilization || '0%'
-        }));
+        }))
+        .sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
     const whStocks = React.useMemo(() => {
@@ -539,6 +542,7 @@ const BusinessWarehouse = () => {
         warehouse_code: '',
         warehouse_name: '',
         warehouse_type: 'godown',
+        total_capacity: '10000',
         address: '',
         city: '',
         state: '',
@@ -886,7 +890,31 @@ const BusinessWarehouse = () => {
             return;
         }
 
-        // Strict official @bnxmail.com domain validation
+        const name = (newWarehouse.warehouse_name || '').trim();
+        if (!name || name.length < 2) {
+            alert("Warehouse Name must be at least 2 characters.");
+            return;
+        }
+
+        const code = (newWarehouse.warehouse_code || '').trim().toUpperCase();
+        if (!code) {
+            alert("Warehouse Code is required.");
+            return;
+        }
+
+        // Enforce 10-digit mobile number formatting rule
+        const cleanPhone = (newWarehouse.phone_number || '').trim();
+        if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
+            alert("Contact Mobile No must strictly be a valid 10-digit phone number.");
+            return;
+        }
+
+        const cleanPin = (newWarehouse.pincode || '').trim();
+        if (!cleanPin || !/^\d{6}$/.test(cleanPin)) {
+            alert("Pincode must strictly be a valid 6-digit postal code.");
+            return;
+        }
+
         const emailErr = validateBnxEmail(newWarehouse.email);
         if (emailErr) {
             setWarehouseEmailError(emailErr);
@@ -895,26 +923,86 @@ const BusinessWarehouse = () => {
         }
         setWarehouseEmailError('');
 
-        // Enforce 10-digit mobile number formatting rule
-        const cleanPhone = (newWarehouse.phone_number || '').trim();
-        if (cleanPhone && !/^\d{10}$/.test(cleanPhone)) {
-            alert("Contact Mobile No must strictly be a valid 10-digit phone number.");
+        const totalCap = parseInt(newWarehouse.total_capacity, 10);
+        if (isNaN(totalCap) || totalCap <= 0) {
+            alert("Total Storage Capacity must be a positive number.");
             return;
         }
 
         const payload = {
-            name: newWarehouse.warehouse_name,
-            code: newWarehouse.warehouse_code,
-            type: newWarehouse.warehouse_type,
-            address: newWarehouse.address,
-            city: newWarehouse.city,
-            state: newWarehouse.state,
-            pincode: newWarehouse.pincode,
-            contact_person: newWarehouse.contact_person,
+            name: name,
+            code: code,
+            type: newWarehouse.warehouse_type || 'godown',
+            total_capacity: totalCap,
+            address: (newWarehouse.address || '').trim(),
+            city: (newWarehouse.city || '').trim(),
+            state: (newWarehouse.state || '').trim(),
+            pincode: cleanPin,
+            contact_person: (newWarehouse.contact_person || '').trim(),
             phone_number: cleanPhone,
             email: (newWarehouse.email || '').trim().toLowerCase()
         };
         createWarehouseMutation.mutate(payload);
+    };
+
+    const handleEditWarehouseSubmit = (e) => {
+        e.preventDefault();
+
+        const name = (editWarehouseForm.warehouse_name || editWarehouseForm.name || '').trim();
+        if (!name || name.length < 2) {
+            alert("Warehouse Name must be at least 2 characters.");
+            return;
+        }
+
+        const code = (editWarehouseForm.warehouse_code || editWarehouseForm.code || '').trim().toUpperCase();
+        if (!code) {
+            alert("Warehouse Code is required.");
+            return;
+        }
+
+        const cleanPhone = (editWarehouseForm.phone_number || '').trim();
+        if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
+            alert("Contact Mobile No must strictly be a valid 10-digit phone number.");
+            return;
+        }
+
+        const cleanPin = (editWarehouseForm.pincode || '').trim();
+        if (!cleanPin || !/^\d{6}$/.test(cleanPin)) {
+            alert("Pincode must strictly be a valid 6-digit postal code.");
+            return;
+        }
+
+        const cleanEmail = (editWarehouseForm.email || '').trim().toLowerCase();
+        if (cleanEmail && !BNX_EMAIL_REGEX.test(cleanEmail)) {
+            alert("Please enter a valid official email address.");
+            return;
+        }
+
+        const totalCap = parseInt(editWarehouseForm.total_capacity, 10);
+        if (isNaN(totalCap) || totalCap <= 0) {
+            alert("Total Storage Capacity must be a positive number.");
+            return;
+        }
+
+        updateWarehouseMutation.mutate({
+            id: editingWarehouse,
+            data: {
+                name: name,
+                warehouse_name: name,
+                code: code,
+                warehouse_code: code,
+                type: editWarehouseForm.warehouse_type || editWarehouseForm.type || 'godown',
+                warehouse_type: editWarehouseForm.warehouse_type || editWarehouseForm.type || 'godown',
+                total_capacity: totalCap,
+                address: (editWarehouseForm.address || '').trim(),
+                city: (editWarehouseForm.city || '').trim(),
+                state: (editWarehouseForm.state || '').trim(),
+                pincode: cleanPin,
+                contact_person: (editWarehouseForm.contact_person || '').trim(),
+                phone_number: cleanPhone,
+                email: cleanEmail
+            }
+        });
     };
 
     const createInwardMutation = useMutation({
@@ -1174,9 +1262,12 @@ const BusinessWarehouse = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
                         {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((wh) => (
                             <div key={wh.warehouse_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                     <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{wh.warehouse_code}</span>
-                                    <span style={{ display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#E0F2FE', color: '#0369A1', fontSize: '0.75rem', fontWeight: '800' }}>CAPACITY UTILIZATION: {wh.capacity_utilization}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                        <span style={{ display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#E0F2FE', color: '#0369A1', fontSize: '0.75rem', fontWeight: '800' }}>CAPACITY UTILIZATION: {wh.capacity_utilization}</span>
+                                        <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700' }}>Max: {Number(wh.total_capacity || 10000).toLocaleString()} Units</span>
+                                    </div>
                                 </div>
 
                                 <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', marginBottom: '1rem' }}>{wh.warehouse_name}</h3>
@@ -1219,7 +1310,28 @@ const BusinessWarehouse = () => {
 
                                 {/* Facility Action Footer */}
                                 <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1.25rem', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <button onClick={() => { setEditWarehouseForm({ ...wh }); setEditingWarehouse(wh.id); }} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}>✏️ Edit</button>
+                                    <button 
+                                        onClick={() => { 
+                                            setEditWarehouseForm({ 
+                                                ...wh, 
+                                                warehouse_name: wh.warehouse_name || '',
+                                                warehouse_code: wh.warehouse_code || '',
+                                                warehouse_type: wh.warehouse_type || 'godown',
+                                                total_capacity: wh.total_capacity || 10000,
+                                                address: wh.address || '',
+                                                city: wh.city || '',
+                                                state: wh.state || '',
+                                                pincode: wh.pincode || '',
+                                                contact_person: wh.contact_person || '',
+                                                phone_number: wh.phone_number || '',
+                                                email: wh.email || ''
+                                            }); 
+                                            setEditingWarehouse(wh.id); 
+                                        }} 
+                                        style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}
+                                    >
+                                        ✏️ Edit
+                                    </button>
                                     {confirmingDeleteId === wh.id ? (
                                         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                             <button
@@ -1647,29 +1759,157 @@ const BusinessWarehouse = () => {
             {/* Edit Warehouse Modal */}
             {editingWarehouse && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '560px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>✏️ Edit Warehouse Profile</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>✏️ Edit Warehouse Profile</h3>
                             <button onClick={() => setEditingWarehouse(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
-                        <form onSubmit={(e) => { e.preventDefault(); updateWarehouseMutation.mutate({ id: editingWarehouse, data: { name: editWarehouseForm.warehouse_name, code: editWarehouseForm.warehouse_code, type: editWarehouseForm.warehouse_type, address: editWarehouseForm.address, city: editWarehouseForm.city, state: editWarehouseForm.state, pincode: editWarehouseForm.pincode, contact_person: editWarehouseForm.contact_person, phone_number: editWarehouseForm.phone_number, email: editWarehouseForm.email } }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {[
-                                ['warehouse_name', 'Warehouse Name', 'text'],
-                                ['warehouse_code', 'Code', 'text'],
-                                ['address', 'Address', 'text'],
-                                ['city', 'City', 'text'],
-                                ['state', 'State', 'text'],
-                                ['pincode', 'Pincode', 'text'],
-                                ['contact_person', 'Contact Person', 'text'],
-                                ['phone_number', 'Phone', 'tel'],
-                                ['email', 'Email', 'email']
-                            ].map(([key, label, type]) => (
-                                <div key={key}>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>{label}</label>
-                                    <input type={type} value={editWarehouseForm[key] || ''} onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, [key]: e.target.value }))} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+                        <form onSubmit={handleEditWarehouseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse Name <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        maxLength={50}
+                                        value={editWarehouseForm.warehouse_name || editWarehouseForm.name || ''} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, warehouse_name: e.target.value.slice(0, 50), name: e.target.value.slice(0, 50) }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Delhi Godown" 
+                                    />
                                 </div>
-                            ))}
-                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981, #047857)', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', marginTop: '0.5rem' }}>Save Changes</button>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse Code <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        maxLength={20}
+                                        value={editWarehouseForm.warehouse_code || editWarehouseForm.code || ''} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, warehouse_code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20), code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20) }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="WH-DEL-04" 
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Facility Type</label>
+                                    <select 
+                                        value={editWarehouseForm.warehouse_type || editWarehouseForm.type || 'godown'} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, warehouse_type: e.target.value, type: e.target.value }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                    >
+                                        <option value="godown">Godown (Bulk Storage)</option>
+                                        <option value="store">Store Outlet (Retail)</option>
+                                        <option value="DC">Distribution Center (logistics)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Total Storage Capacity (Units) <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={editWarehouseForm.total_capacity || ''} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, total_capacity: e.target.value.replace(/\D/g, '').slice(0, 9) }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="10000" 
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Address <span style={{ color: '#EF4444' }}>*</span></label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    maxLength={150}
+                                    value={editWarehouseForm.address || ''} 
+                                    onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, address: e.target.value.slice(0, 150) }))} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    placeholder="Plot No 40..." 
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pincode (6 Digits) <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input
+                                        required
+                                        type="text"
+                                        value={editWarehouseForm.pincode || ''}
+                                        onChange={(e) => {
+                                            const pin = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                            let autoCity = editWarehouseForm.city || '';
+                                            let autoState = editWarehouseForm.state || '';
+                                            if (pin === '602001' || pin === '602002') { autoCity = 'Tiruvallur'; autoState = 'Tamil Nadu'; }
+                                            else if (pin.startsWith('600')) { autoCity = 'Chennai'; autoState = 'Tamil Nadu'; }
+                                            else if (pin.startsWith('110')) { autoCity = 'Delhi'; autoState = 'Delhi'; }
+                                            else if (pin.startsWith('560')) { autoCity = 'Bengaluru'; autoState = 'Karnataka'; }
+                                            else if (pin.startsWith('400')) { autoCity = 'Mumbai'; autoState = 'Maharashtra'; }
+                                            setEditWarehouseForm(prev => ({ ...prev, pincode: pin, city: autoCity, state: autoState }));
+                                        }}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                        placeholder="e.g. 602001"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>City <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={editWarehouseForm.city || ''} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, city: e.target.value.replace(/[^a-zA-Z\s-]/g, '').slice(0, 50) }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Tiruvallur / Chennai" 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={editWarehouseForm.state || ''} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, state: e.target.value.replace(/[^a-zA-Z\s-]/g, '').slice(0, 50) }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Tamil Nadu" 
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Person <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={editWarehouseForm.contact_person || ''} 
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, contact_person: e.target.value.replace(/[^a-zA-Z\s.-]/g, '').slice(0, 50) }))} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Ashwin" 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Mobile (10 Digits) <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input
+                                        required
+                                        type="tel"
+                                        value={editWarehouseForm.phone_number || ''}
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                        placeholder="9876543210"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Email</label>
+                                    <input
+                                        type="email"
+                                        value={editWarehouseForm.email || ''}
+                                        onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, email: e.target.value.trim().slice(0, 80) }))}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                        placeholder="manager@domain.com"
+                                    />
+                                </div>
+                            </div>
+                            <button type="submit" disabled={updateWarehouseMutation.isPending} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981, #047857)', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                {updateWarehouseMutation.isPending ? 'Saving Changes...' : 'Save Changes'}
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -1678,38 +1918,75 @@ const BusinessWarehouse = () => {
             {/* Create Warehouse Profile Modal */}
             {isCreateModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '560px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Register New Warehouse Facility</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Register New Warehouse Facility</h3>
                             <button onClick={() => setIsCreateModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleCreateWarehouse} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse Name</label>
-                                    <input required type="text" value={newWarehouse.warehouse_name} onChange={(e) => setNewWarehouse({ ...newWarehouse, warehouse_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Delhi Godown" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse Name <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        maxLength={50}
+                                        value={newWarehouse.warehouse_name} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, warehouse_name: e.target.value.slice(0, 50) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Delhi Godown" 
+                                    />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse Code</label>
-                                    <input required type="text" value={newWarehouse.warehouse_code} onChange={(e) => setNewWarehouse({ ...newWarehouse, warehouse_code: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="WH-DEL-04" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse Code <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        maxLength={20}
+                                        value={newWarehouse.warehouse_code} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, warehouse_code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="WH-DEL-04" 
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Facility Type</label>
+                                    <select value={newWarehouse.warehouse_type} onChange={(e) => setNewWarehouse({ ...newWarehouse, warehouse_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        <option value="godown">Godown (Bulk Storage)</option>
+                                        <option value="store">Store Outlet (Retail)</option>
+                                        <option value="DC">Distribution Center (logistics)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Total Storage Capacity (Units) <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={newWarehouse.total_capacity || ''} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, total_capacity: e.target.value.replace(/\D/g, '').slice(0, 9) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="10000" 
+                                    />
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Facility Type</label>
-                                <select value={newWarehouse.warehouse_type} onChange={(e) => setNewWarehouse({ ...newWarehouse, warehouse_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    <option value="godown">Godown (Bulk Storage)</option>
-                                    <option value="store">Store Outlet (Retail)</option>
-                                    <option value="DC">Distribution Center (logistics)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Address</label>
-                                <input required type="text" value={newWarehouse.address} onChange={(e) => setNewWarehouse({ ...newWarehouse, address: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Plot No 40..." />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Address <span style={{ color: '#EF4444' }}>*</span></label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    maxLength={150}
+                                    value={newWarehouse.address} 
+                                    onChange={(e) => setNewWarehouse({ ...newWarehouse, address: e.target.value.slice(0, 150) })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    placeholder="Plot No 40..." 
+                                />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pincode</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pincode (6 Digits) <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input
                                         required
                                         type="text"
@@ -1730,21 +2007,42 @@ const BusinessWarehouse = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>City</label>
-                                    <input required type="text" value={newWarehouse.city} onChange={(e) => setNewWarehouse({ ...newWarehouse, city: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Tiruvallur / Chennai" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>City <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={newWarehouse.city} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, city: e.target.value.replace(/[^a-zA-Z\s-]/g, '').slice(0, 50) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Tiruvallur / Chennai" 
+                                    />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State</label>
-                                    <input required type="text" value={newWarehouse.state} onChange={(e) => setNewWarehouse({ ...newWarehouse, state: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Tamil Nadu" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={newWarehouse.state} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, state: e.target.value.replace(/[^a-zA-Z\s-]/g, '').slice(0, 50) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Tamil Nadu" 
+                                    />
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Manager Name</label>
-                                    <input required type="text" value={newWarehouse.contact_person} onChange={(e) => setNewWarehouse({ ...newWarehouse, contact_person: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ashwin" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Person <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={newWarehouse.contact_person} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, contact_person: e.target.value.replace(/[^a-zA-Z\s.-]/g, '').slice(0, 50) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="Ashwin" 
+                                    />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Mobile (10 Digits)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Mobile (10 Digits) <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input
                                         required
                                         type="tel"
@@ -1756,17 +2054,16 @@ const BusinessWarehouse = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
-                                        Contact Email Address <span style={{ color: '#EF4444' }}>*</span>
+                                        Contact Email Address
                                     </label>
                                     <input
-                                        required
                                         type="email"
                                         value={newWarehouse.email}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setNewWarehouse({ ...newWarehouse, email: val });
                                             if (val && !BNX_EMAIL_REGEX.test(val.trim())) {
-                                                setWarehouseEmailError("Only official @bnxmail.com email addresses are allowed");
+                                                setWarehouseEmailError("Please enter a valid official email address");
                                             } else {
                                                 setWarehouseEmailError('');
                                             }
@@ -1779,7 +2076,7 @@ const BusinessWarehouse = () => {
                                             outline: 'none',
                                             background: warehouseEmailError ? '#FEF2F2' : 'white'
                                         }}
-                                        placeholder="e.g. manager@bnxmail.com"
+                                        placeholder="e.g. manager@cliks.com"
                                     />
                                     {warehouseEmailError && (
                                         <p style={{ margin: '0.35rem 0 0 0', color: '#EF4444', fontSize: '0.72rem', fontWeight: '700' }}>
@@ -1789,8 +2086,8 @@ const BusinessWarehouse = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
-                                Register Facility Profile
+                            <button type="submit" disabled={createWarehouseMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
+                                {createWarehouseMutation.isPending ? 'Registering Facility...' : 'Register Facility Profile'}
                             </button>
                         </form>
                     </div>
