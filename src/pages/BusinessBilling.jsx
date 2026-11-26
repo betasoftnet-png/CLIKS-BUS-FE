@@ -558,7 +558,7 @@ const BusinessBilling = () => {
         client_name: '',
         invoice_number: '',
         total_amount: '',
-        reason: 'Defective / Customer Return',
+        reason: '',
         return_type: 'sales'
     });
 
@@ -578,7 +578,7 @@ const BusinessBilling = () => {
             alert('Return / Claim record created successfully!');
             setIsReturnModalOpen(false);
             setSelectedReturnItems([]);
-            setNewReturnData({ client_name: '', invoice_number: '', total_amount: '', reason: 'Defective / Customer Return', return_type: 'sales' });
+            setNewReturnData({ client_name: '', invoice_number: '', total_amount: '', reason: '', return_type: 'sales' });
         },
         onError: (err) => {
             console.error('Failed to create return:', err);
@@ -982,6 +982,18 @@ const BusinessBilling = () => {
         return activeConfig.prefixSale || 'INV-';
     }, [activeConfig]);
 
+    const calculateDueDateFromTerms = React.useCallback((baseDateStr, termStr) => {
+        const base = new Date(baseDateStr || new Date());
+        let daysToAdd = 30;
+        if (termStr === 'Due on Receipt') daysToAdd = 0;
+        else if (termStr === 'Net 15') daysToAdd = 15;
+        else if (termStr === 'Net 30') daysToAdd = 30;
+        else if (termStr === 'Net 45') daysToAdd = 45;
+        else if (termStr === 'Net 60') daysToAdd = 60;
+        base.setDate(base.getDate() + daysToAdd);
+        return base.toISOString().split('T')[0];
+    }, []);
+
     const [formData, setFormData] = useState(() => {
         let initialPrefix = 'INV-';
         try {
@@ -991,6 +1003,12 @@ const BusinessBilling = () => {
                 if (parsed.prefixSale) initialPrefix = parsed.prefixSale;
             }
         } catch {}
+        const todayStr = new Date().toISOString().split('T')[0];
+        const defaultDueDate = (() => {
+            const d = new Date();
+            d.setDate(d.getDate() + 30);
+            return d.toISOString().split('T')[0];
+        })();
         return {
             invoice_number: `${initialPrefix}000001`,
             client_name: '',
@@ -1007,7 +1025,10 @@ const BusinessBilling = () => {
             discount_amount: 0,
             round_off: 0,
             status: 'Unpaid',
-            due_date: new Date().toISOString().split('T')[0],
+            invoice_date: todayStr,
+            date: todayStr,
+            terms: 'Net 30',
+            due_date: defaultDueDate,
             payment_mode: 'Cash',
             invoice_type: 'GST', // GST, Non-GST, Proforma, Quotation, Return, CreditNote, DebitNote, Purchase
             tax_type: 'Exclusive', // Inclusive, Exclusive
@@ -1235,6 +1256,42 @@ const BusinessBilling = () => {
             setSelectedCustomerObject(null);
             setFormData(prev => ({ ...prev, client_name: value, billing_name: value, redeemed_points: 0 }));
         }
+    };
+
+    const handleInvoiceDateChange = (newDate) => {
+        const currentTerms = formData.terms || 'Net 30';
+        let newDueDate = formData.due_date;
+        if (currentTerms !== 'Custom') {
+            newDueDate = calculateDueDateFromTerms(newDate, currentTerms);
+        }
+        setFormData(prev => ({
+            ...prev,
+            invoice_date: newDate,
+            date: newDate,
+            created_at: newDate,
+            due_date: newDueDate
+        }));
+    };
+
+    const handleTermsChange = (newTerm) => {
+        const baseDate = formData.invoice_date || formData.date || new Date().toISOString().split('T')[0];
+        let newDueDate = formData.due_date;
+        if (newTerm !== 'Custom') {
+            newDueDate = calculateDueDateFromTerms(baseDate, newTerm);
+        }
+        setFormData(prev => ({
+            ...prev,
+            terms: newTerm,
+            due_date: newDueDate
+        }));
+    };
+
+    const handleDueDateChange = (newDue) => {
+        setFormData(prev => ({
+            ...prev,
+            due_date: newDue,
+            terms: 'Custom'
+        }));
     };
 
     const handleItemChange = (index, field, value) => {
@@ -2466,7 +2523,10 @@ const BusinessBilling = () => {
             discount_amount: invoice.discount_amount || 0,
             round_off: invoice.round_off || 0,
             status: invoice.status || 'Unpaid',
-            due_date: invoice.due_date,
+            invoice_date: invoice.created_at ? new Date(invoice.created_at).toISOString().split('T')[0] : (invoice.date || invoice.due_date || new Date().toISOString().split('T')[0]),
+            date: invoice.created_at ? new Date(invoice.created_at).toISOString().split('T')[0] : (invoice.date || invoice.due_date || new Date().toISOString().split('T')[0]),
+            terms: invoice.terms || 'Net 30',
+            due_date: invoice.due_date || new Date().toISOString().split('T')[0],
             payment_mode: invoice.payment_mode || 'Cash',
             invoice_type: invoice.invoice_type || 'GST',
             tax_type: invoice.tax_type || 'Exclusive',
@@ -2578,6 +2638,8 @@ const BusinessBilling = () => {
 
         const payload = {
             ...filteredFormData,
+            date: formData.invoice_date || formData.date || new Date().toISOString().split('T')[0],
+            created_at: formData.invoice_date || formData.date || new Date().toISOString().split('T')[0],
             billed_by: formData.billed_by || billedByName,
             sendPurchaseHistoryToCustomer: true,
             sendToCustomerHistory: true,
@@ -2871,6 +2933,49 @@ const BusinessBilling = () => {
                                             <option key={idx}>{status}</option>
                                         ))}
                                     </select>
+                                </div>
+                            </div>
+
+                            {/* ZOHO BOOKS INVOICE DATES & PAYMENT TERMS SECTION */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                        📅 Invoice Date *
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={formData.invoice_date || formData.date || new Date().toISOString().split('T')[0]} 
+                                        onChange={(e) => handleInvoiceDateChange(e.target.value)} 
+                                        style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white', fontSize: '0.85rem', fontWeight: '600', color: '#0F172A' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                        ⏳ Terms
+                                    </label>
+                                    <select 
+                                        value={formData.terms || 'Net 30'} 
+                                        onChange={(e) => handleTermsChange(e.target.value)} 
+                                        style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white', fontSize: '0.85rem', fontWeight: '600', color: '#0F172A' }}
+                                    >
+                                        <option value="Due on Receipt">Due on Receipt (0 days)</option>
+                                        <option value="Net 15">Net 15 (15 days)</option>
+                                        <option value="Net 30">Net 30 (30 days)</option>
+                                        <option value="Net 45">Net 45 (45 days)</option>
+                                        <option value="Net 60">Net 60 (60 days)</option>
+                                        <option value="Custom">Custom Date</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                        ⏰ Due Date
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={formData.due_date || new Date().toISOString().split('T')[0]} 
+                                        onChange={(e) => handleDueDateChange(e.target.value)} 
+                                        style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white', fontSize: '0.85rem', fontWeight: '600', color: '#0F172A' }} 
+                                    />
                                 </div>
                             </div>
 
@@ -4667,7 +4772,7 @@ const BusinessBilling = () => {
                             <FilterableTableHead columns={[
         { key: 'invoice_number', label: 'Invoice', placeholder: 'e.g. INV-001', style: { width: '15%' } },
         { key: 'client_name', label: 'Client', placeholder: 'Name', style: { width: '20%' } },
-        { key: 'due_date', label: 'Due Date', placeholder: 'e.g. 2026-05', style: { width: '15%' } },
+        { key: 'due_date', label: 'Date / Due', placeholder: 'e.g. 2026-05', style: { width: '15%' } },
         { key: 'total_amount', label: 'Amount', placeholder: 'e.g. 5000', style: { width: '15%' } },
         { key: 'status', label: 'Status', placeholder: 'e.g. Paid', align: 'left', style: { width: '18%' } },
         { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '17%' } }
@@ -4702,9 +4807,14 @@ const BusinessBilling = () => {
                                             </div>
                                         </td>
                                         <td style={{ width: '15%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                                                <Calendar size={12} />
-                                                <span>{inv.due_date || '—'}</span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#0F172A', fontWeight: '750', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                                                    <Calendar size={12} className="text-gray-400" />
+                                                    <span>{inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : (inv.date || inv.due_date || '—')}</span>
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600', paddingLeft: '16px', whiteSpace: 'nowrap' }}>
+                                                    Due: {inv.due_date || 'On Receipt'}
+                                                </div>
                                             </div>
                                         </td>
                                         <td style={{ width: '15%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
@@ -5088,7 +5198,7 @@ const BusinessBilling = () => {
 
             {/* Print Friendly Template */}
             {isPrinting && printData && (
-                <div id="invoice-print-area" className="print-only" style={{ padding: '40px', color: '#000', background: '#fff', minHeight: '100vh', boxSizing: 'border-box' }}>
+                <div id="invoice-print-area" className="print-only" style={{ padding: '0', width: '100%', maxWidth: '100%', color: '#000', background: '#fff', minHeight: '100vh', boxSizing: 'border-box' }}>
                     {/* 
                         DYNAMIC 10+ TEMPLATE SYSTEM
                         Modular architecture powered by InvoiceTemplates Component Library
@@ -6120,6 +6230,7 @@ const BusinessBilling = () => {
 
                             createReturnMutation.mutate({
                                 ...newReturnData,
+                                reason: newReturnData.reason ? newReturnData.reason.trim() : 'Defective / Customer Return',
                                 return_type: returnFormType,
                                 return_date: new Date().toISOString(),
                                 customer_name: newReturnData.client_name || 'Customer',
@@ -6406,10 +6517,10 @@ const BusinessBilling = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Reason / Notes</label>
                                 <textarea 
-                                    value={newReturnData.reason} 
+                                    value={newReturnData.reason || ''} 
                                     onChange={(e) => setNewReturnData({ ...newReturnData, reason: e.target.value })} 
                                     style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', height: '60px', resize: 'none' }} 
-                                    placeholder="Reason for return..." 
+                                    placeholder="Defective / Customer Return (e.g. Defective piece, Exchange, Damaged in transit)" 
                                 />
                             </div>
                             <button 

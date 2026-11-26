@@ -18,7 +18,7 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
   const grandTotal = inv?.total_amount !== undefined ? Number(inv.total_amount) : (subtotal + taxAmount);
 
   return (
-    <div className="max-w-5xl mx-auto p-10 bg-white font-sans text-gray-800 space-y-10 print:p-6 print:max-w-full print:w-full w-full">
+    <div className="w-full max-w-full mx-auto p-6 sm:p-10 bg-white font-sans text-gray-800 space-y-8 print:p-2 print:space-y-4 print:max-w-full print:w-full box-border" style={{ boxSizing: 'border-box' }}>
       
       {/* HEADER SECTION */}
       <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8">
@@ -90,13 +90,13 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* 4-COLUMN ITEMS TABLE WITH PROPER RIGHT ALIGNMENT                    */}
       {/* =================================================================== */}
       <div className="w-full">
-        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+        <table className="w-full border-collapse" style={{ tableLayout: 'fixed', width: '100%' }}>
           <thead>
             <tr className="border-b-2 border-gray-200 text-xs font-black text-gray-400 uppercase tracking-wider">
-              <th className="py-4 text-left" style={{ width: '45%' }}>DESCRIPTION</th>
-              <th className="py-4 text-center" style={{ width: '15%' }}>QTY</th>
-              <th className="py-4 text-right pr-2" style={{ width: '20%' }}>UNIT PRICE</th>
-              <th className="py-4 text-right" style={{ width: '20%' }}>TOTAL AMOUNT</th>
+              <th className="py-3 text-left" style={{ width: '38%' }}>DESCRIPTION</th>
+              <th className="py-3 text-center" style={{ width: '16%' }}>QTY</th>
+              <th className="py-3 text-right pr-2" style={{ width: '22%' }}>UNIT PRICE</th>
+              <th className="py-3 text-right" style={{ width: '24%' }}>TOTAL AMOUNT</th>
             </tr>
           </thead>
           <tbody className="text-sm text-gray-700">
@@ -105,22 +105,26 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
               const rate = Number(item.unit_price || item.price || item.rate || 0);
               const lineTotal = item.total !== undefined ? Number(item.total) : qty * rate;
 
+              const qtyDisplay = Number.isFinite(qty) ? (qty > 999999999 ? qty.toString() : qty.toLocaleString('en-IN')) : (item.quantity || item.qty || 1);
+              const rateDisplay = Number.isFinite(rate) ? `₹${rate.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `₹${item.price || 0}`;
+              const totalDisplay = Number.isFinite(lineTotal) ? `₹${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `₹${item.total || 0}`;
+
               return (
                 <tr key={index} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                  <td className="py-5 pr-4 text-left break-words">
-                    <p className="font-bold text-gray-900 text-base m-0">{item.product_name || item.description || item.name}</p>
+                  <td className="py-4 pr-3 text-left" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                    <p className="font-bold text-gray-900 text-sm sm:text-base m-0 leading-tight">{item.product_name || item.description || item.name}</p>
                     {(item.hsn || item.hsn_code) && (
-                      <p className="text-xs text-gray-400 font-semibold mt-1">HSN CODE: {item.hsn || item.hsn_code}</p>
+                      <p className="text-[11px] text-gray-400 font-semibold mt-0.5">HSN CODE: {item.hsn || item.hsn_code}</p>
                     )}
                   </td>
-                  <td className="py-5 text-center font-bold text-gray-800 text-base">
-                    {qty}
+                  <td className="py-4 text-center font-bold text-gray-800 text-sm sm:text-base" style={{ overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+                    {qtyDisplay}
                   </td>
-                  <td className="py-5 pr-2 text-right font-semibold text-gray-600">
-                    ₹{rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  <td className="py-4 pr-2 text-right font-semibold text-gray-600 text-sm sm:text-base" style={{ whiteSpace: 'nowrap' }}>
+                    {rateDisplay}
                   </td>
-                  <td className="py-5 text-right font-black text-gray-900 text-base">
-                    ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  <td className="py-4 text-right font-black text-gray-900 text-sm sm:text-base" style={{ whiteSpace: 'nowrap' }}>
+                    {totalDisplay}
                   </td>
                 </tr>
               );

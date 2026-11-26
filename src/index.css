@@ -1263,9 +1263,27 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
     display: block !important;
   }
 
+  #invoice-print-area {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #invoice-print-area table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  #invoice-print-area th, #invoice-print-area td {
+    overflow-wrap: anywhere !important;
+  }
+
   @page {
-    size: auto;
-    margin: 0mm;
+    size: A4 portrait;
+    margin: 8mm;
   }
 }
 
