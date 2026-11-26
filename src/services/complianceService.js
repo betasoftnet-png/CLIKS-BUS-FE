@@ -82,6 +82,42 @@ export const complianceService = {
   confirmDeliveryChallan: async (id, verificationData) => {
     const res = await apiClient.post(`/compliance/challans/${id}/confirm`, verificationData);
     return res.data?.data || res.data;
+  },
+
+  /**
+   * Fetch Delivery Drivers / Fleet Staff
+   */
+  getDrivers: async () => {
+    const res = await apiClient.get('/compliance/drivers');
+    return res.data?.data || res.data?.drivers || [];
+  },
+
+  /**
+   * Add a new Delivery Driver
+   * @param {Object} driverData { name, vehicle_number, mobile, vehicle_type, status }
+   */
+  addDriver: async (driverData) => {
+    const res = await apiClient.post('/compliance/drivers', driverData);
+    return res.data?.data || res.data;
+  },
+
+  /**
+   * Update an existing Delivery Driver
+   * @param {string|number} id
+   * @param {Object} driverData
+   */
+  updateDriver: async (id, driverData) => {
+    const res = await apiClient.put(`/compliance/drivers/${id}`, driverData);
+    return res.data?.data || res.data;
+  },
+
+  /**
+   * Delete a Delivery Driver
+   * @param {string|number} id
+   */
+  deleteDriver: async (id) => {
+    const res = await apiClient.delete(`/compliance/drivers/${id}`);
+    return res.data;
   }
 };
 
