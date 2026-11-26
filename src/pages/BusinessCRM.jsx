@@ -43,7 +43,8 @@ import {
     Star,
     MapPin,
     CreditCard,
-    Loader2
+    Loader2,
+    Printer
 } from 'lucide-react';
 import '../App.css';
 import { crmService } from '../services/crmService';
@@ -266,6 +267,9 @@ const BusinessCRM = () => {
     const [customerTypeFilter, setCustomerTypeFilter] = useState('All');
     const [balanceFilter, setBalanceFilter] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [sortBy, setSortBy] = useState('default');
+    const [creditStatusFilter, setCreditStatusFilter] = useState('All');
 
     // Customer Bulk Import CSV states
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -305,6 +309,194 @@ const BusinessCRM = () => {
         } catch {
             return String(rawDate);
         }
+    };
+
+    const handlePrintStatement = (party) => {
+        if (!party) return;
+        const printIframe = document.createElement('iframe');
+        printIframe.style.position = 'fixed';
+        printIframe.style.right = '0';
+        printIframe.style.bottom = '0';
+        printIframe.style.width = '0';
+        printIframe.style.height = '0';
+        printIframe.style.border = '0';
+        document.body.appendChild(printIframe);
+
+        const doc = printIframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Statement_of_Account_${(party.name || 'Customer').replace(/[^a-zA-Z0-9]/g, '_')}</title>
+                <style>
+                    @page {
+                        size: A4 portrait;
+                        margin: 12mm 15mm;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        color: #0F172A;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .header {
+                        border-bottom: 2px solid #7C3AED;
+                        padding-bottom: 12px;
+                        margin-bottom: 20px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-end;
+                    }
+                    .title {
+                        font-size: 22px;
+                        font-weight: 800;
+                        color: #7C3AED;
+                        margin: 0;
+                    }
+                    .subtitle {
+                        font-size: 13px;
+                        color: #64748B;
+                        margin-top: 4px;
+                    }
+                    .bento-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 12px;
+                        margin-bottom: 20px;
+                    }
+                    .bento-card {
+                        padding: 12px;
+                        border-radius: 8px;
+                        border: 1px solid #E2E8F0;
+                        background: #F8FAFC;
+                    }
+                    .bento-title {
+                        font-size: 10px;
+                        font-weight: 800;
+                        color: #64748B;
+                        text-transform: uppercase;
+                        margin-bottom: 4px;
+                    }
+                    .bento-val {
+                        font-size: 16px;
+                        font-weight: 800;
+                        margin: 0;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 10px;
+                    }
+                    th {
+                        background: #F1F5F9;
+                        color: #475569;
+                        padding: 10px 8px;
+                        text-align: left;
+                        font-size: 11px;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        border-bottom: 1px solid #CBD5E1;
+                    }
+                    td {
+                        padding: 9px 8px;
+                        font-size: 12px;
+                        border-bottom: 1px solid #F1F5F9;
+                    }
+                    .badge {
+                        display: inline-block;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 800;
+                    }
+                    .badge-credit {
+                        background: #E6F4EA;
+                        color: #137333;
+                    }
+                    .badge-debit {
+                        background: #FCE8E6;
+                        color: #C5221F;
+                    }
+                    .footer {
+                        margin-top: 30px;
+                        font-size: 11px;
+                        color: #94A3B8;
+                        text-align: center;
+                        border-top: 1px solid #E2E8F0;
+                        padding-top: 12px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <div class="title">${party.name || 'Customer'}</div>
+                        <div class="subtitle">Statement of Account — ${party.business_name || 'Customer Ledger'}</div>
+                        <div style="font-size: 11px; color: #64748B; margin-top: 4px;">Code: ${party.customer_code || 'N/A'} | Phone: ${party.phone_number || party.phone || 'N/A'}</div>
+                    </div>
+                    <div style="text-align: right; font-size: 11px; color: #64748B;">
+                        <strong>Date Generated:</strong> ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                </div>
+                <div class="bento-grid">
+                    <div class="bento-card">
+                        <div class="bento-title">Opening Balance</div>
+                        <div class="bento-val" style="color: #1E293B;">${formatCurrency(party.opening_balance || 0)}</div>
+                    </div>
+                    <div class="bento-card" style="background: #FEF2F2; border-color: #FEE2E2;">
+                        <div class="bento-title" style="color: #B91C1C;">Total Credit Given</div>
+                        <div class="bento-val" style="color: #B91C1C;">${formatCurrency(party.total_sales || 0)}</div>
+                    </div>
+                    <div class="bento-card" style="background: ${(party.current_balance || 0) > 0 ? '#FEF2F2' : '#CFFAFE'}; border-color: #E2E8F0;">
+                        <div class="bento-title" style="color: ${(party.current_balance || 0) > 0 ? '#B91C1C' : '#0891B2'};">Net Outstanding</div>
+                        <div class="bento-val" style="color: ${(party.current_balance || 0) > 0 ? '#B91C1C' : '#0891B2'};">
+                            ${(party.current_balance || 0) > 0 ? formatCurrency(party.current_balance || 0) : ((party.current_balance || 0) < 0 ? `- ${formatCurrency(Math.abs(party.current_balance || 0))} (Adv)` : formatCurrency(0))}
+                        </div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Details / Reference</th>
+                            <th style="text-align: right;">Debit (Invoice)</th>
+                            <th style="text-align: right;">Credit (Payment)</th>
+                            <th style="text-align: right;">Running Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(party.ledger || []).length === 0 ? '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #94A3B8;">No transactions recorded.</td></tr>' : 
+                        (party.ledger || []).map(tx => `
+                            <tr>
+                                <td>${formatDateTime(tx.date || tx.created_at)}</td>
+                                <td><span class="badge ${tx.type?.toLowerCase() === 'credit' ? 'badge-credit' : 'badge-debit'}">${tx.type || 'TXN'}</span></td>
+                                <td>${tx.reference || 'N/A'}</td>
+                                <td style="text-align: right; color: #EF4444; font-weight: 700;">${(tx.debit || 0) > 0 ? formatCurrency(tx.debit || 0) : '-'}</td>
+                                <td style="text-align: right; color: #0891B2; font-weight: 700;">${(tx.credit || 0) > 0 ? formatCurrency(tx.credit || 0) : '-'}</td>
+                                <td style="text-align: right; font-weight: 800; color: ${(tx.balance || 0) > 0 ? '#B91C1C' : '#0891B2'};">${formatCurrency(tx.balance || 0)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="footer">
+                    This is a computer-generated statement from Cliks Business. No physical signature required.
+                </div>
+            </body>
+            </html>
+        `);
+        doc.close();
+
+        setTimeout(() => {
+            printIframe.contentWindow.focus();
+            printIframe.contentWindow.print();
+            setTimeout(() => {
+                try { document.body.removeChild(printIframe); } catch {}
+            }, 1500);
+        }, 400);
     };
 
     const generateSequentialCode = (nameOrCompany, customerList = []) => {
@@ -1008,7 +1200,11 @@ const BusinessCRM = () => {
         e.preventDefault();
         const amt = parseFloat(paymentData.amount);
         if (isNaN(amt) || amt <= 0) {
-            alert('Please enter a valid payment amount.');
+            alert('Please enter a valid payment amount greater than 0.');
+            return;
+        }
+        if (amt > 99999999.99) {
+            alert('Payment amount cannot exceed ₹9,99,99,999.99.');
             return;
         }
         try {
@@ -1116,7 +1312,29 @@ const BusinessCRM = () => {
         else if (balanceFilter === 'Advance') matchesBalance = (c.current_balance || 0) < 0;
         else if (balanceFilter === 'Settled') matchesBalance = (c.current_balance || 0) === 0;
 
-        return matchesSearch && matchesType && matchesBalance;
+        let matchesCreditStatus = true;
+        if (creditStatusFilter === 'OVER_LIMIT') {
+            matchesCreditStatus = (c.current_balance || 0) > (c.credit_limit || 0);
+        } else if (creditStatusFilter === 'CREDIT_ACTIVE') {
+            matchesCreditStatus = (c.current_balance || 0) <= (c.credit_limit || 0) && (c.current_balance || 0) > 0;
+        } else if (creditStatusFilter === 'ACTIVE') {
+            matchesCreditStatus = (c.status || '').toLowerCase() === 'active';
+        } else if (creditStatusFilter === 'INACTIVE') {
+            matchesCreditStatus = (c.status || '').toLowerCase() === 'inactive';
+        }
+
+        return matchesSearch && matchesType && matchesBalance && matchesCreditStatus;
+    });
+
+    const isFilterActive = searchTerm !== '' || balanceFilter !== 'All' || customerTypeFilter !== 'All' || creditStatusFilter !== 'All' || sortBy !== 'default' || (colFilters && Object.keys(colFilters).length > 0);
+
+    const sortedCustomers = [...filteredCustomers].sort((a, b) => {
+        if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+        if (sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+        if (sortBy === 'balance-desc') return (b.current_balance || 0) - (a.current_balance || 0);
+        if (sortBy === 'balance-asc') return (a.current_balance || 0) - (b.current_balance || 0);
+        if (sortBy === 'points-desc') return (b.loyalty_points || 0) - (a.loyalty_points || 0);
+        return 0;
     });
 
     // Reports Computations
@@ -1136,6 +1354,17 @@ const BusinessCRM = () => {
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }} onClick={() => setActiveMenu(null)}>
             <style>{`
+                @media print {
+                    @page {
+                        size: auto;
+                        margin: 0mm;
+                    }
+                    body {
+                        margin: 0 !important;
+                        padding: 10mm 15mm !important;
+                        background: white !important;
+                    }
+                }
                 .crm-table-row:hover {
                     background-color: #F8FAFC !important;
                 }
@@ -1332,9 +1561,94 @@ const BusinessCRM = () => {
                             <option value="Advance">Advance</option>
                             <option value="Settled">Settled</option>
                         </select>
-                        <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <Filter size={16} />
-                        </button>
+                        <div style={{ position: 'relative' }}>
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsFilterMenuOpen(prev => !prev);
+                                }}
+                                title="Advanced Filters & Sort Options"
+                                style={{ 
+                                    width: '34px', height: '34px', borderRadius: '8px', 
+                                    border: isFilterActive ? '1.5px solid #7C3AED' : '1px solid #E2E8F0', 
+                                    background: isFilterActive ? '#F5F3FF' : 'white', 
+                                    color: isFilterActive ? '#7C3AED' : '#64748B', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    cursor: 'pointer', transition: 'all 0.15s',
+                                    position: 'relative'
+                                }}
+                            >
+                                <Filter size={16} />
+                                {isFilterActive && (
+                                    <span style={{ position: 'absolute', top: '3px', right: '3px', width: '7px', height: '7px', borderRadius: '50%', background: '#7C3AED' }} />
+                                )}
+                            </button>
+                            {isFilterMenuOpen && (
+                                <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                        position: 'absolute', right: 0, top: '42px', width: '270px',
+                                        background: 'white', borderRadius: '16px', padding: '1.1rem',
+                                        boxShadow: '0 12px 30px -4px rgba(0,0,0,0.18)', border: '1px solid #E2E8F0',
+                                        zIndex: 100, display: 'flex', flexDirection: 'column', gap: '0.85rem',
+                                        animation: 'fadeIn 0.15s ease-out'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Filters & Sorting</span>
+                                        <button 
+                                            onClick={() => {
+                                                setSearchTerm('');
+                                                setBalanceFilter('All');
+                                                setCustomerTypeFilter('All');
+                                                setCreditStatusFilter('All');
+                                                setSortBy('default');
+                                                setColFilters({});
+                                                setIsFilterMenuOpen(false);
+                                            }}
+                                            style={{ border: 'none', background: 'transparent', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', cursor: 'pointer', padding: 0 }}
+                                        >
+                                            Reset All
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748B', marginBottom: '0.3rem' }}>Credit & Account Status</label>
+                                        <select 
+                                            value={creditStatusFilter} 
+                                            onChange={e => setCreditStatusFilter(e.target.value)}
+                                            style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.82rem', outline: 'none', background: 'white' }}
+                                        >
+                                            <option value="All">All Accounts</option>
+                                            <option value="OVER_LIMIT">Over Credit Limit</option>
+                                            <option value="CREDIT_ACTIVE">Credit Active</option>
+                                            <option value="ACTIVE">Status: Active</option>
+                                            <option value="INACTIVE">Status: Inactive</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#64748B', marginBottom: '0.3rem' }}>Sort Customers By</label>
+                                        <select 
+                                            value={sortBy} 
+                                            onChange={e => setSortBy(e.target.value)}
+                                            style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.82rem', outline: 'none', background: 'white' }}
+                                        >
+                                            <option value="default">Default Order</option>
+                                            <option value="name-asc">Name (A → Z)</option>
+                                            <option value="name-desc">Name (Z → A)</option>
+                                            <option value="balance-desc">Highest Outstanding</option>
+                                            <option value="balance-asc">Lowest Outstanding</option>
+                                            {loyaltyEnabled && <option value="points-desc">Highest Loyalty Points</option>}
+                                        </select>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsFilterMenuOpen(false)}
+                                        style={{ padding: '0.5rem', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer', marginTop: '0.2rem' }}
+                                    >
+                                        Apply Filters
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     </div>
 
@@ -1350,7 +1664,7 @@ const BusinessCRM = () => {
                                 { key: '_actions', label: 'Actions', noFilter: true }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredCustomers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
+                                {sortedCustomers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => { setSelectedProfileCustomer(row); setIsProfileModalOpen(true); }} title="View Customer Profile">
@@ -1513,100 +1827,131 @@ const BusinessCRM = () => {
 
             {/* Tab 3: Outstanding Aging & Collection Reports */}
             {activeTab === 'reports' && (
-                <div className="tailwind-grid-split-3-2">
-                    {/* Left Column - Outstanding & Aging Analysis */}
-                    <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        
-                        {/* Outstanding Receivables list */}
-                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
-                                <AlertTriangle size={16} color="#B91C1C" />
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Receivables Ledger</h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                {customers.filter(c => (c.current_balance || 0) > 0).map(c => (
-                                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', padding: '0.6rem 0.85rem', borderRadius: '10px', border: '1px solid #FEE2E2' }}>
-                                        <div>
-                                            <p style={{ fontWeight: '750', color: '#991B1B', fontSize: '0.85rem', margin: 0 }}>{c.name}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{c.business_name || ''} | Term: {c.due_days || 30} Days</span>
+                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '1.25rem' }} className="ledger-modal-scrollbar">
+                    <div className="tailwind-grid-split-3-2">
+                        {/* Left Column - Outstanding & Aging Analysis */}
+                        <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            
+                            {/* Outstanding Receivables list */}
+                            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                    <AlertTriangle size={16} color="#B91C1C" />
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Receivables Ledger</h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                    {customers.filter(c => (c.current_balance || 0) > 0).map(c => (
+                                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', padding: '0.6rem 0.85rem', borderRadius: '10px', border: '1px solid #FEE2E2' }}>
+                                            <div>
+                                                <p style={{ fontWeight: '750', color: '#991B1B', fontSize: '0.85rem', margin: 0 }}>{c.name}</p>
+                                                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{c.business_name || ''} | Term: {c.due_days || 30} Days</span>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '0.9rem', margin: 0 }}>{formatCurrency(c.current_balance || 0)}</p>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: (c.current_balance || 0) > (c.credit_limit || 0) ? '#EF4444' : '#B45309' }}>
+                                                    {(c.current_balance || 0) > (c.credit_limit || 0) ? 'OVER CREDIT LIMIT' : 'CREDIT ACTIVE'}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '0.9rem', margin: 0 }}>{formatCurrency(c.current_balance || 0)}</p>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: (c.current_balance || 0) > (c.credit_limit || 0) ? '#EF4444' : '#B45309' }}>
-                                                {(c.current_balance || 0) > (c.credit_limit || 0) ? 'OVER CREDIT LIMIT' : 'CREDIT ACTIVE'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
+
+                            {/* Aging Analysis Report */}
+                            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                    <Clock size={16} color="#0D9488" />
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Aging Reports</h3>
+                                </div>
+                                <div className="tailwind-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                    {[
+                                        { bucket: '0 – 15 Days', val: agingBuckets.bucket30, color: '#0891B2', bg: '#CFFAFE' },
+                                        { bucket: '16 – 30 Days Overdue', val: agingBuckets.bucket60, color: '#B45309', bg: '#FFFBEB' },
+                                        { bucket: '31+ Days Critical', val: agingBuckets.bucket90, color: '#B91C1C', bg: '#FEF2F2' }
+                                    ].map((item, i) => (
+                                        <div key={i} style={{ padding: '0.75rem', background: item.bg, borderRadius: '10px', textAlign: 'center' }}>
+                                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{item.bucket}</p>
+                                            <h4 style={{ fontSize: '1.1rem', fontWeight: '900', color: item.color, margin: 0 }}>{formatCurrency(item.val || 0)}</h4>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                         </div>
 
-                        {/* Aging Analysis Report */}
-                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
-                                <Clock size={16} color="#0D9488" />
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Aging Reports</h3>
+                        {/* Right Column - Top Customers & Collection Efficiency */}
+                        <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            
+                            {/* Collection Efficiency */}
+                            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.75rem', width: '100%', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem', margin: 0 }}>Collection Efficiency Rate</h3>
+                                <div style={{ position: 'relative', width: '90px', height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.5rem 0' }}>
+                                    <svg style={{ transform: 'rotate(-90deg)', width: '90px', height: '90px' }}>
+                                        <circle cx="45" cy="45" r="38" fill="transparent" stroke="#E2E8F0" strokeWidth="8" />
+                                        <circle cx="45" cy="45" r="38" fill="transparent" stroke="#7C3AED" strokeWidth="8" 
+                                                strokeDasharray={238}
+                                                strokeDashoffset={238 - (238 * collectionEfficiency) / 100}
+                                                strokeLinecap="round" />
+                                    </svg>
+                                    <span style={{ position: 'absolute', fontSize: '1.2rem', fontWeight: '900', color: '#7C3AED' }}>{collectionEfficiency}%</span>
+                                </div>
+                                <p style={{ color: '#475569', fontSize: '0.78rem', fontWeight: '600', marginTop: '0.25rem', margin: 0 }}>Collection efficiency indicates recovered payments out of overall credit sales.</p>
                             </div>
-                            <div className="tailwind-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                                {[
-                                    { bucket: '0 – 15 Days', val: agingBuckets.bucket30, color: '#0891B2', bg: '#CFFAFE' },
-                                    { bucket: '16 – 30 Days Overdue', val: agingBuckets.bucket60, color: '#B45309', bg: '#FFFBEB' },
-                                    { bucket: '31+ Days Critical', val: agingBuckets.bucket90, color: '#B91C1C', bg: '#FEF2F2' }
-                                ].map((item, i) => (
-                                    <div key={i} style={{ padding: '0.75rem', background: item.bg, borderRadius: '10px', textAlign: 'center' }}>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{item.bucket}</p>
-                                        <h4 style={{ fontSize: '1.1rem', fontWeight: '900', color: item.color, margin: 0 }}>{formatCurrency(item.val || 0)}</h4>
-                                    </div>
-                                ))}
+
+                            {/* Top customer sales trends */}
+                            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                    <TrendingUp size={16} color="#7C3AED" />
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Top Customer Sales Contribution</h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {[...customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))].sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0)).map((cust, i) => (
+                                        <div key={i}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
+                                                <span style={{ color: '#1E293B' }}>{cust.name}</span>
+                                                <span style={{ color: '#7C3AED' }}>{formatCurrency(cust.total_sales || 0)}</span>
+                                            </div>
+                                            <div style={{ height: '5px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
+                                                <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, ((cust.total_sales || 0) / Math.max(...customers.map(c => c.total_sales || 1))) * 100)}%` }}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
+
                         </div>
 
                     </div>
-
-                    {/* Right Column - Top Customers & Collection Efficiency */}
-                    <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        
-                        {/* Collection Efficiency */}
-                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.75rem', width: '100%', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem', margin: 0 }}>Collection Efficiency Rate</h3>
-                            <div style={{ position: 'relative', width: '90px', height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.5rem 0' }}>
-                                <svg style={{ transform: 'rotate(-90deg)', width: '90px', height: '90px' }}>
-                                    <circle cx="45" cy="45" r="38" fill="transparent" stroke="#E2E8F0" strokeWidth="8" />
-                                    <circle cx="45" cy="45" r="38" fill="transparent" stroke="#7C3AED" strokeWidth="8" 
-                                            strokeDasharray={238}
-                                            strokeDashoffset={238 - (238 * collectionEfficiency) / 100}
-                                            strokeLinecap="round" />
-                                </svg>
-                                <span style={{ position: 'absolute', fontSize: '1.2rem', fontWeight: '900', color: '#7C3AED' }}>{collectionEfficiency}%</span>
-                            </div>
-                            <p style={{ color: '#475569', fontSize: '0.78rem', fontWeight: '600', marginTop: '0.25rem', margin: 0 }}>Collection efficiency indicates recovered payments out of overall credit sales.</p>
-                        </div>
-
-                        {/* Top customer sales trends */}
-                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
-                                <TrendingUp size={16} color="#7C3AED" />
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Top Customer Sales Contribution</h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {[...customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))].sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0)).map((cust, i) => (
-                                    <div key={i}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
-                                            <span style={{ color: '#1E293B' }}>{cust.name}</span>
-                                            <span style={{ color: '#7C3AED' }}>{formatCurrency(cust.total_sales || 0)}</span>
-                                        </div>
-                                        <div style={{ height: '5px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, ((cust.total_sales || 0) / Math.max(...customers.map(c => c.total_sales || 1))) * 100)}%` }}></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                    </div>
-
                 </div>
             )}
+
+            {/* Maintained CRM Footer Summary Bar */}
+            <div style={{
+                marginTop: '0.6rem',
+                padding: '0.65rem 1.25rem',
+                background: 'white',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                flexShrink: 0
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.8rem', color: '#64748B' }}>
+                    <span>Showing <strong>{sortedCustomers.length}</strong> of <strong>{customers.length}</strong> Customers</span>
+                    <span style={{ color: '#CBD5E1' }}>•</span>
+                    <span>Total Outstanding: <strong style={{ color: '#B91C1C' }}>{formatCurrency(totalOutstanding)}</strong></span>
+                    <span style={{ color: '#CBD5E1' }}>•</span>
+                    <span>Total Advance: <strong style={{ color: '#0891B2' }}>{formatCurrency(totalAdvance)}</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: '700', color: '#16A34A', background: '#F0FDF4', padding: '0.2rem 0.55rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A' }}></span>
+                        Ledger Active
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Collection Rate: <strong style={{ color: '#7C3AED' }}>{collectionEfficiency}%</strong></span>
+                </div>
+            </div>
 
             {/* Create/Edit Customer Modal */}
             {isModalOpen && (
@@ -1919,7 +2264,20 @@ const BusinessCRM = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol})</label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', fontWeight: '700', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>₹</span>
-                                                    <input type="text" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="0" onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); setFormData({...formData, opening_balance: val === '' ? 0 : parseFloat(val)}); }} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.opening_balance === 0 ? '' : formData.opening_balance} 
+                                                        placeholder="0" 
+                                                        onChange={(e) => { 
+                                                            let val = e.target.value.replace(/[^0-9-]/g, ''); 
+                                                            const isNeg = val.startsWith('-'); 
+                                                            val = val.replace(/-/g, '').slice(0, 9); 
+                                                            if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); 
+                                                            const num = parseFloat(val) || 0; 
+                                                            setFormData({...formData, opening_balance: isNeg ? -num : num}); 
+                                                        }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                    />
                                                 </div>
                                                 <span style={{ fontSize: '0.67rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>Use negative for advance payment</span>
                                             </div>
@@ -1927,14 +2285,35 @@ const BusinessCRM = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Credit Limit ({currency.symbol})</label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', fontWeight: '700', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>₹</span>
-                                                    <input type="text" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="50000" onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); setFormData({...formData, credit_limit: val === '' ? 0 : parseFloat(val)}); }} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.credit_limit === 0 ? '' : formData.credit_limit} 
+                                                        placeholder="50000" 
+                                                        onChange={(e) => { 
+                                                            let val = e.target.value.replace(/\D/g, '').slice(0, 9); 
+                                                            if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); 
+                                                            setFormData({...formData, credit_limit: val === '' ? 0 : parseFloat(val)}); 
+                                                        }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                    />
                                                 </div>
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Due Days (Terms)</label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Calendar size={14} /></span>
-                                                    <input type="text" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="30" onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); setFormData({...formData, due_days: val === '' ? 0 : parseInt(val)}); }} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.due_days === 0 ? '' : formData.due_days} 
+                                                        placeholder="30" 
+                                                        onChange={(e) => { 
+                                                            let val = e.target.value.replace(/\D/g, '').slice(0, 3); 
+                                                            let parsed = val === '' ? 0 : parseInt(val, 10); 
+                                                            if (parsed > 365) parsed = 365; 
+                                                            setFormData({...formData, due_days: parsed}); 
+                                                        }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                    />
                                                 </div>
                                             </div>
                                             <div>
@@ -2035,7 +2414,33 @@ const BusinessCRM = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
                                     {paymentData.type === 'Payment In' ? `Amount Received (Credit) (${currency.symbol})` : `Amount Paid (Debit) (${currency.symbol})`}
                                 </label>
-                                <input required type="number" value={paymentData.amount === 0 ? '' : paymentData.amount} placeholder="0" onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#7C3AED', textAlign: 'center' }} />
+                                <input 
+                                    required 
+                                    type="text" 
+                                    inputMode="decimal"
+                                    value={paymentData.amount === 0 ? '' : paymentData.amount} 
+                                    placeholder="0.00" 
+                                    onKeyDown={(e) => {
+                                        if (['e', 'E', '+', '-', "'", '"', '`', '~'].includes(e.key)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    onChange={e => {
+                                        let val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if (val.startsWith('.')) val = '0' + val;
+                                        const parts = val.split('.');
+                                        let clean = parts[0].slice(0, 9);
+                                        if (parts.length > 1) {
+                                            clean += '.' + parts[1].slice(0, 2);
+                                        }
+                                        const parsed = parseFloat(clean);
+                                        setPaymentData({
+                                            ...paymentData, 
+                                            amount: clean === '' ? 0 : (isNaN(parsed) ? 0 : Math.min(parsed, 99999999.99))
+                                        });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#7C3AED', textAlign: 'center' }} 
+                                />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Payment Mode</label>
@@ -2093,7 +2498,7 @@ const BusinessCRM = () => {
                                 </div>
                             </div>
                             <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <button onClick={() => window.print()} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Download size={16} /> Export PDF</button>
+                                <button onClick={() => handlePrintStatement(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Printer size={16} /> Print / Export PDF</button>
                                 {activeConfig.payReminder !== false && (
                                     <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
                                 )}
