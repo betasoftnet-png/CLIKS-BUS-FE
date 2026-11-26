@@ -79,7 +79,7 @@ const createEmptyProduct = () => ({
     id: Date.now() + Math.random().toString(36).substring(2, 9),
     name: '',
     rate: '',
-    quantity: 1,
+    quantity: '',
     isCustom: true
 });
 
@@ -110,6 +110,7 @@ const SimpleBilling = () => {
     const [customerPhone, setCustomerPhone] = useState('');
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [products, setProducts] = useState([]);
+    const [pastRecordsCount, setPastRecordsCount] = useState(() => getSavedBillingRecords().length);
 
     // Hold Cart & Toast Notifications (Backend Database-backed)
     const [heldCarts, setHeldCarts] = useState([]);
@@ -171,6 +172,65 @@ const SimpleBilling = () => {
         return () => { isMounted = false; };
     }, []);
 
+    // Automatic cross-device sync for Past Records (Syncs macOS <-> Windows via Backend Database)
+    useEffect(() => {
+        let isMounted = true;
+        const syncPastRecords = async () => {
+            try {
+                const [backendRecords, localRecords] = await Promise.all([
+                    billingService.getSimpleRecords().catch(() => []),
+                    Promise.resolve(getSavedBillingRecords())
+                ]);
+
+                if (!isMounted) return;
+
+                const backendList = Array.isArray(backendRecords) ? backendRecords : [];
+                const localList = Array.isArray(localRecords) ? localRecords : [];
+
+                // 1. Upload any local records missing from the backend database (e.g. from macOS)
+                const backendIdSet = new Set(backendList.map(r => String(r.id || r.billingOrder)));
+                const missingOnBackend = localList.filter(r => r && r.id && !backendIdSet.has(String(r.id)));
+
+                if (missingOnBackend.length > 0) {
+                    for (const rec of missingOnBackend) {
+                        await billingService.saveSimpleRecord(rec).catch(() => {});
+                    }
+                }
+
+                // 2. Combine backend records and local records to form a unified unique list
+                const combinedMap = new Map();
+                backendList.forEach(r => {
+                    if (r && r.id) combinedMap.set(String(r.id), r);
+                });
+                localList.forEach(r => {
+                    if (r && r.id && !combinedMap.has(String(r.id))) {
+                        combinedMap.set(String(r.id), r);
+                    }
+                });
+
+                const unifiedRecords = Array.from(combinedMap.values());
+                unifiedRecords.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+
+                // Save back to localStorage so this browser is also fully up to date
+                try {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(unifiedRecords));
+                } catch (e) {}
+
+                if (isMounted) {
+                    setPastRecordsCount(unifiedRecords.length);
+                }
+            } catch (err) {
+                console.warn('Cross-device billing records sync warning:', err);
+                if (isMounted) {
+                    setPastRecordsCount(getSavedBillingRecords().length);
+                }
+            }
+        };
+
+        syncPastRecords();
+        return () => { isMounted = false; };
+    }, []);
+
     // Load held carts and active cart session from backend database on mount
     useEffect(() => {
         let isMounted = true;
@@ -188,11 +248,15 @@ const SimpleBilling = () => {
                 }
 
                 if (draftCart && Array.isArray(draftCart.products) && draftCart.products.length > 0) {
-                    setProducts(draftCart.products);
-                    if (draftCart.billingOrder) setBillingOrder(draftCart.billingOrder);
-                    if (draftCart.customerName) setCustomerName(draftCart.customerName);
-                    if (draftCart.customerPhone) setCustomerPhone(draftCart.customerPhone);
-                    if (draftCart.paymentMode) setPaymentMode(draftCart.paymentMode);
+                    // Only restore draft products if they have actual names entered
+                    const validDraftProds = draftCart.products.filter(p => p && p.name && p.name.trim() !== '');
+                    if (validDraftProds.length > 0) {
+                        setProducts(validDraftProds);
+                        if (draftCart.billingOrder) setBillingOrder(draftCart.billingOrder);
+                        if (draftCart.customerName) setCustomerName(draftCart.customerName);
+                        if (draftCart.customerPhone) setCustomerPhone(draftCart.customerPhone);
+                        if (draftCart.paymentMode) setPaymentMode(draftCart.paymentMode);
+                    }
                 }
             } catch (err) {
                 console.warn('Failed to load simple billing session data from backend:', err);
@@ -212,7 +276,8 @@ const SimpleBilling = () => {
         }
 
         const timer = setTimeout(() => {
-            if (products.length > 0) {
+            const valid = products.filter(p => p.name && p.name.trim() !== '');
+            if (valid.length > 0) {
                 billingService.saveSimpleCartSession({
                     billingOrder,
                     customerName,
@@ -478,11 +543,21 @@ const SimpleBilling = () => {
         // Auto-detect loose weighted commodity if user types e.g. Dhal, Rice, Sugar in custom row
         if (field === 'name') {
             const detectedWeighted = isProductWeighted({ name: value, unit: currentItem.unit });
+            const isNowWeighted = detectedWeighted || currentItem.is_weighted;
             if (detectedWeighted && !currentItem.is_weighted) {
                 nextItem.is_weighted = true;
                 if (!nextItem.unit || nextItem.unit === 'PCS') {
                     nextItem.unit = 'KG';
                 }
+            }
+
+            // Always default quantity/weight to 1 (or 1.000) as soon as product name is entered!
+            if (value && value.trim()) {
+                if (!currentItem.quantity || currentItem.quantity === '' || currentItem.quantity === 0) {
+                    nextItem.quantity = isNowWeighted ? 1.000 : 1;
+                }
+            } else {
+                nextItem.quantity = '';
             }
         }
 
@@ -737,6 +812,7 @@ const SimpleBilling = () => {
         saveBillingRecord(newRecord);
         billingService.saveSimpleRecord(newRecord).catch(() => {});
         billingService.clearSimpleCartSession().catch(() => {});
+        setPastRecordsCount(prev => prev + 1);
         setSubmittedRecord(newRecord);
         setShowReceiptModal(true);
 
@@ -838,13 +914,14 @@ const SimpleBilling = () => {
     if (activeTab === 'records') {
         return (
             <BillingRecords 
-                onNavigateToCreate={() => setActiveTab('create')} 
+                onNavigateToCreate={() => {
+                    setPastRecordsCount(getSavedBillingRecords().length);
+                    setActiveTab('create');
+                }} 
                 onLoadBillToCreate={handleLoadBillIntoBilling} 
             />
         );
     }
-
-    const savedRecordsCount = getSavedBillingRecords().length;
 
     return (
         <div style={{ padding: '1.75rem', maxWidth: '1240px', margin: '0 auto', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
@@ -990,7 +1067,7 @@ const SimpleBilling = () => {
                             padding: '1px 6px', 
                             borderRadius: '999px' 
                         }}>
-                            {savedRecordsCount}
+                            {pastRecordsCount}
                         </span>
                         <ArrowRight size={14} style={{ color: '#94A3B8' }} />
                     </button>
@@ -1559,7 +1636,7 @@ const SimpleBilling = () => {
                                 <Receipt size={16} />
                             </div>
                             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#1E293B' }}>
-                                Items in Bill ({products.length})
+                                Items in Bill ({validProducts.length})
                             </h3>
                         </div>
 
@@ -1879,7 +1956,7 @@ const SimpleBilling = () => {
                                                                     }}
                                                                     onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
                                                                     onWheel={(e) => e.target.blur()}
-                                                                    placeholder={!item.name?.trim() ? '-' : '0.000'}
+                                                                    placeholder="1.000"
                                                                     title={!item.name?.trim() ? 'Please enter or select product first' : 'Enter weight'}
                                                                     required
                                                                     style={{
@@ -1966,14 +2043,14 @@ const SimpleBilling = () => {
                                                                 step="1"
                                                                 disabled={!item.name?.trim()}
                                                                 value={item.name?.trim() ? item.quantity : ''}
-                                                                placeholder={!item.name?.trim() ? '-' : '1'}
+                                                                onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                                                onWheel={(e) => e.target.blur()}
+                                                                placeholder="1"
                                                                 onKeyDown={(e) => {
                                                                     if (['e', 'E', '+', '-', '.'].includes(e.key)) {
                                                                         e.preventDefault();
                                                                     }
                                                                 }}
-                                                                onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
-                                                                onWheel={(e) => e.target.blur()}
                                                                 required
                                                                 title={!item.name?.trim() ? 'Please enter product name first' : `Enter quantity (Max ${MAX_BILLING_QUANTITY})`}
                                                                 style={{

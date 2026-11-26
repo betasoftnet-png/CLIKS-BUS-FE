@@ -24,21 +24,46 @@ const BillingRecords = ({ onNavigateToCreate, onLoadBillToCreate }) => {
         let isMounted = true;
         const fetchRecords = async () => {
             try {
-                const data = await billingService.getSimpleRecords();
-                if (isMounted) {
-                    if (Array.isArray(data) && data.length > 0) {
-                        setRecords(data);
-                    } else {
-                        const local = getSavedBillingRecords();
-                        setRecords(local);
-                        // Seed backend if local has records
-                        if (Array.isArray(local) && local.length > 0) {
-                            for (const item of local) {
-                                billingService.saveSimpleRecord(item).catch(() => {});
-                            }
-                        }
+                const [backendRecords, localRecords] = await Promise.all([
+                    billingService.getSimpleRecords().catch(() => []),
+                    Promise.resolve(getSavedBillingRecords())
+                ]);
+
+                if (!isMounted) return;
+
+                const backendList = Array.isArray(backendRecords) ? backendRecords : [];
+                const localList = Array.isArray(localRecords) ? localRecords : [];
+
+                // 1. Upload any local records missing from the backend database (e.g. from macOS)
+                const backendIdSet = new Set(backendList.map(r => String(r.id || r.billingOrder)));
+                const missingOnBackend = localList.filter(r => r && r.id && !backendIdSet.has(String(r.id)));
+
+                if (missingOnBackend.length > 0) {
+                    for (const rec of missingOnBackend) {
+                        await billingService.saveSimpleRecord(rec).catch(() => {});
                     }
                 }
+
+                // 2. Combine backend records and local records to form a unified unique list
+                const combinedMap = new Map();
+                backendList.forEach(r => {
+                    if (r && r.id) combinedMap.set(String(r.id), r);
+                });
+                localList.forEach(r => {
+                    if (r && r.id && !combinedMap.has(String(r.id))) {
+                        combinedMap.set(String(r.id), r);
+                    }
+                });
+
+                const unifiedRecords = Array.from(combinedMap.values());
+                unifiedRecords.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+
+                setRecords(unifiedRecords);
+
+                // Keep localStorage in sync with the unified list
+                try {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(unifiedRecords));
+                } catch (e) {}
             } catch (err) {
                 console.warn('Backend billing records fetch failed, falling back:', err);
                 if (isMounted) setRecords(getSavedBillingRecords());
