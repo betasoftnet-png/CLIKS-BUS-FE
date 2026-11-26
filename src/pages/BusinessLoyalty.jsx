@@ -112,16 +112,47 @@ export default function BusinessLoyalty() {
     });
 
     // Local form state initialized from fetched settings
-    const [formData, setFormData] = useState(null);
+    // Local form state initialized from fetched settings or local cache
+    const [formData, setFormData] = useState(() => {
+        try {
+            const local = localStorage.getItem('cliks_loyalty_settings');
+            if (local) {
+                const parsed = JSON.parse(local);
+                if (parsed && typeof parsed === 'object') return parsed;
+            }
+        } catch (_) {}
+        return {
+            loyaltyEnabled: true,
+            customProgramName: (typeof localStorage !== 'undefined' && localStorage.getItem('cliks_loyalty_program_name')) || '',
+            loyaltyRsPer1Point: 100,
+            pointValueCurrency: 1.0,
+            minOrderSpend: 0,
+            minPointsToRedeem: 10,
+            loyaltyMaxClaimPercent: 50,
+            maxPointsPerOrder: 5000,
+            pointsExpiryMonths: 0,
+            welcomeBonusPoints: 50,
+            birthdayBonusPoints: 100,
+            enableTiers: true,
+            tierConfig: DEFAULT_TIERS,
+            excludeTaxFromPoints: true,
+            roundDownPoints: true,
+            printShowLoyalty: false,
+            printShowPointsEarned: true,
+            smsNotificationsEnabled: false
+        };
+    });
+
+    const [hasLoadedServer, setHasLoadedServer] = useState(false);
 
     React.useEffect(() => {
-        if (settingsData && !formData) {
-            setFormData({
+        if (settingsData && typeof settingsData === 'object' && !Array.isArray(settingsData) && !hasLoadedServer) {
+            const resolved = {
                 loyaltyEnabled: settingsData.loyaltyEnabled ?? true,
-                customProgramName: settingsData.customProgramName || 'Cliks VIP Rewards',
+                customProgramName: settingsData.customProgramName !== undefined ? settingsData.customProgramName : (localStorage.getItem('cliks_loyalty_program_name') || ''),
                 loyaltyRsPer1Point: settingsData.loyaltyRsPer1Point ?? 100,
                 pointValueCurrency: settingsData.pointValueCurrency ?? 1.0,
-                minOrderSpend: settingsData.minOrderSpend ?? 0,
+                minOrderSpend: settingsData.minOrderSpend !== undefined ? settingsData.minOrderSpend : 0,
                 minPointsToRedeem: settingsData.minPointsToRedeem ?? 10,
                 loyaltyMaxClaimPercent: settingsData.loyaltyMaxClaimPercent ?? 50,
                 maxPointsPerOrder: settingsData.maxPointsPerOrder ?? 5000,
@@ -135,14 +166,38 @@ export default function BusinessLoyalty() {
                 printShowLoyalty: settingsData.printShowLoyalty ?? false,
                 printShowPointsEarned: settingsData.printShowPointsEarned ?? true,
                 smsNotificationsEnabled: settingsData.smsNotificationsEnabled ?? false
-            });
+            };
+            setFormData(resolved);
+            try {
+                localStorage.setItem('cliks_loyalty_settings', JSON.stringify(resolved));
+                if (resolved.customProgramName) {
+                    localStorage.setItem('cliks_loyalty_program_name', resolved.customProgramName);
+                }
+            } catch (_) {}
+            setHasLoadedServer(true);
         }
-    }, [settingsData, formData]);
+    }, [settingsData, hasLoadedServer]);
 
     // Save Settings Mutation
     const saveMutation = useMutation({
         mutationFn: loyaltyService.updateProgramSettings,
         onSuccess: (data) => {
+            const savedData = data?.data || data;
+            if (savedData && typeof savedData === 'object' && !Array.isArray(savedData)) {
+                setFormData(prev => ({
+                    ...prev,
+                    ...savedData,
+                    customProgramName: savedData.customProgramName !== undefined ? savedData.customProgramName : prev?.customProgramName,
+                    loyaltyRsPer1Point: savedData.loyaltyRsPer1Point !== undefined ? savedData.loyaltyRsPer1Point : prev?.loyaltyRsPer1Point,
+                    minOrderSpend: savedData.minOrderSpend !== undefined ? savedData.minOrderSpend : prev?.minOrderSpend
+                }));
+                try {
+                    localStorage.setItem('cliks_loyalty_settings', JSON.stringify({
+                        ...(formData || {}),
+                        ...savedData
+                    }));
+                } catch (_) {}
+            }
             queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
             queryClient.invalidateQueries({ queryKey: ['loyalty-stats'] });
             queryClient.invalidateQueries({ queryKey: ['loyalty-customers'] });
@@ -175,14 +230,34 @@ export default function BusinessLoyalty() {
 
     const handleSave = () => {
         if (!formData) return;
-        saveMutation.mutate(formData);
+        const sanitized = {
+            ...formData,
+            customProgramName: (formData.customProgramName ?? '').trim(),
+            loyaltyRsPer1Point: Math.max(1, Number(formData.loyaltyRsPer1Point) || 100),
+            minOrderSpend: formData.minOrderSpend === '' ? 0 : Math.max(0, Number(formData.minOrderSpend) || 0),
+            pointValueCurrency: Math.max(0.01, Number(formData.pointValueCurrency) || 1.0),
+            minPointsToRedeem: Math.max(1, Number(formData.minPointsToRedeem) || 10),
+            loyaltyMaxClaimPercent: Math.min(100, Math.max(1, Number(formData.loyaltyMaxClaimPercent) || 50)),
+            maxPointsPerOrder: Math.max(10, Number(formData.maxPointsPerOrder) || 5000),
+            tierConfig: (formData.tierConfig || DEFAULT_TIERS).map(t => ({
+                ...t,
+                min_spend: t.min_spend === '' ? 0 : Math.max(0, Number(t.min_spend) || 0),
+                multiplier: t.multiplier === '' ? 1 : Math.max(1, Number(t.multiplier) || 1)
+            }))
+        };
+        try {
+            localStorage.setItem('cliks_loyalty_settings', JSON.stringify(sanitized));
+            localStorage.setItem('cliks_loyalty_program_name', sanitized.customProgramName);
+        } catch (_) {}
+        setFormData(sanitized);
+        saveMutation.mutate(sanitized);
     };
 
     const handleResetDefaults = () => {
         if (window.confirm('Reset all loyalty rules and membership tiers back to system defaults?')) {
-            setFormData({
+            const defaults = {
                 loyaltyEnabled: true,
-                customProgramName: 'Cliks VIP Rewards',
+                customProgramName: '',
                 loyaltyRsPer1Point: 100,
                 pointValueCurrency: 1.0,
                 minOrderSpend: 0,
@@ -199,8 +274,13 @@ export default function BusinessLoyalty() {
                 printShowLoyalty: true,
                 printShowPointsEarned: true,
                 smsNotificationsEnabled: false
-            });
-            showBanner('Reset to default rules. Click "Save Changes" to apply.', 'info');
+            };
+            setFormData(defaults);
+            try {
+                localStorage.setItem('cliks_loyalty_settings', JSON.stringify(defaults));
+                localStorage.setItem('cliks_loyalty_program_name', '');
+            } catch (_) {}
+            showBanner('Reset to default rules. Click "Save All Customizations" to apply.', 'info');
         }
     };
 
@@ -401,7 +481,7 @@ export default function BusinessLoyalty() {
                     </div>
                     <div>
                         <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A', display: 'block' }}>
-                            Customer Loyalty Program: <b>{formData.customProgramName}</b>
+                            Customer Loyalty Program: <b>{formData?.customProgramName?.trim() || 'Custom Loyalty Program'}</b>
                         </span>
                         <span style={{ fontSize: '0.78rem', color: '#64748B' }}>
                             {formData.loyaltyEnabled 
@@ -535,9 +615,9 @@ export default function BusinessLoyalty() {
                             </label>
                             <input
                                 type="text"
-                                value={formData.customProgramName}
+                                value={formData?.customProgramName ?? ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, customProgramName: e.target.value }))}
-                                placeholder="e.g. Cliks VIP Rewards, Gold Club"
+                                placeholder="e.g. My Business Rewards, Gold Club"
                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
                             />
                         </div>
@@ -551,8 +631,15 @@ export default function BusinessLoyalty() {
                                 <input
                                     type="number"
                                     min="1"
-                                    value={formData.loyaltyRsPer1Point}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, loyaltyRsPer1Point: Math.max(1, Number(e.target.value)) }))}
+                                    value={formData?.loyaltyRsPer1Point ?? ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFormData(prev => ({ ...prev, loyaltyRsPer1Point: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
+                                    }}
+                                    onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        setFormData(prev => ({ ...prev, loyaltyRsPer1Point: isNaN(num) || num <= 0 ? 100 : num }));
+                                    }}
                                     style={{ width: '140px', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.95rem', fontWeight: '800', outline: 'none' }}
                                 />
                                 <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>
@@ -571,8 +658,16 @@ export default function BusinessLoyalty() {
                             <input
                                 type="number"
                                 min="0"
-                                value={formData.minOrderSpend}
-                                onChange={(e) => setFormData(prev => ({ ...prev, minOrderSpend: Math.max(0, Number(e.target.value)) }))}
+                                value={formData?.minOrderSpend ?? ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => ({ ...prev, minOrderSpend: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
+                                }}
+                                onBlur={(e) => {
+                                    const num = parseFloat(e.target.value);
+                                    setFormData(prev => ({ ...prev, minOrderSpend: isNaN(num) || num < 0 ? 0 : num }));
+                                }}
+                                placeholder="0"
                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
                             />
                             <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0' }}>
@@ -632,8 +727,15 @@ export default function BusinessLoyalty() {
                                     type="number"
                                     step="0.05"
                                     min="0.01"
-                                    value={formData.pointValueCurrency}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, pointValueCurrency: Math.max(0.01, Number(e.target.value)) }))}
+                                    value={formData?.pointValueCurrency ?? ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFormData(prev => ({ ...prev, pointValueCurrency: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
+                                    }}
+                                    onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        setFormData(prev => ({ ...prev, pointValueCurrency: isNaN(num) || num <= 0 ? 1.0 : num }));
+                                    }}
                                     style={{ width: '120px', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.95rem', fontWeight: '800', outline: 'none' }}
                                 />
                                 <span style={{ fontSize: '0.85rem', color: '#64748B' }}>discount</span>
@@ -650,8 +752,15 @@ export default function BusinessLoyalty() {
                             <input
                                 type="number"
                                 min="1"
-                                value={formData.minPointsToRedeem}
-                                onChange={(e) => setFormData(prev => ({ ...prev, minPointsToRedeem: Math.max(1, Number(e.target.value)) }))}
+                                value={formData?.minPointsToRedeem ?? ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => ({ ...prev, minPointsToRedeem: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
+                                }}
+                                onBlur={(e) => {
+                                    const num = parseFloat(e.target.value);
+                                    setFormData(prev => ({ ...prev, minPointsToRedeem: isNaN(num) || num < 1 ? 1 : num }));
+                                }}
                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
                             />
                             <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0' }}>
@@ -668,8 +777,15 @@ export default function BusinessLoyalty() {
                                     type="number"
                                     min="1"
                                     max="100"
-                                    value={formData.loyaltyMaxClaimPercent}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, loyaltyMaxClaimPercent: Math.min(100, Math.max(1, Number(e.target.value))) }))}
+                                    value={formData?.loyaltyMaxClaimPercent ?? ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFormData(prev => ({ ...prev, loyaltyMaxClaimPercent: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
+                                    }}
+                                    onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        setFormData(prev => ({ ...prev, loyaltyMaxClaimPercent: isNaN(num) ? 50 : Math.min(100, Math.max(1, num)) }));
+                                    }}
                                     style={{ width: '120px', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.95rem', fontWeight: '800', outline: 'none' }}
                                 />
                                 <span style={{ fontWeight: '800', color: '#64748B' }}>%</span>
@@ -686,8 +802,15 @@ export default function BusinessLoyalty() {
                             <input
                                 type="number"
                                 min="10"
-                                value={formData.maxPointsPerOrder}
-                                onChange={(e) => setFormData(prev => ({ ...prev, maxPointsPerOrder: Math.max(10, Number(e.target.value)) }))}
+                                value={formData?.maxPointsPerOrder ?? ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => ({ ...prev, maxPointsPerOrder: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
+                                }}
+                                onBlur={(e) => {
+                                    const num = parseFloat(e.target.value);
+                                    setFormData(prev => ({ ...prev, maxPointsPerOrder: isNaN(num) || num < 1 ? 5000 : num }));
+                                }}
                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
                             />
                             <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0' }}>
@@ -823,12 +946,20 @@ export default function BusinessLoyalty() {
                                         <input
                                             type="number"
                                             min="0"
-                                            value={tier.min_spend}
+                                            value={tier.min_spend ?? ''}
                                             onChange={(e) => {
+                                                const val = e.target.value;
                                                 const updated = [...formData.tierConfig];
-                                                updated[idx].min_spend = Math.max(0, Number(e.target.value));
+                                                updated[idx].min_spend = val === '' ? '' : (isNaN(val) ? val : Number(val));
                                                 setFormData(prev => ({ ...prev, tierConfig: updated }));
                                             }}
+                                            onBlur={(e) => {
+                                                const num = parseFloat(e.target.value);
+                                                const updated = [...formData.tierConfig];
+                                                updated[idx].min_spend = isNaN(num) || num < 0 ? 0 : num;
+                                                setFormData(prev => ({ ...prev, tierConfig: updated }));
+                                            }}
+                                            placeholder="0"
                                             style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '750' }}
                                         />
                                     </div>
@@ -841,10 +972,17 @@ export default function BusinessLoyalty() {
                                             type="number"
                                             step="0.05"
                                             min="1"
-                                            value={tier.multiplier}
+                                            value={tier.multiplier ?? ''}
                                             onChange={(e) => {
+                                                const val = e.target.value;
                                                 const updated = [...formData.tierConfig];
-                                                updated[idx].multiplier = Math.max(1, Number(e.target.value));
+                                                updated[idx].multiplier = val === '' ? '' : (isNaN(val) ? val : Number(val));
+                                                setFormData(prev => ({ ...prev, tierConfig: updated }));
+                                            }}
+                                            onBlur={(e) => {
+                                                const num = parseFloat(e.target.value);
+                                                const updated = [...formData.tierConfig];
+                                                updated[idx].multiplier = isNaN(num) || num < 1 ? 1 : num;
                                                 setFormData(prev => ({ ...prev, tierConfig: updated }));
                                             }}
                                             style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '750' }}
