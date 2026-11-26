@@ -885,7 +885,7 @@ const BusinessCRM = () => {
 
                 alert('Customer Profile updated successfully!');
             } else {
-                const createdRes = await crmService.createCustomer(formData);
+                const createdRes = await crmService.createCustomer(payload);
                 const newCustomer = createdRes?.data?.data || createdRes?.data?.customer || createdRes?.data || {};
                 
                 // Background sync to Bit-Tool API

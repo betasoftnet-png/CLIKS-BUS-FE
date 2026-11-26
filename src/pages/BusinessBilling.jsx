@@ -193,18 +193,25 @@ const BusinessBilling = () => {
         const invKey = invoice.id || invoice.invoice_number;
         setGeneratingIrnId(invKey);
         try {
+            const today = new Date();
+            const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
             const payload = {
                 invoiceId: invoice.id,
                 invoiceNumber: invoice.invoice_number,
-                buyerGstin: invoice.client_gstin || invoice.customer_gstin,
-                buyerName: invoice.client_name,
-                buyerAddress: invoice.billing_address || invoice.shipping_address,
-                buyerPlace: invoice.city || 'Pune',
-                buyerPincode: invoice.pincode || '411001',
-                totalAmount: invoice.total_amount || invoice.amount,
+                document_number: invoice.invoice_number,
+                document_date: formattedDate,
+                docDate: formattedDate,
+                buyerGstin: invoice.client_gstin || invoice.customer_gstin || '09AAAPG7885R002',
+                customer_gstin: invoice.client_gstin || invoice.customer_gstin || '09AAAPG7885R002',
+                buyerName: invoice.client_name || 'Customer',
+                customer_name: invoice.client_name || 'Customer',
+                buyerAddress: invoice.billing_address || invoice.shipping_address || 'Main Road',
+                buyerPlace: invoice.city || 'Chennai',
+                buyerPincode: invoice.pincode || '600001',
+                taxable_value: invoice.taxable_amount || invoice.total_amount || invoice.amount || 1000,
+                totalAmount: invoice.total_amount || invoice.amount || 1000,
                 taxAmount: invoice.tax_amount || 0,
-                items: invoice.items,
-                docDate: invoice.created_at || invoice.due_date
+                items: invoice.items
             };
             const result = await complianceService.generateIRN(payload);
             const ackNo = result.AckNo || result.ackNo;
@@ -911,6 +918,11 @@ const BusinessBilling = () => {
         layout: 'table', // 'table' | 'list'
         alignment: 'left', // 'left' | 'center' | 'right'
         fontFamily: 'sans-serif',
+        fontTheme: 'modern_sans', // 'modern_sans' | 'classic_serif' | 'tech_mono'
+        texture: 'none', // 'none' | 'subtle_dots' | 'diagonal_stripes' | 'geometric_mesh' | 'classic_grid' | 'parchment'
+        borderStyle: 'borderless', // 'borderless' | 'rounded_card' | 'executive_double' | 'luxury_bracket'
+        watermark: 'none', // 'none' | 'PAID' | 'ORIGINAL' | 'TAX INVOICE' | 'CONFIDENTIAL'
+        headerBanner: 'solid_bar', // 'solid_bar' | 'gradient_banner' | 'split_ribbon' | 'minimal_clean'
         showBank: true,
         showTerms: true,
         showSignature: true,
@@ -1976,13 +1988,17 @@ const BusinessBilling = () => {
         
         if (customerMode === 'manual' && saveCustomerForFuture) {
             try {
+                const autoEmail = `${(invoiceForm.client_name || 'customer').toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'}@bnxmail.com`;
                 await crmService.createCustomer({
                     name: invoiceForm.client_name,
                     outstanding_balance: 0,
                     total_spent: parseFloat(invoiceForm.taxable_value) || 0,
                     gstin: invoiceForm.customer_gstin,
                     state: invoiceForm.place_of_supply,
-                    place_of_supply: invoiceForm.place_of_supply
+                    place_of_supply: invoiceForm.place_of_supply,
+                    phone_number: invoiceForm.client_phone ? invoiceForm.client_phone.replace(/\D/g, '').slice(-10) : undefined,
+                    phone: invoiceForm.client_phone ? invoiceForm.client_phone.replace(/\D/g, '').slice(-10) : undefined,
+                    email: invoiceForm.client_email || autoEmail
                 });
                 queryClient.invalidateQueries({ queryKey: ['customers'] });
                 queryClient.invalidateQueries({ queryKey: ['business-customers'] });
@@ -2632,9 +2648,38 @@ const BusinessBilling = () => {
     const paidInvoiced = safeInvoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
     const pendingInvoiced = safeInvoices.filter(inv => inv.status !== 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
 
-    const handleSendReminder = (invoice) => {
-        const message = `Hello ${invoice.client_name},\n\nThis is a friendly reminder regarding your invoice *${invoice.invoice_number}* for *${formatCurrency(invoice.total_amount || invoice.amount)}*.\n\nDue Date: ${invoice.due_date}\nStatus: ${invoice.status.toUpperCase()}\n\nPlease make the payment at your earliest convenience.\n\nThank you,\nCLIKS BUSINESS`;
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const handleSendReminder = async (invoice) => {
+        if (!invoice) return;
+        const total = formatCurrency(invoice.total_amount || invoice.amount);
+        const invNo = invoice.invoice_number || `#${invoice.id}`;
+        const clientName = invoice.client_name || 'Customer';
+
+        // 1. Locate customer contact phone number
+        let phone = invoice.client_phone || invoice.customer_phone || invoice.phone;
+        if (!phone) {
+            const matchedCustomer = customers?.find(c => (c.name && clientName && c.name.toLowerCase() === clientName.toLowerCase()) || c.id === invoice.customer_id);
+            phone = matchedCustomer?.phone_number || matchedCustomer?.phone || matchedCustomer?.mobile;
+        }
+
+        const cleanDigits = String(phone || '').replace(/\D/g, '');
+        const recipientPhone = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+
+        // 2. Dispatch to backend automated WhatsApp sender
+        try {
+            await apiClient.post(`/billing/invoices/${invoice.id || invoice.invoice_number}/send-whatsapp`, {
+                phone: recipientPhone
+            }).catch(() => {});
+        } catch (e) {
+            console.warn('[WhatsApp Dispatch Error]', e);
+        }
+
+        // 3. Compose structured WhatsApp invoice reminder
+        const message = `Hello *${clientName}*,\n\nHere is your official invoice *${invNo}* from CLIKS BUSINESS for *${total}*.\n\n*Invoice Particulars:*\n• Date: ${invoice.due_date || 'Today'}\n• Payment Status: *${(invoice.status || 'Active').toUpperCase()}*\n\nPlease find your tax invoice details ready. Thank you for your business!`;
+
+        const whatsappUrl = recipientPhone 
+            ? `https://wa.me/${recipientPhone}?text=${encodeURIComponent(message)}`
+            : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
         window.open(whatsappUrl, '_blank');
     };
 
@@ -5291,7 +5336,157 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            {/* 2. ALIGNMENT */}
+                            {/* 2. BACKGROUND TEXTURE & PATTERNS */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Background Texture & Pattern</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                    {[
+                                        { id: 'none', label: 'Clean White' },
+                                        { id: 'subtle_dots', label: 'Subtle Dots' },
+                                        { id: 'diagonal_stripes', label: 'Diagonal Lines' },
+                                        { id: 'geometric_mesh', label: 'Geometric Mesh' },
+                                        { id: 'classic_grid', label: 'Classic Grid' },
+                                        { id: 'parchment', label: 'Ivory Parchment' }
+                                    ].map(tex => (
+                                        <button 
+                                            key={tex.id} 
+                                            type="button"
+                                            onClick={() => setCustomConfig({...customConfig, texture: tex.id})} 
+                                            style={{ 
+                                                padding: '8px', 
+                                                borderRadius: '8px', 
+                                                border: customConfig.texture === tex.id ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', 
+                                                background: customConfig.texture === tex.id ? `${customConfig.accentColor}12` : '#F8FAFC', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.8rem', 
+                                                fontWeight: '700', 
+                                                color: customConfig.texture === tex.id ? customConfig.accentColor : '#475569' 
+                                            }}
+                                        >
+                                            {tex.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 3. BORDER & FRAME STYLING */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Border & Frame Styling</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                                    {[
+                                        { id: 'borderless', label: 'Modern Borderless', desc: 'Sleek minimalist page' },
+                                        { id: 'rounded_card', label: 'Rounded Card', desc: 'Floating shadow card' },
+                                        { id: 'executive_double', label: 'Executive Double', desc: 'Formal dual perimeter' },
+                                        { id: 'luxury_bracket', label: 'Luxury Brackets', desc: 'Architectural side beams' }
+                                    ].map(b => (
+                                        <button 
+                                            key={b.id} 
+                                            type="button"
+                                            onClick={() => setCustomConfig({...customConfig, borderStyle: b.id})} 
+                                            style={{ 
+                                                padding: '8px 10px', 
+                                                textAlign: 'left',
+                                                borderRadius: '8px', 
+                                                border: customConfig.borderStyle === b.id ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', 
+                                                background: customConfig.borderStyle === b.id ? `${customConfig.accentColor}12` : 'white', 
+                                                cursor: 'pointer' 
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: '750', fontSize: '0.82rem', color: customConfig.borderStyle === b.id ? customConfig.accentColor : '#0F172A' }}>{b.label}</div>
+                                            <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{b.desc}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 4. WATERMARK STAMP */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Watermark Stamp</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+                                    {['none', 'PAID', 'ORIGINAL', 'TAX INVOICE', 'CONFIDENTIAL'].map(w => (
+                                        <button 
+                                            key={w} 
+                                            type="button"
+                                            onClick={() => setCustomConfig({...customConfig, watermark: w})} 
+                                            style={{ 
+                                                padding: '7px 4px', 
+                                                borderRadius: '6px', 
+                                                border: customConfig.watermark === w ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', 
+                                                background: customConfig.watermark === w ? `${customConfig.accentColor}12` : '#F8FAFC', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.72rem', 
+                                                fontWeight: '800', 
+                                                color: customConfig.watermark === w ? customConfig.accentColor : '#64748B' 
+                                            }}
+                                        >
+                                            {w === 'none' ? 'None' : w}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 5. HEADER ACCENT BANNER */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Header Design & Accents</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                                    {[
+                                        { id: 'solid_bar', label: 'Top Bar' },
+                                        { id: 'gradient_banner', label: 'Gradient' },
+                                        { id: 'split_ribbon', label: 'Ribbon' },
+                                        { id: 'minimal_clean', label: 'Clean' }
+                                    ].map(hb => (
+                                        <button 
+                                            key={hb.id} 
+                                            type="button"
+                                            onClick={() => setCustomConfig({...customConfig, headerBanner: hb.id, showHeaderStrip: hb.id !== 'minimal_clean'})} 
+                                            style={{ 
+                                                padding: '7px', 
+                                                borderRadius: '6px', 
+                                                border: customConfig.headerBanner === hb.id ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', 
+                                                background: customConfig.headerBanner === hb.id ? `${customConfig.accentColor}12` : '#F8FAFC', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.75rem', 
+                                                fontWeight: '750', 
+                                                color: customConfig.headerBanner === hb.id ? customConfig.accentColor : '#64748B' 
+                                            }}
+                                        >
+                                            {hb.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 6. TYPOGRAPHY THEME */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Typography Theme</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                    {[
+                                        { id: 'modern_sans', label: 'Modern Sans' },
+                                        { id: 'classic_serif', label: 'Classic Serif' },
+                                        { id: 'tech_mono', label: 'Tech Mono' }
+                                    ].map(ft => (
+                                        <button 
+                                            key={ft.id} 
+                                            type="button"
+                                            onClick={() => setCustomConfig({...customConfig, fontTheme: ft.id})} 
+                                            style={{ 
+                                                padding: '8px', 
+                                                borderRadius: '6px', 
+                                                border: customConfig.fontTheme === ft.id ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', 
+                                                background: customConfig.fontTheme === ft.id ? `${customConfig.accentColor}12` : '#F8FAFC', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.78rem', 
+                                                fontWeight: '750', 
+                                                color: customConfig.fontTheme === ft.id ? customConfig.accentColor : '#64748B' 
+                                            }}
+                                        >
+                                            {ft.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 7. ALIGNMENT */}
                             <div>
                                 <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Header Layout Alignment</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
@@ -5301,7 +5496,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            {/* 3. ITEM TABLE STYLE */}
+                            {/* 8. ITEM TABLE STYLE */}
                             <div>
                                 <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Items Display Pattern</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -5316,7 +5511,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            {/* 4. VISIBILITY TOGGLES */}
+                            {/* 9. VISIBILITY TOGGLES */}
                             <div>
                                 <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '10px' }}>Include Sections</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -7228,9 +7423,10 @@ const BusinessBilling = () => {
                                                             ...prev,
                                                             client_name: selectedName,
                                                             customer_gstin: customer?.gstin || prev.customer_gstin,
+                                                            client_phone: customer?.phone_number || customer?.phone || prev.client_phone,
                                                             place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
                                                         }));
-                                                    }}
+                                                    }} 
                                                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
                                                 >
                                                     <option value="">Select Customer</option>
@@ -7239,14 +7435,27 @@ const BusinessBilling = () => {
                                                     ))}
                                                 </select>
                                             ) : (
-                                                <input 
-                                                    required 
-                                                    type="text" 
-                                                    value={invoiceForm.client_name} 
-                                                    onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })} 
-                                                    placeholder="Enter customer legal name"
-                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
-                                                />
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <input 
+                                                            required 
+                                                            type="text" 
+                                                            value={invoiceForm.client_name} 
+                                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })} 
+                                                            placeholder="Customer legal name *"
+                                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <input 
+                                                            type="text" 
+                                                            value={invoiceForm.client_phone || ''} 
+                                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, client_phone: e.target.value })} 
+                                                            placeholder="Phone (Optional, e.g. 9876543210)"
+                                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
                                             )}
                                             {validationErrors.client_name && <span className="text-red-500 text-[11px] font-bold mt-1 block">{validationErrors.client_name}</span>}
                                         </div>

@@ -1522,15 +1522,111 @@ export const InvoiceTemplates = {
         const showSign = config.showSignature !== false;
         const isTable = config.layout === 'table';
 
+        // Advanced Design & Texture Configurations
+        const texture = config.texture || 'none';
+        const borderStyle = config.borderStyle || 'borderless';
+        const watermark = config.watermark || 'none';
+        const headerBanner = config.headerBanner || (config.showHeaderStrip !== false ? 'solid_bar' : 'minimal_clean');
+        const fontTheme = config.fontTheme || 'modern_sans';
+
+        let fontFamily = 'system-ui, -apple-system, sans-serif';
+        if (fontTheme === 'classic_serif') fontFamily = "'Georgia', 'Playfair Display', serif";
+        if (fontTheme === 'tech_mono') fontFamily = "'SF Mono', 'Courier New', monospace";
+
+        // Background texture patterns
+        let backgroundStyle = { background: '#FFFFFF' };
+        if (texture === 'subtle_dots') {
+            backgroundStyle = {
+                backgroundColor: '#FAFCFF',
+                backgroundImage: 'radial-gradient(#CBD5E1 1.2px, transparent 1.2px)',
+                backgroundSize: '16px 16px'
+            };
+        } else if (texture === 'diagonal_stripes') {
+            backgroundStyle = {
+                backgroundColor: '#FFFFFF',
+                backgroundImage: 'repeating-linear-gradient(45deg, #F8FAFC, #F8FAFC 10px, #FFFFFF 10px, #FFFFFF 20px)'
+            };
+        } else if (texture === 'geometric_mesh') {
+            backgroundStyle = {
+                backgroundColor: '#FFFFFF',
+                backgroundImage: 'linear-gradient(to right, rgba(203, 213, 225, 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(203, 213, 225, 0.4) 1px, transparent 1px)',
+                backgroundSize: '24px 24px'
+            };
+        } else if (texture === 'classic_grid') {
+            backgroundStyle = {
+                backgroundColor: '#F8FAFC',
+                backgroundImage: 'linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px)',
+                backgroundSize: '36px 36px'
+            };
+        } else if (texture === 'parchment') {
+            backgroundStyle = {
+                backgroundColor: '#FDFBF7'
+            };
+        }
+
+        // Frame and border styles
+        let frameStyle = {};
+        if (borderStyle === 'rounded_card') {
+            frameStyle = {
+                borderRadius: '16px',
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)'
+            };
+        } else if (borderStyle === 'executive_double') {
+            frameStyle = {
+                border: `4px double ${theme}60`,
+                borderRadius: '4px'
+            };
+        } else if (borderStyle === 'luxury_bracket') {
+            frameStyle = {
+                borderTop: '2px solid #E2E8F0',
+                borderBottom: '2px solid #E2E8F0',
+                borderLeft: `6px solid ${theme}`,
+                borderRight: `6px solid ${theme}`,
+                borderRadius: '8px'
+            };
+        }
+
         const textAlign = align === 'center' ? 'center' : (align === 'right' ? 'right' : 'left');
         const headerFlex = align === 'center' ? 'center' : (align === 'right' ? 'flex-end' : 'flex-start');
 
         return (
-            <div className="inv-custom-container" style={{ padding: '40px', background: '#FFF', minHeight: '900px', position: 'relative', fontFamily: 'system-ui, sans-serif' }}>
-                {config.showHeaderStrip && (
+            <div className="inv-custom-container" style={{ padding: '40px', minHeight: '900px', position: 'relative', overflow: 'hidden', fontFamily, ...backgroundStyle, ...frameStyle }}>
+                
+                {/* Header Banner Variations */}
+                {headerBanner === 'solid_bar' && (
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: theme }} />
                 )}
-                <div className="inv-custom-header" style={{ display: 'flex', flexDirection: 'column', alignItems: headerFlex, textAlign: textAlign, marginBottom: '40px', marginTop: config.showHeaderStrip ? '15px' : '0' }}>
+                {headerBanner === 'gradient_banner' && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '12px', background: `linear-gradient(90deg, ${theme} 0%, #1E293B 100%)` }} />
+                )}
+                {headerBanner === 'split_ribbon' && (
+                    <div style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0, borderTop: `60px solid ${theme}`, borderLeft: '60px solid transparent' }} />
+                )}
+
+                {/* Translucent Watermark Stamp */}
+                {watermark !== 'none' && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%) rotate(-30deg)',
+                        fontSize: '85px',
+                        fontWeight: '900',
+                        color: watermark === 'PAID' ? 'rgba(22, 101, 52, 0.07)' : 'rgba(15, 23, 42, 0.05)',
+                        border: watermark === 'PAID' ? '8px solid rgba(22, 101, 52, 0.08)' : '8px solid rgba(15, 23, 42, 0.05)',
+                        padding: '10px 40px',
+                        borderRadius: '16px',
+                        pointerEvents: 'none',
+                        letterSpacing: '8px',
+                        userSelect: 'none',
+                        zIndex: 1
+                    }}>
+                        {watermark}
+                    </div>
+                )}
+
+                <div className="inv-custom-header" style={{ display: 'flex', flexDirection: 'column', alignItems: headerFlex, textAlign: textAlign, marginBottom: '40px', marginTop: headerBanner !== 'minimal_clean' ? '15px' : '0', position: 'relative', zIndex: 2 }}>
                     <h1 style={{ fontSize: '32px', fontWeight: '900', color: theme, margin: '0 0 5px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
                         {business?.business_name || 'MY COMPANY'}
                     </h1>
@@ -1540,7 +1636,7 @@ export const InvoiceTemplates = {
                         {business?.gstin && <span style={{ display: 'inline-block', background: `${theme}15`, color: theme, padding: '3px 10px', borderRadius: '4px', fontWeight: '800', fontSize: '11px', marginTop: '8px' }}>GSTIN: {business.gstin}</span>}
                     </div>
                 </div>
-                <div className="inv-custom-info" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '20px', marginBottom: '30px' }}>
+                <div className="inv-custom-info" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '20px', marginBottom: '30px', position: 'relative', zIndex: 2 }}>
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Invoice Details</div>
                         <div style={{ fontSize: '14px' }}>Doc No: <b>#{data.invoice_number}</b></div>
@@ -1553,7 +1649,7 @@ export const InvoiceTemplates = {
                     </div>
                 </div>
                 {isTable ? (
-                    <div className="inv-table-scroll-container">
+                    <div className="inv-table-scroll-container" style={{ position: 'relative', zIndex: 2 }}>
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '30px' }}>
                             <thead>
                                 <tr style={{ background: theme, color: 'white' }}>
@@ -1565,7 +1661,7 @@ export const InvoiceTemplates = {
                             </thead>
                             <tbody>
                                 {items.map((it, i) => (
-                                    <tr key={i} style={{ background: i % 2 === 0 ? `${theme}05` : 'transparent' }}>
+                                    <tr key={i} style={{ background: i % 2 === 0 ? `${theme}08` : 'transparent' }}>
                                         <td style={{ padding: '15px', borderBottom: '1px solid #f1f1f1' }}>
                                             <div style={{ fontWeight: '700', color: '#0F172A' }}>{it.description}</div>
                                             <span style={{ fontSize: '11px', color: '#64748B' }}>{it.hsn_code ? `HSN: ${it.hsn_code}` : ''}</span>
@@ -1579,13 +1675,13 @@ export const InvoiceTemplates = {
                         </table>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '30px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '30px', position: 'relative', zIndex: 2 }}>
                         <div style={{ background: '#F1F5F9', padding: '10px 20px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '800', color: '#475569' }}>
                             <span>Product Description</span>
                             <span>Total Value</span>
                         </div>
                         {items.map((it, i) => (
-                            <div key={i} style={{ padding: '15px 20px', borderRadius: '8px', border: `1px solid #E2E8F0`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div key={i} style={{ padding: '15px 20px', borderRadius: '8px', border: `1px solid #E2E8F0`, background: 'rgba(255,255,255,0.85)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ fontWeight: '700', fontSize: '14px' }}>{it.description}</div>
                                     <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>Qty: {it.quantity} × ₹{parseFloat(it.price).toFixed(2)}</div>
@@ -1597,8 +1693,8 @@ export const InvoiceTemplates = {
                         ))}
                     </div>
                 )}
-                <div className="inv-custom-totals" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <div style={{ width: '320px', background: '#F8FAFC', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
+                <div className="inv-custom-totals" style={{ display: 'flex', justifyContent: 'flex-end', position: 'relative', zIndex: 2 }}>
+                    <div style={{ width: '320px', background: '#F8FAFC', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px', color: '#475569' }}>
                             <span>Net Subtotal</span><span>{formatCurrency(data.amount)}</span>
                         </div>
@@ -1611,7 +1707,7 @@ export const InvoiceTemplates = {
                         </div>
                     </div>
                 </div>
-                <div className="inv-custom-footer" style={{ marginTop: '50px', display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-end' }}>
+                <div className="inv-custom-footer" style={{ marginTop: '50px', display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-end', position: 'relative', zIndex: 2 }}>
                     <div style={{ flex: 2 }}>
                         {showBank && (
                             <div style={{ marginBottom: '20px' }}>
