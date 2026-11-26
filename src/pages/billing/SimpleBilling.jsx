@@ -43,6 +43,10 @@ import CameraBarcodeScannerModal from '../../components/pos/CameraBarcodeScanner
 export const LOCAL_STORAGE_KEY = 'cliks_billing_records_v1';
 export const SIMPLE_HELD_CARTS_KEY = 'cliks_simple_held_carts_v1';
 
+// Strict field restriction limits for billing
+export const MAX_BILLING_RATE = 99999999;       // ₹9,99,99,999 (~10 Crores maximum rate)
+export const MAX_BILLING_QUANTITY = 99999;     // 99,999 units maximum quantity
+
 export const getSavedBillingRecords = () => {
     try {
         const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -254,15 +258,28 @@ const SimpleBilling = () => {
         return catalogProducts.slice(0, 6);
     }, [catalogProducts]);
 
-    // Calculate totals
+    // Calculate totals with safe bounds
     const calculateProductTotal = (rate, quantity) => {
         const r = parseFloat(rate) || 0;
         const q = parseFloat(quantity) || 0;
-        return r * q;
+        const total = r * q;
+        return (isFinite(total) && total >= 0 && total <= 999999999999) ? total : 0;
     };
 
-    const totalQuantity = products.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0);
-    const grandTotal = products.reduce((sum, item) => sum + calculateProductTotal(item.rate, item.quantity), 0);
+    // Valid products that have an actual entered/selected product name
+    const validProducts = useMemo(() => {
+        return products.filter(item => item.name && item.name.trim() !== '');
+    }, [products]);
+
+    const totalQuantity = useMemo(() => {
+        const sum = validProducts.reduce((acc, item) => acc + (parseFloat(item.quantity) || 0), 0);
+        return isFinite(sum) ? sum : 0;
+    }, [validProducts]);
+
+    const grandTotal = useMemo(() => {
+        const sum = validProducts.reduce((acc, item) => acc + calculateProductTotal(item.rate, item.quantity), 0);
+        return isFinite(sum) ? sum : 0;
+    }, [validProducts]);
 
     // Add product from existing catalog
     const handleSelectCatalogProduct = (prod, customWeight = null) => {
@@ -402,11 +419,61 @@ const SimpleBilling = () => {
         };
     }, [catalogProducts]);
 
-    // Product row inputs
+    // Product row inputs with strict field restrictions and validation
     const handleProductChange = (index, field, value) => {
         const updated = [...products];
         const currentItem = updated[index];
-        const nextItem = { ...currentItem, [field]: value };
+        if (!currentItem) return;
+
+        let processedValue = value;
+
+        // Restriction: Quantity modifications require a valid product name first!
+        if (field === 'quantity') {
+            if (!currentItem.name || !currentItem.name.trim()) {
+                showToast('⚠️ Please enter or select a product before changing quantity.');
+                return;
+            }
+
+            if (value === '') {
+                processedValue = '';
+            } else {
+                let num = parseFloat(value);
+                if (isNaN(num) || num <= 0) {
+                    num = currentItem.is_weighted ? 0.001 : 1;
+                }
+                if (num > MAX_BILLING_QUANTITY) {
+                    num = MAX_BILLING_QUANTITY;
+                    showToast(`⚠️ Maximum quantity limit is ${MAX_BILLING_QUANTITY.toLocaleString('en-IN')}.`);
+                }
+                processedValue = num;
+            }
+        }
+
+        // Restriction: Rate field restrictions (non-negative, max ₹9,99,99,999, max 2 decimal places)
+        if (field === 'rate') {
+            if (value === '') {
+                processedValue = '';
+            } else {
+                let num = parseFloat(value);
+                if (isNaN(num) || num < 0) {
+                    num = 0;
+                }
+                if (num > MAX_BILLING_RATE) {
+                    num = MAX_BILLING_RATE;
+                    showToast(`⚠️ Maximum price limit is ₹${MAX_BILLING_RATE.toLocaleString('en-IN')}.`);
+                }
+
+                // Restrict to max 2 decimal places
+                if (typeof value === 'string' && value.includes('.')) {
+                    const [intPart, decPart] = value.split('.');
+                    processedValue = decPart.length > 2 ? `${intPart}.${decPart.slice(0, 2)}` : value;
+                } else {
+                    processedValue = num;
+                }
+            }
+        }
+
+        const nextItem = { ...currentItem, [field]: processedValue };
 
         // Auto-detect loose weighted commodity if user types e.g. Dhal, Rice, Sugar in custom row
         if (field === 'name') {
@@ -423,12 +490,27 @@ const SimpleBilling = () => {
         setProducts(updated);
     };
 
-    // Quantity Stepper
+    // Quantity Stepper with strict product workflow check and max limit
     const handleQuantityChange = (index, delta) => {
         const updated = [...products];
-        const currentQty = parseFloat(updated[index].quantity) || 1;
-        const newQty = Math.max(1, currentQty + delta);
-        updated[index].quantity = newQty;
+        const currentItem = updated[index];
+        if (!currentItem) return;
+
+        // Restriction: Cannot increase/decrease quantity without entering a product first!
+        if (!currentItem.name || !currentItem.name.trim()) {
+            showToast('⚠️ Please enter or select a product before changing quantity.');
+            return;
+        }
+
+        const currentQty = parseFloat(currentItem.quantity) || 1;
+        let newQty = currentQty + delta;
+        if (newQty < 1) newQty = 1;
+        if (newQty > MAX_BILLING_QUANTITY) {
+            newQty = MAX_BILLING_QUANTITY;
+            showToast(`⚠️ Maximum quantity limit is ${MAX_BILLING_QUANTITY.toLocaleString('en-IN')}.`);
+        }
+
+        updated[index] = { ...currentItem, quantity: newQty };
         setProducts(updated);
     };
 
@@ -663,7 +745,94 @@ const SimpleBilling = () => {
     };
 
     const handlePrintReceipt = () => {
-        window.print();
+        const printContent = document.getElementById('printable-bill-receipt');
+        if (!printContent) {
+            window.print();
+            return;
+        }
+
+        // Clean up old print frame if still hanging
+        const oldFrame = document.getElementById('simple-billing-print-frame');
+        if (oldFrame) {
+            try { oldFrame.remove(); } catch (e) {}
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'simple-billing-print-frame';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        iframe.style.zIndex = '-9999';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+
+        const iframeDoc = iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>Bill #${submittedRecord?.id || 'Receipt'}</title>
+                    <style>
+                        @page {
+                            size: 80mm auto;
+                            margin: 3mm;
+                        }
+                        * {
+                            box-sizing: border-box;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        html, body {
+                            margin: 0;
+                            padding: 8px;
+                            background: #FFFFFF !important;
+                            color: #000000 !important;
+                            font-family: 'Courier New', Courier, monospace, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                            width: 100%;
+                            max-width: 80mm;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+                        th, td {
+                            font-size: 11px;
+                        }
+                        h3, p, strong, span, div {
+                            color: #000000 !important;
+                        }
+                        .no-print {
+                            display: none !important;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContent.innerHTML}
+                </body>
+            </html>
+        `);
+        iframeDoc.close();
+
+        setTimeout(() => {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (err) {
+                console.error('Print iframe invocation error, falling back to window.print():', err);
+                window.print();
+            } finally {
+                setTimeout(() => {
+                    if (iframe.parentNode) {
+                        iframe.parentNode.removeChild(iframe);
+                    }
+                }, 1500);
+            }
+        }, 350);
     };
 
     if (activeTab === 'records') {
@@ -1642,11 +1811,18 @@ const SimpleBilling = () => {
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            step="any"
+                                                            max={MAX_BILLING_RATE}
+                                                            step="0.01"
+                                                            maxLength={11}
                                                             placeholder="0.00"
                                                             disabled={!isMainBranch}
                                                             readOnly={!isMainBranch}
                                                             value={item.rate}
+                                                            onKeyDown={(e) => {
+                                                                if (['e', 'E', '+', '-'].includes(e.key)) {
+                                                                    e.preventDefault();
+                                                                }
+                                                            }}
                                                             onChange={(e) => {
                                                                 if (isMainBranch) {
                                                                     handleProductChange(index, 'rate', e.target.value);
@@ -1654,7 +1830,7 @@ const SimpleBilling = () => {
                                                             }}
                                                             onWheel={(e) => e.target.blur()}
                                                             required
-                                                            title={isMainBranch ? "Main Branch: You can decide and edit the rate" : "Sub Branch: Rate decided by Main Branch (View Only)"}
+                                                            title={isMainBranch ? `Main Branch: You can decide and edit the rate (Max ₹${MAX_BILLING_RATE.toLocaleString('en-IN')})` : "Sub Branch: Rate decided by Main Branch (View Only)"}
                                                             style={{
                                                                 width: '100%',
                                                                 padding: '0.55rem 1.8rem 0.55rem 1.6rem',
@@ -1693,10 +1869,18 @@ const SimpleBilling = () => {
                                                                     type="number"
                                                                     step="0.001"
                                                                     min="0.001"
-                                                                    value={item.quantity}
+                                                                    max={MAX_BILLING_QUANTITY}
+                                                                    disabled={!item.name?.trim()}
+                                                                    value={item.name?.trim() ? item.quantity : ''}
+                                                                    onKeyDown={(e) => {
+                                                                        if (['e', 'E', '+', '-'].includes(e.key)) {
+                                                                            e.preventDefault();
+                                                                        }
+                                                                    }}
                                                                     onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
                                                                     onWheel={(e) => e.target.blur()}
-                                                                    placeholder="0.000"
+                                                                    placeholder={!item.name?.trim() ? '-' : '0.000'}
+                                                                    title={!item.name?.trim() ? 'Please enter or select product first' : 'Enter weight'}
                                                                     required
                                                                     style={{
                                                                         width: '65px',
@@ -1708,6 +1892,8 @@ const SimpleBilling = () => {
                                                                         fontWeight: 850,
                                                                         color: '#15803D',
                                                                         background: 'transparent',
+                                                                        cursor: !item.name?.trim() ? 'not-allowed' : 'text',
+                                                                        opacity: !item.name?.trim() ? 0.45 : 1,
                                                                         outline: 'none'
                                                                     }}
                                                                 />
@@ -1722,7 +1908,14 @@ const SimpleBilling = () => {
                                                                     <button
                                                                         key={p.label}
                                                                         type="button"
-                                                                        onClick={() => handleProductChange(index, 'quantity', p.kg)}
+                                                                        disabled={!item.name?.trim()}
+                                                                        onClick={() => {
+                                                                            if (!item.name?.trim()) {
+                                                                                showToast('⚠️ Please enter or select a product before selecting weight.');
+                                                                                return;
+                                                                            }
+                                                                            handleProductChange(index, 'quantity', p.kg);
+                                                                        }}
                                                                         style={{
                                                                             padding: '1px 5px',
                                                                             borderRadius: '4px',
@@ -1731,7 +1924,8 @@ const SimpleBilling = () => {
                                                                             color: (parseFloat(item.quantity) === p.kg) ? '#166534' : '#475569',
                                                                             fontSize: '0.62rem',
                                                                             fontWeight: '800',
-                                                                            cursor: 'pointer'
+                                                                            cursor: !item.name?.trim() ? 'not-allowed' : 'pointer',
+                                                                            opacity: !item.name?.trim() ? 0.4 : 1
                                                                         }}
                                                                     >
                                                                         {p.label}
@@ -1744,7 +1938,9 @@ const SimpleBilling = () => {
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                                                             <button
                                                                 type="button"
+                                                                disabled={!item.name?.trim() || parseFloat(item.quantity) <= 1}
                                                                 onClick={() => handleQuantityChange(index, -1)}
+                                                                title={!item.name?.trim() ? 'Please enter product name first' : 'Decrease quantity'}
                                                                 style={{
                                                                     width: '28px',
                                                                     height: '28px',
@@ -1755,7 +1951,8 @@ const SimpleBilling = () => {
                                                                     display: 'flex',
                                                                     alignItems: 'center',
                                                                     justifyContent: 'center',
-                                                                    cursor: 'pointer',
+                                                                    cursor: (!item.name?.trim() || parseFloat(item.quantity) <= 1) ? 'not-allowed' : 'pointer',
+                                                                    opacity: (!item.name?.trim() || parseFloat(item.quantity) <= 1) ? 0.35 : 1,
                                                                     fontWeight: 900
                                                                 }}
                                                             >
@@ -1765,13 +1962,22 @@ const SimpleBilling = () => {
                                                             <input
                                                                 type="number"
                                                                 min="1"
-                                                                step="any"
-                                                                value={item.quantity}
+                                                                max={MAX_BILLING_QUANTITY}
+                                                                step="1"
+                                                                disabled={!item.name?.trim()}
+                                                                value={item.name?.trim() ? item.quantity : ''}
+                                                                placeholder={!item.name?.trim() ? '-' : '1'}
+                                                                onKeyDown={(e) => {
+                                                                    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
                                                                 onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
                                                                 onWheel={(e) => e.target.blur()}
                                                                 required
+                                                                title={!item.name?.trim() ? 'Please enter product name first' : `Enter quantity (Max ${MAX_BILLING_QUANTITY})`}
                                                                 style={{
-                                                                    width: '50px',
+                                                                    width: '58px',
                                                                     textAlign: 'center',
                                                                     padding: '0.5rem 0.25rem',
                                                                     borderRadius: '8px',
@@ -1779,14 +1985,17 @@ const SimpleBilling = () => {
                                                                     fontSize: '0.88rem',
                                                                     fontWeight: 850,
                                                                     color: '#0F172A',
-                                                                    background: '#FFFFFF',
+                                                                    background: !item.name?.trim() ? '#F8FAFC' : '#FFFFFF',
+                                                                    cursor: !item.name?.trim() ? 'not-allowed' : 'text',
                                                                     outline: 'none'
                                                                 }}
                                                             />
 
                                                             <button
                                                                 type="button"
+                                                                disabled={!item.name?.trim() || parseFloat(item.quantity) >= MAX_BILLING_QUANTITY}
                                                                 onClick={() => handleQuantityChange(index, 1)}
+                                                                title={!item.name?.trim() ? 'Please enter product name first' : 'Increase quantity'}
                                                                 style={{
                                                                     width: '28px',
                                                                     height: '28px',
@@ -1797,7 +2006,8 @@ const SimpleBilling = () => {
                                                                     display: 'flex',
                                                                     alignItems: 'center',
                                                                     justifyContent: 'center',
-                                                                    cursor: 'pointer',
+                                                                    cursor: (!item.name?.trim() || parseFloat(item.quantity) >= MAX_BILLING_QUANTITY) ? 'not-allowed' : 'pointer',
+                                                                    opacity: (!item.name?.trim() || parseFloat(item.quantity) >= MAX_BILLING_QUANTITY) ? 0.35 : 1,
                                                                     fontWeight: 900
                                                                 }}
                                                             >
@@ -1810,7 +2020,7 @@ const SimpleBilling = () => {
                                                 {/* Line Item Total */}
                                                 <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '0.95rem' }}>
                                                     <div>
-                                                        ₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        ₹{(isFinite(itemTotal) ? itemTotal : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                     {isWeighted && (
                                                         <div style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: '600' }}>
@@ -1872,7 +2082,7 @@ const SimpleBilling = () => {
                                 Total Items
                             </span>
                             <span style={{ fontSize: '1.35rem', fontWeight: 900 }}>
-                                {totalQuantity} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#D1FAE5' }}>units ({products.length} products)</span>
+                                {totalQuantity} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#D1FAE5' }}>units ({validProducts.length} products)</span>
                             </span>
                         </div>
 
@@ -1890,7 +2100,7 @@ const SimpleBilling = () => {
                                 Grand Total
                             </span>
                             <span style={{ fontSize: '1.85rem', fontWeight: 900, color: '#FFFFFF' }}>
-                                ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ₹{(isFinite(grandTotal) ? grandTotal : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>
@@ -1899,23 +2109,33 @@ const SimpleBilling = () => {
                         <button
                             id="btn-submit-bill"
                             type="submit"
+                            disabled={validProducts.length === 0}
                             style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '8px',
-                                background: '#FFFFFF',
-                                color: '#166534',
+                                background: validProducts.length > 0 ? '#FFFFFF' : '#F1F5F9',
+                                color: validProducts.length > 0 ? '#166534' : '#94A3B8',
                                 border: 'none',
                                 padding: '0.85rem 1.75rem',
                                 borderRadius: '14px',
                                 fontSize: '0.98rem',
                                 fontWeight: 900,
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                                cursor: validProducts.length === 0 ? 'not-allowed' : 'pointer',
+                                boxShadow: validProducts.length > 0 ? '0 4px 14px rgba(0,0,0,0.15)' : 'none',
+                                opacity: validProducts.length === 0 ? 0.6 : 1,
                                 transition: 'all 0.15s'
                             }}
-                            onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15)'; }}
+                            onMouseOver={(e) => { 
+                                if (validProducts.length > 0) {
+                                    e.currentTarget.style.transform = 'translateY(-1px)'; 
+                                    e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)'; 
+                                }
+                            }}
+                            onMouseOut={(e) => { 
+                                e.currentTarget.style.transform = 'translateY(0)'; 
+                                e.currentTarget.style.boxShadow = validProducts.length > 0 ? '0 4px 14px rgba(0,0,0,0.15)' : 'none'; 
+                            }}
                         >
                             <CheckCircle2 size={20} />
                             <span>Save & Print Bill</span>
@@ -1926,7 +2146,7 @@ const SimpleBilling = () => {
 
             {/* 5. Instant Thermal Receipt Modal */}
             {showReceiptModal && submittedRecord && (
-                <div style={{
+                <div className="cliks-receipt-modal-backdrop" style={{
                     position: 'fixed',
                     inset: 0,
                     background: 'rgba(15, 23, 42, 0.6)',
@@ -1937,7 +2157,7 @@ const SimpleBilling = () => {
                     zIndex: 1000,
                     padding: '1rem'
                 }}>
-                    <div style={{
+                    <div className="cliks-receipt-modal-card" style={{
                         background: '#FFFFFF',
                         borderRadius: '20px',
                         width: '100%',
@@ -1948,26 +2168,56 @@ const SimpleBilling = () => {
                         {/* Dynamic Page Print CSS Rule for Thermal Receipt */}
                         <style dangerouslySetInnerHTML={{ __html: `
                             @media print {
-                                @page { size: 80mm 200mm; margin: 0; }
+                                @page { size: 80mm auto; margin: 0; }
+                                html, body {
+                                    margin: 0 !important;
+                                    padding: 0 !important;
+                                    background: #FFFFFF !important;
+                                    width: 100% !important;
+                                    height: auto !important;
+                                    overflow: visible !important;
+                                }
                                 body * { visibility: hidden !important; }
-                                #printable-bill-receipt, #printable-bill-receipt * { visibility: visible !important; }
+                                .cliks-receipt-modal-backdrop {
+                                    position: static !important;
+                                    inset: auto !important;
+                                    background: transparent !important;
+                                    display: block !important;
+                                    visibility: visible !important;
+                                    overflow: visible !important;
+                                    padding: 0 !important;
+                                    margin: 0 !important;
+                                }
+                                .cliks-receipt-modal-card {
+                                    box-shadow: none !important;
+                                    border-radius: 0 !important;
+                                    overflow: visible !important;
+                                    max-width: 80mm !important;
+                                    width: 80mm !important;
+                                    visibility: visible !important;
+                                    position: static !important;
+                                    margin: 0 !important;
+                                    padding: 0 !important;
+                                }
+                                #printable-bill-receipt, #printable-bill-receipt * { 
+                                    visibility: visible !important; 
+                                    color: #000000 !important;
+                                }
                                 #printable-bill-receipt {
-                                    position: absolute !important;
-                                    left: 0 !important;
-                                    top: 0 !important;
+                                    display: block !important;
+                                    position: static !important;
                                     width: 80mm !important;
                                     max-width: 80mm !important;
                                     margin: 0 !important;
-                                    padding: 8px !important;
-                                    background: #ffffff !important;
-                                    color: #000000 !important;
+                                    padding: 6px !important;
+                                    background: #FFFFFF !important;
                                 }
                                 .no-print { display: none !important; }
                             }
                         ` }} />
 
                         {/* Receipt Top Bar */}
-                        <div style={{
+                        <div className="no-print" style={{
                             padding: '1rem 1.25rem',
                             background: '#F8FAFC',
                             borderBottom: '1px solid #E2E8F0',
@@ -2062,7 +2312,7 @@ const SimpleBilling = () => {
                         </div>
 
                         {/* Actions */}
-                        <div style={{
+                        <div className="no-print" style={{
                             padding: '1rem 1.25rem',
                             background: '#F8FAFC',
                             borderTop: '1px solid #E2E8F0',
