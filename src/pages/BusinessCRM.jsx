@@ -282,40 +282,110 @@ const BusinessCRM = () => {
     const [isVerifyingGstin, setIsVerifyingGstin] = useState(false);
     const [gstinVerifiedData, setGstinVerifiedData] = useState(null);
     const [gstinVerifyError, setGstinVerifyError] = useState('');
+    const [isCodeCustomized, setIsCodeCustomized] = useState(false);
 
-    const handleGstinChange = async (rawVal) => {
+    // GSTIN caching & debounce refs
+    const gstinClientCache = React.useRef(new Map());
+    const gstinDebounceRef = React.useRef(null);
+
+    const formatDateTime = (rawDate) => {
+        if (!rawDate) return '-';
+        try {
+            const d = new Date(rawDate);
+            if (isNaN(d.getTime())) return String(rawDate);
+            return d.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }) + ', ' + d.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch {
+            return String(rawDate);
+        }
+    };
+
+    const generateSequentialCode = (nameOrCompany, customerList = []) => {
+        let clean = (nameOrCompany || '').trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        if (!clean) clean = 'CUST';
+        const prefix = clean.slice(0, 5);
+        let maxSeq = 0;
+        const regex = new RegExp(`^${prefix}[-_]?(\\d+)$`, 'i');
+        (customerList || []).forEach(c => {
+            const code = (c.customer_code || '').trim();
+            const match = code.match(regex);
+            if (match && match[1]) {
+                const num = parseInt(match[1], 10);
+                if (!isNaN(num) && num > maxSeq) {
+                    maxSeq = num;
+                }
+            }
+        });
+        const nextSeq = maxSeq + 1;
+        return `${prefix}-${String(nextSeq).padStart(3, '0')}`;
+    };
+
+    const applyGstinData = (cleanVal, data) => {
+        setGstinVerifiedData(data);
+        const tradeOrLegal = data.tradeName || data.legalName || '';
+        setFormData(prev => {
+            const nextCode = !isCodeCustomized && tradeOrLegal
+                ? generateSequentialCode(tradeOrLegal, customers)
+                : prev.customer_code;
+            return {
+                ...prev,
+                customer_code: nextCode,
+                gstin: cleanVal,
+                name: prev.name || data.legalName || data.tradeName || '',
+                business_name: prev.business_name || data.tradeName || data.legalName || '',
+                pan_number: cleanVal.slice(2, 12),
+                pan: cleanVal.slice(2, 12),
+                tax_type: data.registrationType?.toLowerCase().includes('comp') ? 'unregistered' : 'registered',
+                place_of_supply: data.state || prev.place_of_supply,
+                billing_address: prev.billing_address || data.address || '',
+                address: prev.address || data.address || '',
+                shipping_address: prev.shipping_address || data.address || '',
+                city: prev.city || data.city || '',
+                state: prev.state || data.state || '',
+                pincode: prev.pincode || data.pincode || ''
+            };
+        });
+    };
+
+    const handleGstinChange = (rawVal) => {
         const cleanVal = rawVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
         setFormData(prev => ({ ...prev, gstin: cleanVal }));
         setGstinVerifyError('');
 
+        if (gstinDebounceRef.current) {
+            clearTimeout(gstinDebounceRef.current);
+        }
+
         if (cleanVal.length === 15) {
-            setIsVerifyingGstin(true);
-            try {
-                const data = await complianceService.verifyGstin(cleanVal);
-                setGstinVerifiedData(data);
-                setFormData(prev => ({
-                    ...prev,
-                    gstin: cleanVal,
-                    name: prev.name || data.legalName || data.tradeName || '',
-                    business_name: prev.business_name || data.tradeName || data.legalName || '',
-                    pan_number: cleanVal.slice(2, 12),
-                    pan: cleanVal.slice(2, 12),
-                    tax_type: data.registrationType?.toLowerCase().includes('comp') ? 'unregistered' : 'registered',
-                    place_of_supply: data.state || prev.place_of_supply,
-                    billing_address: prev.billing_address || data.address || '',
-                    address: prev.address || data.address || '',
-                    shipping_address: prev.shipping_address || data.address || '',
-                    city: prev.city || data.city || '',
-                    state: prev.state || data.state || '',
-                    pincode: prev.pincode || data.pincode || ''
-                }));
-            } catch (err) {
-                console.error('GSTIN Verification error:', err);
-                setGstinVerifyError(err.message || 'GSTIN verification failed');
-                setGstinVerifiedData(null);
-            } finally {
-                setIsVerifyingGstin(false);
+            // Check client-side cache first to prevent redundant API lookups
+            const cached = gstinClientCache.current.get(cleanVal);
+            if (cached) {
+                applyGstinData(cleanVal, cached);
+                return;
             }
+
+            gstinDebounceRef.current = setTimeout(async () => {
+                setIsVerifyingGstin(true);
+                try {
+                    const data = await complianceService.verifyGstin(cleanVal);
+                    gstinClientCache.current.set(cleanVal, data);
+                    applyGstinData(cleanVal, data);
+                } catch (err) {
+                    console.error('GSTIN Verification error:', err);
+                    const errMsg = err.response?.data?.message || err.message || 'GSTIN verification failed';
+                    setGstinVerifyError(errMsg);
+                    setGstinVerifiedData(null);
+                } finally {
+                    setIsVerifyingGstin(false);
+                }
+            }, 400);
         } else {
             setGstinVerifiedData(null);
         }
@@ -676,8 +746,9 @@ const BusinessCRM = () => {
         setIsVerifyingGstin(false);
         setGstinVerifiedData(null);
         setGstinVerifyError('');
+        setIsCodeCustomized(false);
         setFormData({ 
-            customer_code: `CUST-${Date.now().toString().slice(-4)}`,
+            customer_code: generateSequentialCode('', customers),
             name: '', 
             business_name: '', 
             contact_person: '',
@@ -719,6 +790,7 @@ const BusinessCRM = () => {
         const panVal = (customer.pan_number || customer.pan || '').toUpperCase().slice(0, 10);
         const gstinVal = (customer.gstin || '').toUpperCase().slice(0, 15);
         const addrVal = customer.billing_address || customer.address || '';
+        setIsCodeCustomized(true);
         setEditingCustomer(customer);
         setFormData({
             ...customer,
@@ -768,10 +840,7 @@ const BusinessCRM = () => {
                 const credit = type.toLowerCase() === 'credit' ? amt : 0;
                 running = running + debit - credit;
                 
-                let dStr = tx.date || '';
-                if (!dStr && tx.created_at) {
-                    dStr = tx.created_at.includes('T') ? tx.created_at.split('T')[0] : tx.created_at;
-                }
+                const dStr = tx.date || tx.created_at || '';
                 
                 return {
                     ...tx,
@@ -817,10 +886,21 @@ const BusinessCRM = () => {
             const phoneRule = getCountryPhoneRule(formData.phone_country_code || '+91');
             const altRule = getCountryPhoneRule(formData.alt_phone_country_code || '+91');
 
-            if (rawPhoneDigits.length < phoneRule.min || rawPhoneDigits.length > phoneRule.max) {
-                alert(`Phone Number: ${phoneRule.label}`);
-                return;
+            // Phone number is optional if customer has GSTIN or registered tax type
+            const isPhoneRequired = !formData.gstin || formData.gstin.trim().length === 0;
+
+            if (isPhoneRequired) {
+                if (rawPhoneDigits.length < phoneRule.min || rawPhoneDigits.length > phoneRule.max) {
+                    alert(`Phone Number: ${phoneRule.label}`);
+                    return;
+                }
+            } else if (rawPhoneDigits.length > 0) {
+                if (rawPhoneDigits.length < phoneRule.min || rawPhoneDigits.length > phoneRule.max) {
+                    alert(`Phone Number: ${phoneRule.label}`);
+                    return;
+                }
             }
+
             if (rawAltDigits.length > 0 && (rawAltDigits.length < altRule.min || rawAltDigits.length > altRule.max)) {
                 alert(`Alternate Phone: ${altRule.label}`);
                 return;
@@ -844,14 +924,21 @@ const BusinessCRM = () => {
                 }
             }
 
-            const phoneVal = `${formData.phone_country_code || '+91'} ${rawPhoneDigits}`;
+            const phoneVal = rawPhoneDigits.length > 0 ? `${formData.phone_country_code || '+91'} ${rawPhoneDigits}` : '';
             const altPhoneVal = rawAltDigits ? `${formData.alt_phone_country_code || '+91'} ${rawAltDigits}` : '';
             const panVal = formData.pan_number || formData.pan || '';
             const billAddr = formData.billing_address || formData.address || '';
             const shipAddr = formData.shipping_address || billAddr;
 
+            const customerName = (formData.name || formData.business_name || '').trim();
+            if (!customerName) {
+                alert('Customer Name or Shop / Business Name is required.');
+                return;
+            }
+
             const payload = {
                 ...formData,
+                name: customerName,
                 phone: phoneVal,
                 phone_number: phoneVal,
                 alternate_phone: altPhoneVal,
@@ -875,8 +962,8 @@ const BusinessCRM = () => {
                             'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
                         },
                         body: JSON.stringify({
-                            name: formData.name,
-                            phonenumber: formData.phone_number,
+                            name: customerName,
+                            phonenumber: phoneVal,
                             email: formData.email,
                             role: 'customer'
                         })
@@ -897,9 +984,9 @@ const BusinessCRM = () => {
                             'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
                         },
                         body: JSON.stringify({
-                            externalId: newCustomer.id ? String(newCustomer.id) : undefined, // Attach the CLIKS-BE ID as externalId
-                            name: formData.name,
-                            phonenumber: formData.phone_number,
+                            externalId: newCustomer.id ? String(newCustomer.id) : undefined,
+                            name: customerName,
+                            phonenumber: phoneVal,
                             email: formData.email,
                             role: 'customer'
                         })
@@ -912,7 +999,8 @@ const BusinessCRM = () => {
             loadCustomers();
         } catch (err) {
             console.error('Failed to save customer:', err);
-            alert('Failed to save customer details.');
+            const backendMsg = err.response?.data?.message || err.message || 'Failed to save customer details.';
+            alert(backendMsg);
         }
     };
 
@@ -947,10 +1035,7 @@ const BusinessCRM = () => {
                     const credit = type.toLowerCase() === 'credit' ? amtVal : 0;
                     running = running + debit - credit;
                     
-                    let dStr = tx.date || '';
-                    if (!dStr && tx.created_at) {
-                        dStr = tx.created_at.includes('T') ? tx.created_at.split('T')[0] : tx.created_at;
-                    }
+                    const dStr = tx.date || tx.created_at || '';
                     
                     return {
                         ...tx,
@@ -1540,7 +1625,29 @@ const BusinessCRM = () => {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.35rem 0.75rem' }}>Code: {formData.customer_code}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: '8px', padding: '0.2rem 0.6rem' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', whiteSpace: 'nowrap' }}>Code:</span>
+                                    <input
+                                        type="text"
+                                        value={formData.customer_code}
+                                        onChange={(e) => {
+                                            setIsCodeCustomized(true);
+                                            setFormData(prev => ({ ...prev, customer_code: e.target.value.toUpperCase() }));
+                                        }}
+                                        placeholder="CUST-001"
+                                        title="Customer Code: editable, sequentially ordered from 1"
+                                        style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            outline: 'none',
+                                            fontSize: '0.8rem',
+                                            fontWeight: '800',
+                                            color: '#1E293B',
+                                            width: '120px',
+                                            textTransform: 'uppercase'
+                                        }}
+                                    />
+                                </div>
                                 <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
                             </div>
                         </div>
@@ -1566,17 +1673,50 @@ const BusinessCRM = () => {
                                         {/* Row 1: Customer Name, Shop/Business Name, Customer Type/Group */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.3fr 1fr', gap: '0.85rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Customer Name <span style={{ color: '#EF4444' }}>*</span></label>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Customer Name {!formData.business_name && <span style={{ color: '#EF4444' }}>*</span>}
+                                                </label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={15} /></span>
-                                                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} placeholder="e.g. Rajesh Gupta" />
+                                                    <input 
+                                                        required={!formData.business_name} 
+                                                        type="text" 
+                                                        value={formData.name} 
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setFormData(prev => {
+                                                                const next = { ...prev, name: val };
+                                                                if (!isCodeCustomized && !prev.business_name && val) {
+                                                                    next.customer_code = generateSequentialCode(val, customers);
+                                                                }
+                                                                return next;
+                                                            });
+                                                        }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. Rajesh Gupta" 
+                                                    />
                                                 </div>
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Shop / Business Name</label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Building2 size={15} /></span>
-                                                    <input type="text" value={formData.business_name} onChange={(e) => setFormData({...formData, business_name: e.target.value})} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} placeholder="e.g. Gupta Groceries World" />
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.business_name} 
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setFormData(prev => {
+                                                                const next = { ...prev, business_name: val };
+                                                                if (!isCodeCustomized && val) {
+                                                                    next.customer_code = generateSequentialCode(val, customers);
+                                                                }
+                                                                return next;
+                                                            });
+                                                        }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. Gupta Groceries World" 
+                                                    />
                                                 </div>
                                             </div>
                                             <div>
@@ -1594,7 +1734,9 @@ const BusinessCRM = () => {
                                         {/* Row 2a: Phone Number & Alternate Phone */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                                             <div className="min-w-0" style={{ minWidth: 0 }}>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Phone Number <span style={{ color: '#EF4444' }}>*</span></label>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Phone Number {(!formData.gstin || formData.gstin.trim().length === 0) && <span style={{ color: '#EF4444' }}>*</span>}
+                                                </label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <CountryCodeSelector
                                                         selectedDialCode={formData.phone_country_code || '+91'}
@@ -1605,7 +1747,19 @@ const BusinessCRM = () => {
                                                         }}
                                                     />
                                                     <span style={{ width: '28px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
-                                                    <input required type="text" value={formData.phone_number || ''} maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, phone_number: val}); }} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9876543210" />
+                                                    <input 
+                                                        required={!formData.gstin || formData.gstin.trim().length === 0} 
+                                                        type="text" 
+                                                        value={formData.phone_number || ''} 
+                                                        maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} 
+                                                        onChange={(e) => { 
+                                                            const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); 
+                                                            const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); 
+                                                            setFormData({...formData, phone_number: val}); 
+                                                        }} 
+                                                        style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. 9876543210" 
+                                                    />
                                                 </div>
                                                 {(() => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const len = (formData.phone_number || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Phone Number: {rule.label}</span>; } return null; })()}
                                             </div>
@@ -1986,7 +2140,7 @@ const BusinessCRM = () => {
                                     ) : (
                                         (selectedParty.ledger || []).map((tx, idx) => (
                                             <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>{tx.date}</td>
+                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>{formatDateTime(tx.date || tx.created_at)}</td>
                                                 <td style={{ padding: '1rem 1.25rem' }}>
                                                     <span style={{ 
                                                         display: 'inline-flex', padding: '0.25rem 0.6rem', borderRadius: '6px', 
