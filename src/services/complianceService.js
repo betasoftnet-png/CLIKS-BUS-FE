@@ -55,6 +55,33 @@ export const complianceService = {
   getEWayBills: async () => {
     const res = await apiClient.get('/compliance/ewaybills');
     return res.data?.data || res.data?.results?.ewayBills || res.data || [];
+  },
+
+  /**
+   * Fetch Delivery Challans & Shipments
+   */
+  getDeliveryChallans: async () => {
+    const res = await apiClient.get('/compliance/challans');
+    return res.data?.data || res.data?.deliveries || [];
+  },
+
+  /**
+   * Create a new Delivery Challan & Dispatch Shipment
+   * @param {Object} challanData
+   */
+  createDeliveryChallan: async (challanData) => {
+    const res = await apiClient.post('/compliance/challans', challanData);
+    return res.data?.data || res.data;
+  },
+
+  /**
+   * Confirm Delivery Challan with OTP verification
+   * @param {string|number} id Challan or delivery ID
+   * @param {Object} verificationData { otp_code, ... }
+   */
+  confirmDeliveryChallan: async (id, verificationData) => {
+    const res = await apiClient.post(`/compliance/challans/${id}/confirm`, verificationData);
+    return res.data?.data || res.data;
   }
 };
 

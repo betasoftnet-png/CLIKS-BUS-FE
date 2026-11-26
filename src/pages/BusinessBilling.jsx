@@ -267,7 +267,31 @@ const BusinessBilling = () => {
     const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('All');
     const [selectedChallanConfirm, setSelectedChallanConfirm] = useState(null);
     const [confirmOtp, setConfirmOtp] = useState('');
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+
+    // Sync delivery challans from server on mount
+    React.useEffect(() => {
+        let isMounted = true;
+        complianceService.getDeliveryChallans()
+            .then(serverDeliveries => {
+                if (!isMounted || !Array.isArray(serverDeliveries) || serverDeliveries.length === 0) return;
+                setBillingDeliveries(prev => {
+                    const existingMap = new Map((prev || []).map(d => [d.delivery_id || d.challan_number, d]));
+                    serverDeliveries.forEach(s => {
+                        const key = s.delivery_id || s.challan_number;
+                        existingMap.set(key, { ...existingMap.get(key), ...s });
+                    });
+                    const merged = Array.from(existingMap.values());
+                    try { localStorage.setItem('cliks_deliveries', JSON.stringify(merged)); } catch (_) {}
+                    return merged;
+                });
+            })
+            .catch(err => {
+                console.warn('[Compliance] Could not fetch server challans:', err.message);
+            });
+        return () => { isMounted = false; };
+    }, []);
 
     // Form state for creating and dispatching a new shipment / delivery challan
     const [dispatchFormData, setDispatchFormData] = useState({
@@ -378,7 +402,7 @@ const BusinessBilling = () => {
         }
     };
 
-    const handleCreateDispatch = (e) => {
+    const handleCreateDispatch = async (e) => {
         e.preventDefault();
         if (!dispatchFormData.customer_name?.trim()) {
             alert('Please enter or select a customer name for the dispatch.');
@@ -399,6 +423,15 @@ const BusinessBilling = () => {
             failed_delivery_reason: '',
             reverse_logistics_status: ''
         };
+
+        try {
+            const saved = await complianceService.createDeliveryChallan(newDlv);
+            if (saved && (saved.challan_number || saved.delivery_number)) {
+                Object.assign(newDlv, saved);
+            }
+        } catch (serverErr) {
+            console.warn('[Compliance] Server save delivery challan fallback:', serverErr.message);
+        }
 
         const updated = [newDlv, ...billingDeliveries];
         setBillingDeliveries(updated);
@@ -692,7 +725,10 @@ const BusinessBilling = () => {
             const isSales = r.return_type === 'sales' || r.type === 'sales' || !r.return_type;
             const matchSearch = (r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                                 (r.invoice_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchStatus = statusFilter === 'All' || (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase();
+            const matchStatus = statusFilter === 'All' || 
+                (statusFilter.toLowerCase() === 'completed' || statusFilter.toLowerCase() === 'done'
+                    ? ((r.status || '').toLowerCase() === 'completed' || (r.status || '').toLowerCase() === 'done')
+                    : (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase());
             const rawDate = r.return_date || r.created_at;
             const returnDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
             const matchDate = !dateFilter || returnDateStr === dateFilter;
@@ -706,7 +742,10 @@ const BusinessBilling = () => {
             const isPurchase = r.return_type === 'purchase' || r.type === 'purchase';
             const matchSearch = (r.supplier_name || r.vendor_name || r.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                                 (r.bill_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchStatus = statusFilter === 'All' || (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase();
+            const matchStatus = statusFilter === 'All' || 
+                (statusFilter.toLowerCase() === 'completed' || statusFilter.toLowerCase() === 'done'
+                    ? ((r.status || '').toLowerCase() === 'completed' || (r.status || '').toLowerCase() === 'done')
+                    : (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase());
             const rawDate = r.return_date || r.created_at;
             const returnDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
             const matchDate = !dateFilter || returnDateStr === dateFilter;
@@ -725,7 +764,10 @@ const BusinessBilling = () => {
             const matchSearch = (r.product_name || r.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                                 (r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase());
                                 
-            const matchStatus = statusFilter === 'All' || (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase();
+            const matchStatus = statusFilter === 'All' || 
+                (statusFilter.toLowerCase() === 'completed' || statusFilter.toLowerCase() === 'done'
+                    ? ((r.status || '').toLowerCase() === 'completed' || (r.status || '').toLowerCase() === 'done')
+                    : (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase());
             const rawDate = r.return_date || r.created_at || r.warranty_start_date || r.purchase_date;
             const claimDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
             const matchDate = !dateFilter || claimDateStr === dateFilter;
@@ -3777,28 +3819,6 @@ const BusinessBilling = () => {
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    {activeMainTab === 'delivery_challan' && (
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                resetDispatchForm();
-                                setIsDispatchModalOpen(true);
-                            }}
-                            className="rounded-xl px-4 py-2 text-sm font-semibold hover:bg-emerald-800 transition-colors shadow-sm flex items-center gap-2 bg-[#155e3a] text-white"
-                            style={{ 
-                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                padding: '0.65rem 1.1rem', borderRadius: '12px', 
-                                background: '#155e3a', color: 'white', border: 'none', 
-                                fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem',
-                                boxShadow: '0 4px 12px rgba(21, 94, 58, 0.25)', transition: 'all 0.2s'
-                            }}
-                            aria-label="+ Dispatch Shipment"
-                        >
-                            <Plus size={15} />
-                            Dispatch Shipment
-                        </button>
-                    )}
-
                     {!isInvoiceOnly && (
                         <button 
                             onClick={() => setIsTemplatesModalOpen(true)}
@@ -4216,7 +4236,7 @@ const BusinessBilling = () => {
                                                     type="button"
                                                     onClick={() => {
                                                         setSelectedChallanConfirm(dlv);
-                                                        setConfirmOtp(dlv.otp_code || '');
+                                                        setConfirmOtp('');
                                                     }}
                                                     className="border border-emerald-700 text-emerald-800 hover:bg-emerald-50 rounded-lg px-4 py-2 text-xs font-semibold"
                                                     style={{ 
@@ -4287,7 +4307,7 @@ const BusinessBilling = () => {
                                                 <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
                                                     <button 
                                                         type="button"
-                                                        onClick={() => { setSelectedChallanConfirm(chl); setConfirmOtp(chl.otp_code || ''); }} 
+                                                        onClick={() => { setSelectedChallanConfirm(chl); setConfirmOtp(''); }} 
                                                         style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
                                                     >
                                                         View Details
@@ -4652,6 +4672,7 @@ const BusinessBilling = () => {
                                     <option value="Pending">Pending</option>
                                     <option value="Processed">Processed</option>
                                     <option value="Approved">Approved</option>
+                                    <option value="Completed">Completed</option>
                                     <option value="Rejected">Rejected</option>
                                 </>
                             )}
@@ -4967,8 +4988,15 @@ const BusinessBilling = () => {
                                             <td style={{ padding: '0.75rem 1.25rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(ret.total_amount || ret.amount || 0)}</td>
                                             <td style={{ padding: '0.75rem 1.25rem' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: ret.status === 'Approved' ? '#D1FAE5' : '#FEF3C7', color: ret.status === 'Approved' ? '#065F46' : '#92400E' }}>
-                                                        {(ret.status || 'Processed').toUpperCase()}
+                                                    <span style={{ 
+                                                        padding: '0.2rem 0.5rem', 
+                                                        borderRadius: '6px', 
+                                                        fontSize: '0.7rem', 
+                                                        fontWeight: '800', 
+                                                        background: (ret.status?.toLowerCase() === 'approved' || ret.status?.toLowerCase() === 'completed' || ret.status?.toLowerCase() === 'done') ? '#D1FAE5' : ret.status?.toLowerCase() === 'rejected' ? '#FEE2E2' : '#FEF3C7', 
+                                                        color: (ret.status?.toLowerCase() === 'approved' || ret.status?.toLowerCase() === 'completed' || ret.status?.toLowerCase() === 'done') ? '#065F46' : ret.status?.toLowerCase() === 'rejected' ? '#991B1B' : '#92400E' 
+                                                    }}>
+                                                        {((ret.status?.toLowerCase() === 'done' || ret.status?.toLowerCase() === 'completed') ? 'COMPLETED' : (ret.status || 'PROCESSED')).toUpperCase()}
                                                     </span>
                                                     {!isStarterPlan && (ret.warehouse_id || ret.warehouse_name ? (
                                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: '#047857', fontWeight: '750', background: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
@@ -7371,11 +7399,18 @@ const BusinessBilling = () => {
                             </div>
 
                             <div style={{ background: '#FAFDFB', border: '1px solid #DCF2E4', padding: '1rem', borderRadius: '14px' }}>
-                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#166534', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                    <Smartphone size={16} /> OTP Delivery Verification
-                                </h4>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#166534', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                        <Smartphone size={16} /> OTP Delivery Verification
+                                    </h4>
+                                    {selectedChallanConfirm.delivery_status === 'Delivered' && (
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#DCF2E4', color: '#1B6B3A', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                                            ✓ VERIFIED &amp; DELIVERED
+                                        </span>
+                                    )}
+                                </div>
                                 <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 0.75rem 0' }}>
-                                    Verification Code: <strong style={{ background: '#FEF3C7', color: '#92400E', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>{selectedChallanConfirm.otp_code || '5829'}</strong>
+                                    Customer Verification Code: <button type="button" onClick={() => setConfirmOtp(selectedChallanConfirm.otp_code || '5829')} title="Click to autofill" style={{ background: '#FEF3C7', color: '#92400E', padding: '0.15rem 0.45rem', borderRadius: '4px', border: 'none', fontWeight: '800', cursor: 'pointer', fontFamily: 'monospace' }}>{selectedChallanConfirm.otp_code || '5829'}</button> <span style={{ fontSize: '0.72rem', color: '#64748B' }}>(click to autofill)</span>
                                 </p>
                                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                     <input 
@@ -7387,10 +7422,58 @@ const BusinessBilling = () => {
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setBillingDeliveries(prev => prev.map(d => d.delivery_id === selectedChallanConfirm.delivery_id ? { ...d, delivery_status: 'Delivered' } : d));
-                                            alert(`Delivery Challan #${selectedChallanConfirm.challan_number} confirmed and marked as Delivered!`);
+                                        disabled={isVerifyingOtp}
+                                        onClick={async () => {
+                                            const entered = confirmOtp.trim();
+                                            const expected = String(selectedChallanConfirm.otp_code || '5829').trim();
+                                            if (!entered) {
+                                                alert('Please enter the customer OTP verification code.');
+                                                return;
+                                            }
+                                            if (entered !== expected) {
+                                                alert(`❌ Invalid OTP Code!\n\nPlease enter the correct verification code (${expected}) provided by the customer.`);
+                                                return;
+                                            }
+
+                                            setIsVerifyingOtp(true);
+                                            try {
+                                                await complianceService.confirmDeliveryChallan(
+                                                    selectedChallanConfirm.id || selectedChallanConfirm.challan_number,
+                                                    {
+                                                        otp_code: entered,
+                                                        delivery_id: selectedChallanConfirm.delivery_id,
+                                                        challan_number: selectedChallanConfirm.challan_number
+                                                    }
+                                                );
+                                            } catch (confirmErr) {
+                                                console.warn('[Compliance] Server confirm challan error:', confirmErr.message);
+                                            } finally {
+                                                setIsVerifyingOtp(false);
+                                            }
+
+                                            const deliveredDate = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                            const updated = billingDeliveries.map(d => {
+                                                if (d.delivery_id === selectedChallanConfirm.delivery_id || d.challan_number === selectedChallanConfirm.challan_number) {
+                                                    return {
+                                                        ...d,
+                                                        delivery_status: 'Delivered',
+                                                        dispatch_status: 'delivered',
+                                                        is_verified: true,
+                                                        verified_at: new Date().toISOString(),
+                                                        delivered_date: deliveredDate
+                                                    };
+                                                }
+                                                return d;
+                                            });
+
+                                            setBillingDeliveries(updated);
+                                            try {
+                                                localStorage.setItem('cliks_deliveries', JSON.stringify(updated));
+                                            } catch (err) {}
+
+                                            alert(`✅ Delivery Challan #${selectedChallanConfirm.challan_number} verified and confirmed as Delivered!`);
                                             setSelectedChallanConfirm(null);
+                                            setConfirmOtp('');
                                         }}
                                         style={{
                                             padding: '0.55rem 1.1rem',
@@ -7400,11 +7483,12 @@ const BusinessBilling = () => {
                                             border: 'none',
                                             fontWeight: '750',
                                             fontSize: '0.82rem',
-                                            cursor: 'pointer',
+                                            cursor: isVerifyingOtp ? 'not-allowed' : 'pointer',
+                                            opacity: isVerifyingOtp ? 0.7 : 1,
                                             whiteSpace: 'nowrap'
                                         }}
                                     >
-                                        Confirm Delivery ✓
+                                        {isVerifyingOtp ? 'Verifying...' : 'Confirm Delivery ✓'}
                                     </button>
                                 </div>
                             </div>
