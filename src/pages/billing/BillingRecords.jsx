@@ -7,26 +7,67 @@ import {
     ShoppingBag, 
     Eye, 
     X,
-    FileSpreadsheet
+    FileSpreadsheet,
+    RotateCcw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getSavedBillingRecords, LOCAL_STORAGE_KEY } from './SimpleBilling';
+import { billingService } from '../../services/billingService';
 
-const BillingRecords = ({ onNavigateToCreate }) => {
+const BillingRecords = ({ onNavigateToCreate, onLoadBillToCreate }) => {
     const navigate = useNavigate();
     const [records, setRecords] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedRecord, setSelectedRecord] = useState(null);
 
     useEffect(() => {
-        setRecords(getSavedBillingRecords());
+        let isMounted = true;
+        const fetchRecords = async () => {
+            try {
+                const data = await billingService.getSimpleRecords();
+                if (isMounted) {
+                    if (Array.isArray(data) && data.length > 0) {
+                        setRecords(data);
+                    } else {
+                        const local = getSavedBillingRecords();
+                        setRecords(local);
+                        // Seed backend if local has records
+                        if (Array.isArray(local) && local.length > 0) {
+                            for (const item of local) {
+                                billingService.saveSimpleRecord(item).catch(() => {});
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Backend billing records fetch failed, falling back:', err);
+                if (isMounted) setRecords(getSavedBillingRecords());
+            }
+        };
+
+        fetchRecords();
+        return () => { isMounted = false; };
     }, []);
 
-    const handleDeleteRecord = (id, e) => {
+    const handleRebill = (record, e) => {
+        if (e) e.stopPropagation();
+        if (onLoadBillToCreate) {
+            onLoadBillToCreate(record);
+        } else {
+            navigate('/billing/simple', { state: { reBillRecord: record } });
+        }
+    };
+
+    const handleDeleteRecord = async (id, e) => {
         if (e) e.stopPropagation();
         if (window.confirm(`Are you sure you want to delete bill #${id}?`)) {
             const updated = records.filter(r => r.id !== id);
             setRecords(updated);
+            try {
+                await billingService.deleteSimpleRecord(id);
+            } catch (err) {
+                console.warn('Backend delete billing record warning:', err);
+            }
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
             if (selectedRecord?.id === id) {
                 setSelectedRecord(null);
@@ -34,10 +75,15 @@ const BillingRecords = ({ onNavigateToCreate }) => {
         }
     };
 
-    const handleClearAll = () => {
+    const handleClearAll = async () => {
         if (records.length === 0) return;
         if (window.confirm('Are you sure you want to clear ALL billing records? This action cannot be undone.')) {
             setRecords([]);
+            try {
+                await billingService.clearSimpleRecords();
+            } catch (err) {
+                console.warn('Backend clear billing records warning:', err);
+            }
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             setSelectedRecord(null);
         }
@@ -230,7 +276,7 @@ const BillingRecords = ({ onNavigateToCreate }) => {
                                 <th style={{ padding: '0.85rem 1rem' }}>PRODUCTS SUMMARY</th>
                                 <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>TOTAL QUANTITY</th>
                                 <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>GRAND TOTAL</th>
-                                <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>ACTIONS</th>
+                                <th style={{ padding: '0.85rem 1rem', textAlign: 'center', whiteSpace: 'nowrap', minWidth: '170px' }}>ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -297,42 +343,75 @@ const BillingRecords = ({ onNavigateToCreate }) => {
                                     </td>
 
                                     {/* Actions */}
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                                    <td style={{ padding: '1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}>
                                             <button
+                                                id={`btn-rebill-${record.id}`}
+                                                type="button"
+                                                onClick={(e) => handleRebill(record, e)}
+                                                style={{
+                                                    background: '#ECFDF5',
+                                                    color: '#065F46',
+                                                    border: '1px solid #A7F3D0',
+                                                    padding: '0.42rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 750,
+                                                    fontSize: '0.78rem',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.35rem',
+                                                    whiteSpace: 'nowrap',
+                                                    flexShrink: 0
+                                                }}
+                                                title="Re-Bill this Order / Send to Billing"
+                                            >
+                                                <RotateCcw size={13} /> Re-Bill
+                                            </button>
+
+                                            <button
+                                                id={`btn-details-${record.id}`}
+                                                type="button"
                                                 onClick={() => setSelectedRecord(record)}
                                                 style={{
                                                     background: '#F0FDF4',
                                                     color: '#1B6B3A',
-                                                    border: 'none',
-                                                    padding: '0.4rem 0.65rem',
+                                                    border: '1px solid #BBF7D0',
+                                                    padding: '0.42rem 0.75rem',
                                                     borderRadius: '8px',
                                                     cursor: 'pointer',
-                                                    fontWeight: 700,
-                                                    fontSize: '0.8rem',
-                                                    display: 'flex',
+                                                    fontWeight: 750,
+                                                    fontSize: '0.78rem',
+                                                    display: 'inline-flex',
                                                     alignItems: 'center',
-                                                    gap: '0.3rem'
+                                                    gap: '0.35rem',
+                                                    whiteSpace: 'nowrap',
+                                                    flexShrink: 0
                                                 }}
                                                 title="View Bill Details"
                                             >
-                                                <Eye size={15} /> Details
+                                                <Eye size={14} /> Details
                                             </button>
 
                                             <button
+                                                id={`btn-delete-${record.id}`}
+                                                type="button"
                                                 onClick={(e) => handleDeleteRecord(record.id, e)}
                                                 style={{
                                                     background: '#FEE2E2',
                                                     color: '#EF4444',
-                                                    border: 'none',
-                                                    padding: '0.4rem 0.65rem',
+                                                    border: '1px solid #FECACA',
+                                                    padding: '0.42rem 0.55rem',
                                                     borderRadius: '8px',
                                                     cursor: 'pointer',
-                                                    transition: 'all 0.2s ease'
+                                                    transition: 'all 0.2s ease',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    flexShrink: 0
                                                 }}
                                                 title="Delete Bill"
                                             >
-                                                <Trash2 size={15} />
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </td>
@@ -465,6 +544,51 @@ const BillingRecords = ({ onNavigateToCreate }) => {
                                     ₹{parseFloat(selectedRecord.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </strong>
                             </div>
+                        </div>
+
+                        {/* Modal Action Buttons */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0', flexWrap: 'wrap' }}>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedRecord(null)}
+                                style={{
+                                    padding: '0.55rem 1rem',
+                                    borderRadius: '10px',
+                                    border: '1px solid #CBD5E1',
+                                    background: '#FFFFFF',
+                                    color: '#475569',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Close
+                            </button>
+                            <button
+                                id="btn-modal-rebill-order"
+                                type="button"
+                                onClick={() => {
+                                    const rec = selectedRecord;
+                                    setSelectedRecord(null);
+                                    handleRebill(rec);
+                                }}
+                                style={{
+                                    padding: '0.55rem 1.25rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #166534 0%, #15803D 100%)',
+                                    color: '#FFFFFF',
+                                    fontWeight: 800,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 4px 12px rgba(22, 101, 52, 0.25)'
+                                }}
+                            >
+                                <RotateCcw size={15} /> Re-Bill this Order (Send to Billing)
+                            </button>
                         </div>
                     </div>
                 </div>

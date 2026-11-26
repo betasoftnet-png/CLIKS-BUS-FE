@@ -25,18 +25,23 @@ import {
     Scale,
     Lock,
     Camera,
-    Barcode
+    Barcode,
+    RotateCcw,
+    PauseCircle,
+    Play
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import BillingRecords from './BillingRecords';
 import { productsService } from '../../services/productsService';
 import { customerService } from '../../services/customerService';
+import { billingService } from '../../services/billingService';
 import { useBranch, useAuth } from '../../context';
 import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../../utils/weightBillingHelper';
 import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../../utils/barcodeScannerHelper';
 import CameraBarcodeScannerModal from '../../components/pos/CameraBarcodeScannerModal';
 
 export const LOCAL_STORAGE_KEY = 'cliks_billing_records_v1';
+export const SIMPLE_HELD_CARTS_KEY = 'cliks_simple_held_carts_v1';
 
 export const getSavedBillingRecords = () => {
     try {
@@ -60,6 +65,12 @@ export const saveBillingRecord = (newRecord) => {
     }
 };
 
+export const getSavedHeldCarts = () => {
+    return [];
+};
+
+export const saveHeldCartsToStorage = () => {};
+
 const createEmptyProduct = () => ({
     id: Date.now() + Math.random().toString(36).substring(2, 9),
     name: '',
@@ -82,6 +93,7 @@ const PAYMENT_MODES = [
 
 const SimpleBilling = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { selectedBranch } = useBranch();
     const { user } = useAuth();
     const isMainBranch = useMemo(() => {
@@ -94,6 +106,16 @@ const SimpleBilling = () => {
     const [customerPhone, setCustomerPhone] = useState('');
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [products, setProducts] = useState([]);
+
+    // Hold Cart & Toast Notifications (Backend Database-backed)
+    const [heldCarts, setHeldCarts] = useState([]);
+    const [isHeldCartsModalOpen, setIsHeldCartsModalOpen] = useState(false);
+    const [toastMsg, setToastMsg] = useState(null);
+
+    const showToast = (msg, duration = 3500) => {
+        setToastMsg(msg);
+        setTimeout(() => setToastMsg(null), duration);
+    };
 
     // Camera & Hardware Barcode Scanner State
     const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
@@ -144,6 +166,63 @@ const SimpleBilling = () => {
         loadCatalog();
         return () => { isMounted = false; };
     }, []);
+
+    // Load held carts and active cart session from backend database on mount
+    useEffect(() => {
+        let isMounted = true;
+        const loadBackendData = async () => {
+            try {
+                const [backendHeldCarts, draftCart] = await Promise.all([
+                    billingService.getSimpleHeldCarts().catch(() => []),
+                    billingService.getSimpleCartSession().catch(() => null)
+                ]);
+
+                if (!isMounted) return;
+
+                if (Array.isArray(backendHeldCarts)) {
+                    setHeldCarts(backendHeldCarts);
+                }
+
+                if (draftCart && Array.isArray(draftCart.products) && draftCart.products.length > 0) {
+                    setProducts(draftCart.products);
+                    if (draftCart.billingOrder) setBillingOrder(draftCart.billingOrder);
+                    if (draftCart.customerName) setCustomerName(draftCart.customerName);
+                    if (draftCart.customerPhone) setCustomerPhone(draftCart.customerPhone);
+                    if (draftCart.paymentMode) setPaymentMode(draftCart.paymentMode);
+                }
+            } catch (err) {
+                console.warn('Failed to load simple billing session data from backend:', err);
+            }
+        };
+
+        loadBackendData();
+        return () => { isMounted = false; };
+    }, []);
+
+    // Auto-save active draft cart session to backend database (so nothing is lost if user refreshes or navigates)
+    const isCartInitialized = useRef(false);
+    useEffect(() => {
+        if (!isCartInitialized.current) {
+            isCartInitialized.current = true;
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            if (products.length > 0) {
+                billingService.saveSimpleCartSession({
+                    billingOrder,
+                    customerName,
+                    customerPhone,
+                    paymentMode,
+                    products
+                }).catch(() => {});
+            } else {
+                billingService.clearSimpleCartSession().catch(() => {});
+            }
+        }, 600);
+
+        return () => clearTimeout(timer);
+    }, [products, customerName, customerPhone, paymentMode, billingOrder]);
 
     // Close dropdowns on outside click
     useEffect(() => {
@@ -361,13 +440,172 @@ const SimpleBilling = () => {
         setProducts(products.filter((_, i) => i !== index));
     };
 
-    const handleResetBill = () => {
+    const handleResetBill = (skipConfirm = false) => {
+        if (!skipConfirm && products.length > 0) {
+            if (!window.confirm('Clear all items and reset current bill?')) {
+                return;
+            }
+        }
         setBillingOrder(generateBillNumber());
         setCustomerName('Walk-in Customer');
         setCustomerPhone('');
         setPaymentMode('Cash');
         setProducts([]);
         setProductSearch('');
+    };
+
+    const handleClearCart = async () => {
+        if (products.length === 0) return;
+        if (window.confirm('Are you sure you want to clear all items in the cart?')) {
+            setProducts([]);
+            setProductSearch('');
+            try {
+                await billingService.clearSimpleCartSession();
+            } catch (err) {
+                console.warn('Backend cart session clear warning:', err);
+            }
+            showToast('🗑️ Cart cleared.');
+        }
+    };
+
+    // Re-Bill Loader (from BillingRecords)
+    const handleLoadBillIntoBilling = (record) => {
+        if (!record || !Array.isArray(record.products)) return;
+        
+        const newBillNumber = generateBillNumber();
+        const freshProducts = record.products.map(p => ({
+            id: Date.now() + Math.random().toString(36).substring(2, 9),
+            name: p.name || '',
+            sku: p.sku || '',
+            rate: p.rate ?? '',
+            quantity: p.quantity || 1,
+            total: (parseFloat(p.rate) || 0) * (parseFloat(p.quantity) || 1),
+            isCustom: p.isCustom ?? true,
+            unit: p.unit || 'PCS'
+        }));
+
+        setBillingOrder(newBillNumber);
+        setCustomerName(record.customerName || 'Walk-in Customer');
+        setCustomerPhone(record.customerPhone || '');
+        setPaymentMode(record.paymentMode || 'Cash');
+        setProducts(freshProducts);
+        setActiveTab('create');
+
+        showToast(`✅ Bill #${record.id} loaded into billing! New #${newBillNumber} ready.`);
+    };
+
+    // Handle re-billing navigation state from router
+    useEffect(() => {
+        if (location.state?.reBillRecord) {
+            handleLoadBillIntoBilling(location.state.reBillRecord);
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state]);
+
+    // Hold Cart action (Backend Database-backed)
+    const handleHoldCart = async () => {
+        const validProducts = products.filter(p => p.name && p.name.trim() !== '');
+        if (validProducts.length === 0) {
+            alert('Cannot hold an empty bill. Please add products first.');
+            return;
+        }
+
+        const defaultLabel = customerName !== 'Walk-in Customer' ? `Bill - ${customerName}` : `Held Bill #${heldCarts.length + 1}`;
+        const label = window.prompt('Assign a reference name or customer note for this held bill:', defaultLabel);
+        if (label === null) return; // User cancelled prompt
+
+        const newHeldEntry = {
+            id: Date.now().toString(),
+            label: label.trim() || defaultLabel,
+            customerName: customerName.trim() || 'Walk-in Customer',
+            customerPhone: customerPhone.trim(),
+            paymentMode,
+            billingOrder,
+            products: [...products],
+            totalQuantity,
+            grandTotal,
+            date: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+            formattedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+            createdAt: new Date().toISOString()
+        };
+
+        try {
+            await billingService.saveSimpleHeldCart(newHeldEntry);
+            await billingService.clearSimpleCartSession();
+            setHeldCarts(prev => [newHeldEntry, ...prev.filter(c => c.id !== newHeldEntry.id)]);
+            handleResetBill(true);
+            showToast(`⏸️ Bill held for "${newHeldEntry.label}". Ready for next customer!`);
+        } catch (err) {
+            console.error('Failed to hold cart on backend:', err);
+            setHeldCarts(prev => [newHeldEntry, ...prev.filter(c => c.id !== newHeldEntry.id)]);
+            handleResetBill(true);
+            showToast(`⏸️ Bill held for "${newHeldEntry.label}".`);
+        }
+    };
+
+    // Restore held cart (Backend Database-backed)
+    const handleRestoreHeldCart = async (heldItem) => {
+        if (!heldItem) return;
+        if (products.length > 0) {
+            if (!window.confirm('Replace your current active bill items with this held bill?')) {
+                return;
+            }
+        }
+
+        const freshBillOrder = heldItem.billingOrder || generateBillNumber();
+        setBillingOrder(freshBillOrder);
+        setCustomerName(heldItem.customerName || 'Walk-in Customer');
+        setCustomerPhone(heldItem.customerPhone || '');
+        setPaymentMode(heldItem.paymentMode || 'Cash');
+        setProducts(heldItem.products || []);
+
+        try {
+            await billingService.deleteSimpleHeldCart(heldItem.id);
+            setHeldCarts(prev => prev.filter(c => c.id !== heldItem.id));
+            await billingService.saveSimpleCartSession({
+                billingOrder: freshBillOrder,
+                customerName: heldItem.customerName,
+                customerPhone: heldItem.customerPhone,
+                paymentMode: heldItem.paymentMode,
+                products: heldItem.products || []
+            });
+        } catch (err) {
+            console.warn('Backend restore held cart warning:', err);
+            setHeldCarts(prev => prev.filter(c => c.id !== heldItem.id));
+        }
+
+        setIsHeldCartsModalOpen(false);
+        showToast(`▶️ Restored held bill for "${heldItem.label}"!`);
+    };
+
+    // Delete held cart (Backend Database-backed)
+    const handleDeleteHeldCart = async (heldId, e) => {
+        if (e) e.stopPropagation();
+        if (window.confirm('Delete this held bill permanently?')) {
+            try {
+                await billingService.deleteSimpleHeldCart(heldId);
+                setHeldCarts(prev => prev.filter(c => c.id !== heldId));
+                showToast('🗑️ Held bill deleted.');
+            } catch (err) {
+                console.warn('Backend delete held cart warning:', err);
+                setHeldCarts(prev => prev.filter(c => c.id !== heldId));
+            }
+        }
+    };
+
+    // Clear all held carts (Backend Database-backed)
+    const handleClearAllHeldCarts = async () => {
+        if (heldCarts.length === 0) return;
+        if (window.confirm('Delete ALL held bills from the database permanently?')) {
+            try {
+                await billingService.clearSimpleHeldCarts();
+                setHeldCarts([]);
+                showToast('🗑️ All held bills cleared.');
+            } catch (err) {
+                console.warn('Backend clear held carts warning:', err);
+                setHeldCarts([]);
+            }
+        }
     };
 
     // Submit Bill
@@ -415,6 +653,8 @@ const SimpleBilling = () => {
         };
 
         saveBillingRecord(newRecord);
+        billingService.saveSimpleRecord(newRecord).catch(() => {});
+        billingService.clearSimpleCartSession().catch(() => {});
         setSubmittedRecord(newRecord);
         setShowReceiptModal(true);
 
@@ -427,7 +667,12 @@ const SimpleBilling = () => {
     };
 
     if (activeTab === 'records') {
-        return <BillingRecords onNavigateToCreate={() => setActiveTab('create')} />;
+        return (
+            <BillingRecords 
+                onNavigateToCreate={() => setActiveTab('create')} 
+                onLoadBillToCreate={handleLoadBillIntoBilling} 
+            />
+        );
     }
 
     const savedRecordsCount = getSavedBillingRecords().length;
@@ -469,29 +714,79 @@ const SimpleBilling = () => {
                 </div>
 
                 {/* Tab Switcher & Quick Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                    {heldCarts.length > 0 && (
+                        <button
+                            id="btn-view-held-bills-top"
+                            type="button"
+                            onClick={() => setIsHeldCartsModalOpen(true)}
+                            title="View and resume held carts"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#FEF3C7',
+                                color: '#92400E',
+                                border: '1px solid #FDE68A',
+                                padding: '0.55rem 0.85rem',
+                                borderRadius: '12px',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                            }}
+                        >
+                            <PauseCircle size={14} /> Held Bills ({heldCarts.length})
+                        </button>
+                    )}
+
+                    <button
+                        id="btn-hold-cart-top"
+                        type="button"
+                        onClick={handleHoldCart}
+                        disabled={products.length === 0}
+                        title="Hold current cart to serve next customer"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: products.length > 0 ? '#F0FDF4' : '#F8FAFC',
+                            color: products.length > 0 ? '#166534' : '#94A3B8',
+                            border: products.length > 0 ? '1px solid #BBF7D0' : '1px solid #E2E8F0',
+                            padding: '0.55rem 0.85rem',
+                            borderRadius: '12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 750,
+                            cursor: products.length === 0 ? 'not-allowed' : 'pointer',
+                            opacity: products.length === 0 ? 0.6 : 1,
+                            transition: 'all 0.15s'
+                        }}
+                    >
+                        <PauseCircle size={14} /> Hold Cart
+                    </button>
+
                     <button
                         type="button"
-                        onClick={handleResetBill}
+                        onClick={handleClearCart}
+                        disabled={products.length === 0}
                         title="Clear current bill"
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '6px',
-                            background: '#F8FAFC',
-                            color: '#64748B',
-                            border: '1px solid #E2E8F0',
+                            background: products.length > 0 ? '#FEE2E2' : '#F8FAFC',
+                            color: products.length > 0 ? '#DC2626' : '#94A3B8',
+                            border: products.length > 0 ? '1px solid #FECACA' : '1px solid #E2E8F0',
                             padding: '0.55rem 0.85rem',
                             borderRadius: '12px',
                             fontSize: '0.8rem',
                             fontWeight: 750,
-                            cursor: 'pointer',
+                            cursor: products.length === 0 ? 'not-allowed' : 'pointer',
+                            opacity: products.length === 0 ? 0.6 : 1,
                             transition: 'all 0.15s'
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#334155'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#64748B'; }}
                     >
-                        <RefreshCw size={14} /> Clear
+                        <RefreshCw size={14} /> Clear Cart
                     </button>
 
                     <button
@@ -857,12 +1152,16 @@ const SimpleBilling = () => {
                                     top: '100%',
                                     left: 0,
                                     right: 0,
+                                    width: '100%',
+                                    maxWidth: '100%',
+                                    boxSizing: 'border-box',
                                     background: '#FFFFFF',
                                     border: '1.5px solid #CBD5E1',
                                     borderRadius: '14px',
                                     marginTop: '6px',
                                     maxHeight: '280px',
                                     overflowY: 'auto',
+                                    overflowX: 'hidden',
                                     boxShadow: '0 12px 30px -4px rgba(0,0,0,0.12)',
                                     zIndex: 60
                                 }}>
@@ -887,11 +1186,11 @@ const SimpleBilling = () => {
                                                     onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
                                                     onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
                                                 >
-                                                    <div style={{ minWidth: 0 }}>
+                                                    <div style={{ minWidth: 0, flex: 1 }}>
                                                         <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <span>{prod.name}</span>
+                                                            <span style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{prod.name}</span>
                                                             {prod.category && (
-                                                                <span style={{ fontSize: '0.68rem', background: '#F1F5F9', color: '#64748B', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                                                <span style={{ fontSize: '0.68rem', background: '#F1F5F9', color: '#64748B', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, flexShrink: 0 }}>
                                                                     {prod.category}
                                                                 </span>
                                                             )}
@@ -917,8 +1216,10 @@ const SimpleBilling = () => {
                                             );
                                         })
                                     ) : (
-                                        <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748B' }}>
-                                            <p style={{ margin: 0, fontSize: '0.85rem' }}>No catalog product found matching "{productSearch}".</p>
+                                        <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748B', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', wordBreak: 'break-word', overflowWrap: 'anywhere', lineHeight: 1.4 }}>
+                                                No catalog product found matching "<strong>{productSearch}</strong>".
+                                            </p>
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -934,18 +1235,35 @@ const SimpleBilling = () => {
                                                     setIsSearchFocused(false);
                                                 }}
                                                 style={{
-                                                    marginTop: '0.5rem',
+                                                    marginTop: '0.65rem',
                                                     background: '#166534',
                                                     color: 'white',
                                                     border: 'none',
-                                                    padding: '4px 12px',
-                                                    borderRadius: '8px',
-                                                    fontSize: '0.75rem',
+                                                    padding: '6px 14px',
+                                                    borderRadius: '10px',
+                                                    fontSize: '0.78rem',
                                                     fontWeight: 750,
-                                                    cursor: 'pointer'
+                                                    cursor: 'pointer',
+                                                    maxWidth: '100%',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    lineHeight: 1.3
                                                 }}
                                             >
-                                                + Add "{productSearch}" as Custom Item
+                                                <span>+ Add "</span>
+                                                <span style={{ 
+                                                    maxWidth: '240px', 
+                                                    overflow: 'hidden', 
+                                                    textOverflow: 'ellipsis', 
+                                                    whiteSpace: 'nowrap', 
+                                                    display: 'inline-block',
+                                                    verticalAlign: 'bottom' 
+                                                }}>
+                                                    {productSearch}
+                                                </span>
+                                                <span>" as Custom Item</span>
                                             </button>
                                         </div>
                                     )}
@@ -1076,30 +1394,104 @@ const SimpleBilling = () => {
                             </h3>
                         </div>
 
-                        {products.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {heldCarts.length > 0 && (
+                                <button
+                                    id="btn-view-held-bills-table"
+                                    type="button"
+                                    onClick={() => setIsHeldCartsModalOpen(true)}
+                                    title="View saved held bills"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        background: '#FEF3C7',
+                                        color: '#92400E',
+                                        border: '1px solid #FDE68A',
+                                        padding: '0.45rem 0.85rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <PauseCircle size={14} /> Held ({heldCarts.length})
+                                </button>
+                            )}
+
                             <button
+                                id="btn-hold-cart-table"
                                 type="button"
-                                onClick={handleAddEmptyRow}
+                                onClick={handleHoldCart}
+                                disabled={products.length === 0}
+                                title="Hold current bill to serve next customer"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '5px',
-                                    background: '#F8FAFC',
-                                    color: '#1B6B3A',
-                                    border: '1px solid #CBD5E1',
+                                    background: products.length > 0 ? '#F0FDF4' : '#F8FAFC',
+                                    color: products.length > 0 ? '#166534' : '#94A3B8',
+                                    border: products.length > 0 ? '1px solid #BBF7D0' : '1px solid #E2E8F0',
                                     padding: '0.45rem 0.85rem',
                                     borderRadius: '10px',
                                     fontSize: '0.78rem',
                                     fontWeight: 800,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s'
+                                    cursor: products.length === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: products.length === 0 ? 0.6 : 1
                                 }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
-                                onMouseOut={(e) => e.currentTarget.style.background = '#F8FAFC'}
                             >
-                                <Plus size={14} /> Add Row
+                                <PauseCircle size={14} /> Hold Cart
                             </button>
-                        )}
+
+                            <button
+                                id="btn-clear-cart-table"
+                                type="button"
+                                onClick={handleClearCart}
+                                disabled={products.length === 0}
+                                title="Clear all items in cart"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    background: products.length > 0 ? '#FEE2E2' : '#F8FAFC',
+                                    color: products.length > 0 ? '#DC2626' : '#94A3B8',
+                                    border: products.length > 0 ? '1px solid #FECACA' : '1px solid #E2E8F0',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 800,
+                                    cursor: products.length === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: products.length === 0 ? 0.6 : 1
+                                }}
+                            >
+                                <Trash2 size={14} /> Clear Cart
+                            </button>
+
+                            {products.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleAddEmptyRow}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        background: '#F8FAFC',
+                                        color: '#1B6B3A',
+                                        border: '1px solid #CBD5E1',
+                                        padding: '0.45rem 0.85rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                >
+                                    <Plus size={14} /> Add Row
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {products.length === 0 ? (
@@ -1776,6 +2168,173 @@ const SimpleBilling = () => {
                 }}>
                     <span>{scanNotification.type === 'error' ? '⚠️' : '✅'}</span>
                     <span>{scanNotification.message}</span>
+                </div>
+            )}
+            {/* Held Bills & Carts Modal */}
+            {isHeldCartsModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '1rem'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        maxWidth: '560px',
+                        width: '100%',
+                        padding: '2rem',
+                        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+                        maxHeight: '85vh',
+                        overflowY: 'auto'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 850, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>⏸️</span> Held Bills ({heldCarts.length})
+                                </h3>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                                    Draft bills put on hold. Click Restore to resume billing.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {heldCarts.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClearAllHeldCarts}
+                                        style={{
+                                            background: '#FEE2E2',
+                                            color: '#DC2626',
+                                            border: '1px solid #FECACA',
+                                            borderRadius: '8px',
+                                            padding: '5px 10px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 750,
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Delete all held bills from database"
+                                    >
+                                        Clear All
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsHeldCartsModalOpen(false)}
+                                    style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', padding: '8px', cursor: 'pointer', color: '#64748B' }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {heldCarts.length === 0 ? (
+                            <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#94A3B8' }}>
+                                <p style={{ margin: 0, fontWeight: 700, color: '#64748B' }}>No Held Bills</p>
+                                <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Bills put on hold will appear here.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {heldCarts.map((held) => (
+                                    <div
+                                        key={held.id}
+                                        style={{
+                                            background: '#F8FAFC',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '14px',
+                                            padding: '1rem 1.25rem',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            gap: '1rem'
+                                        }}
+                                    >
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <strong style={{ fontSize: '0.95rem', color: '#0F172A' }}>{held.label}</strong>
+                                                <span style={{ fontSize: '0.7rem', color: '#64748B', background: '#E2E8F0', padding: '1px 6px', borderRadius: '4px' }}>
+                                                    {held.date || held.formattedDate}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>
+                                                {held.products?.length} items ({held.products?.slice(0, 2).map(p => p.name).join(', ')}{held.products?.length > 2 ? '...' : ''})
+                                            </div>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#166534', marginTop: '4px' }}>
+                                                ₹{parseFloat(held.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRestoreHeldCart(held)}
+                                                style={{
+                                                    background: '#166534',
+                                                    color: '#FFFFFF',
+                                                    border: 'none',
+                                                    padding: '0.5rem 0.85rem',
+                                                    borderRadius: '10px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 800,
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '5px'
+                                                }}
+                                            >
+                                                <Play size={13} fill="currentColor" /> Restore
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDeleteHeldCart(held.id, e)}
+                                                style={{
+                                                    background: '#FEE2E2',
+                                                    color: '#DC2626',
+                                                    border: 'none',
+                                                    padding: '0.5rem 0.6rem',
+                                                    borderRadius: '10px',
+                                                    cursor: 'pointer'
+                                                }}
+                                                title="Delete held cart"
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Toast Notification */}
+            {toastMsg && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '24px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#0F172A',
+                    color: '#FFFFFF',
+                    padding: '0.85rem 1.4rem',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                    fontSize: '0.88rem',
+                    fontWeight: 750,
+                    zIndex: 2000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    animation: 'fadeIn 0.2s ease'
+                }}>
+                    <span>{toastMsg}</span>
+                    <button onClick={() => setToastMsg(null)} style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', marginLeft: '6px' }}>
+                        <X size={15} />
+                    </button>
                 </div>
             )}
         </div>

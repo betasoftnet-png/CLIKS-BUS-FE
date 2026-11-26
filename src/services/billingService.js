@@ -166,7 +166,119 @@ export const billingService = {
 
     // Analytics
     getAnalytics: () => apiClient.get('/billing/analytics').then(res => res.data.data || res.data),
-    getDashboardSummary: () => apiClient.get('/billing/dashboard-summary').then(res => res.data.data || res.data)
+    getDashboardSummary: () => apiClient.get('/billing/dashboard-summary').then(res => res.data.data || res.data),
+
+    // ── Simple Billing Held Carts & Active Cart Session ──
+    getSimpleHeldCarts: async () => {
+        try {
+            const res = await apiClient.get('/billing/simple/held-carts');
+            return res.data?.data || [];
+        } catch (error) {
+            console.error('[BillingService] getSimpleHeldCarts error:', error);
+            return [];
+        }
+    },
+
+    saveSimpleHeldCart: async (cartData) => {
+        try {
+            const res = await apiClient.post('/billing/simple/held-carts', cartData);
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] saveSimpleHeldCart error:', error);
+            throw error;
+        }
+    },
+
+    deleteSimpleHeldCart: async (id) => {
+        try {
+            const res = await apiClient.delete(`/billing/simple/held-carts/${id}`);
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] deleteSimpleHeldCart error:', error);
+            throw error;
+        }
+    },
+
+    clearSimpleHeldCarts: async () => {
+        try {
+            const res = await apiClient.delete('/billing/simple/held-carts');
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] clearSimpleHeldCarts error:', error);
+            throw error;
+        }
+    },
+
+    getSimpleCartSession: async () => {
+        try {
+            const res = await apiClient.get('/billing/simple/cart');
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] getSimpleCartSession error:', error);
+            return null;
+        }
+    },
+
+    saveSimpleCartSession: async (cartData) => {
+        try {
+            const res = await apiClient.post('/billing/simple/cart', { cart_data: cartData });
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] saveSimpleCartSession error:', error);
+            return null;
+        }
+    },
+
+    clearSimpleCartSession: async () => {
+        try {
+            const res = await apiClient.delete('/billing/simple/cart');
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] clearSimpleCartSession error:', error);
+            return null;
+        }
+    },
+
+    // Simple Billing Records
+    getSimpleRecords: async () => {
+        try {
+            const res = await apiClient.get('/billing/simple/records');
+            return res.data?.data || [];
+        } catch (error) {
+            console.error('[BillingService] getSimpleRecords error:', error);
+            return [];
+        }
+    },
+
+    saveSimpleRecord: async (record) => {
+        try {
+            const res = await apiClient.post('/billing/simple/records', record);
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] saveSimpleRecord error:', error);
+            return null;
+        }
+    },
+
+    deleteSimpleRecord: async (id) => {
+        try {
+            const res = await apiClient.delete(`/billing/simple/records/${id}`);
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] deleteSimpleRecord error:', error);
+            return null;
+        }
+    },
+
+    clearSimpleRecords: async () => {
+        try {
+            const res = await apiClient.delete('/billing/simple/records');
+            return res.data?.data || null;
+        } catch (error) {
+            console.error('[BillingService] clearSimpleRecords error:', error);
+            return null;
+        }
+    }
 };
 
 export default billingService;
