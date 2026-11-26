@@ -174,6 +174,11 @@ const BusinessBilling = () => {
     const [printData, setPrintData] = useState(null);
     const [selectedHistoryInvoice, setSelectedHistoryInvoice] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [historyPayments, setHistoryPayments] = useState([]);
+    const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+    const [recordPaymentAmount, setRecordPaymentAmount] = useState('');
+    const [recordPaymentMethod, setRecordPaymentMethod] = useState('Cash');
+    const [isSubmittingHistoryPayment, setIsSubmittingHistoryPayment] = useState(false);
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
     const [fetchedLoyaltyCustomer, setFetchedLoyaltyCustomer] = useState(null);
     const [activeTemplate, setActiveTemplate] = useState('premium_corporate'); // standard, premium_corporate, modern, minimal
@@ -1038,6 +1043,72 @@ const BusinessBilling = () => {
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
         setIsHistoryModalOpen(true);
+        setIsRecordingPayment(false);
+        const total = parseFloat(invoice?.total_amount || invoice?.amount || 0);
+        const paid = parseFloat(invoice?.paid_amount || 0);
+        const due = invoice?.due_amount !== undefined && invoice?.due_amount !== null ? parseFloat(invoice.due_amount) : Math.max(0, total - paid);
+        setRecordPaymentAmount(due > 0 ? String(due) : '');
+        setRecordPaymentMethod(invoice?.payment_mode || 'Cash');
+
+        if (invoice && invoice.id) {
+            billingService.getInvoicePayments(invoice.id)
+                .then(res => setHistoryPayments(Array.isArray(res) ? res : []))
+                .catch(() => setHistoryPayments([]));
+        } else {
+            setHistoryPayments([]);
+        }
+    };
+
+    const handleRecordPaymentSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!selectedHistoryInvoice || !selectedHistoryInvoice.id) return;
+        const amt = parseFloat(recordPaymentAmount);
+        if (isNaN(amt) || amt <= 0) {
+            alert('Please enter a valid positive payment amount.');
+            return;
+        }
+
+        setIsSubmittingHistoryPayment(true);
+        try {
+            await billingService.createInvoicePayment(selectedHistoryInvoice.id, {
+                amount: amt,
+                payment_method: recordPaymentMethod,
+                payment_date: new Date().toISOString()
+            });
+
+            // Refresh invoices list in background
+            if (typeof fetchInvoices === 'function') {
+                fetchInvoices();
+            }
+
+            // Refresh payment logs
+            const updatedPayments = await billingService.getInvoicePayments(selectedHistoryInvoice.id).catch(() => []);
+            setHistoryPayments(Array.isArray(updatedPayments) ? updatedPayments : []);
+
+            // Update current selected invoice
+            const prevPaid = parseFloat(selectedHistoryInvoice.paid_amount || 0);
+            const total = parseFloat(selectedHistoryInvoice.total_amount || selectedHistoryInvoice.amount || 0);
+            const newPaid = prevPaid + amt;
+            const newDue = Math.max(0, total - newPaid);
+            const newStatus = newPaid >= total ? 'Paid' : (newPaid > 0 ? 'Partially Paid' : selectedHistoryInvoice.status);
+
+            const updatedInvoice = {
+                ...selectedHistoryInvoice,
+                paid_amount: newPaid,
+                due_amount: newDue,
+                status: newStatus
+            };
+
+            setSelectedHistoryInvoice(updatedInvoice);
+            setInvoices(prev => (prev || []).map(inv => inv.id === updatedInvoice.id ? { ...inv, ...updatedInvoice } : inv));
+            setIsRecordingPayment(false);
+            setRecordPaymentAmount('');
+        } catch (err) {
+            console.error('Failed to record payment from history modal:', err);
+            alert('Could not record payment. Please try again.');
+        } finally {
+            setIsSubmittingHistoryPayment(false);
+        }
     };
 
     const handlePrint = (invoice) => {
@@ -3619,19 +3690,19 @@ const BusinessBilling = () => {
 
             {/* Stats Grid - Hidden for Invoice Only users */}
             {!isInvoiceOnly && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                     {[
                         { label: 'Total Invoiced', value: formatCurrency(totalInvoiced), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                         { label: 'Paid Revenue', value: formatCurrency(paidInvoiced), icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' },
                         { label: 'Outstanding Balance', value: formatCurrency(pendingInvoiced), icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
                         { label: 'Active Clients', value: new Set((invoices || []).map(i => i.client_name)).size, icon: User, color: '#3B82F6', bg: '#EFF6FF' }
                     ].map((stat, idx) => (
-                        <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                                <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                        <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', minWidth: 0, boxSizing: 'border-box' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0, overflow: 'hidden', flex: 1 }}>
+                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.label}</p>
+                                <h3 title={String(stat.value)} style={{ fontSize: String(stat.value).length > 20 ? '1rem' : (String(stat.value).length > 15 ? '1.15rem' : '1.35rem'), fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.value}</h3>
                             </div>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0, marginLeft: '0.5rem' }}>
                                 <stat.icon size={20} />
                             </div>
                         </div>
@@ -5189,11 +5260,6 @@ const BusinessBilling = () => {
                         </div>
                         
                         <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                            {activeTemplate === 'custom' && (
-                                <button onClick={() => setIsCustomizerModalOpen(true)} style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem', borderRadius: '6px', background: 'white', color: customConfig.accentColor, border: `1px solid ${customConfig.accentColor}`, fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                                    <Plus size={14} /> Configure Settings
-                                </button>
-                            )}
                             <button onClick={() => setIsTemplatesModalOpen(false)} style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Set as Active Template
                             </button>
@@ -5297,6 +5363,17 @@ const BusinessBilling = () => {
                     }
                 }
 
+                let parsedItems = [];
+                if (Array.isArray(selectedHistoryInvoice.items)) {
+                    parsedItems = selectedHistoryInvoice.items;
+                } else if (typeof selectedHistoryInvoice.items === 'string') {
+                    try {
+                        parsedItems = JSON.parse(selectedHistoryInvoice.items);
+                    } catch (e) {
+                        parsedItems = [];
+                    }
+                }
+
                 const formatHistoryDate = (dateVal) => {
                     if (!dateVal) return 'Recently';
                     try {
@@ -5328,17 +5405,18 @@ const BusinessBilling = () => {
 
                 return (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                        <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '18px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                            {/* Modal Header */}
                             <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Invoice Audit Trail</h3>
+                                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Invoice History</h3>
                                         <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: pill.bg, color: pill.color, border: `1px solid ${pill.border}`, fontWeight: '800' }}>
                                             {historyStatus.toUpperCase()}
                                         </span>
                                     </div>
                                     <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem', margin: 0 }}>
-                                        Ref: <span style={{ fontWeight: '750', color: '#334155' }}>{selectedHistoryInvoice.invoice_number}</span> • {selectedHistoryInvoice.client_name}
+                                        Audit trail for <span style={{ fontWeight: '750', color: '#334155' }}>{selectedHistoryInvoice.invoice_number}</span> • {selectedHistoryInvoice.client_name}
                                     </p>
                                 </div>
                                 <button onClick={handleCloseHistoryModal} style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer', padding: '4px' }}><X size={18} /></button>
@@ -5360,7 +5438,75 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ padding: '1.5rem', maxHeight: '360px', overflowY: 'auto' }}>
+                            {/* Quick Action Toolbar (Functional!) */}
+                            <div style={{ display: 'flex', gap: '8px', padding: '0.6rem 1.5rem', background: '#FFFFFF', borderBottom: '1px solid #E2E8F0', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handlePrint(selectedHistoryInvoice)}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#334155', fontSize: '0.75rem', fontWeight: '750', cursor: 'pointer' }}
+                                >
+                                    <Printer size={13} /> Print Invoice
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSendReminder(selectedHistoryInvoice)}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #99F6E4', background: '#F0FDFA', color: '#0D9488', fontSize: '0.75rem', fontWeight: '750', cursor: 'pointer' }}
+                                >
+                                    <Share2 size={13} /> Share / WhatsApp
+                                </button>
+                                {dueVal > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRecordingPayment(prev => !prev)}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: isRecordingPayment ? '#DCFCE7' : '#F0FDF4', color: '#166534', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', marginLeft: 'auto' }}
+                                    >
+                                        <Plus size={13} /> {isRecordingPayment ? 'Close Form' : 'Record Payment'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Functional Payment Form (When Recording Payment is Toggled) */}
+                            {isRecordingPayment && (
+                                <form onSubmit={handleRecordPaymentSubmit} style={{ padding: '0.85rem 1.5rem', background: '#F0FDF4', borderBottom: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#166534' }}>Record Customer Payment</span>
+                                        <span style={{ fontSize: '0.72rem', color: '#15803D' }}>Due Balance: <strong>{formatCurrency(dueVal)}</strong></span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0.01"
+                                            max={dueVal > 0 ? dueVal : 99999999}
+                                            value={recordPaymentAmount}
+                                            onChange={(e) => setRecordPaymentAmount(e.target.value)}
+                                            placeholder={`Amount (₹)`}
+                                            required
+                                            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #86EFAC', fontSize: '0.82rem', fontWeight: '750', background: '#FFFFFF', outline: 'none' }}
+                                        />
+                                        <select
+                                            value={recordPaymentMethod}
+                                            onChange={(e) => setRecordPaymentMethod(e.target.value)}
+                                            style={{ padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid #86EFAC', fontSize: '0.82rem', fontWeight: '750', background: '#FFFFFF', outline: 'none' }}
+                                        >
+                                            <option value="Cash">Cash</option>
+                                            <option value="UPI">UPI / QR</option>
+                                            <option value="Card">Card</option>
+                                            <option value="Net Banking">Net Banking</option>
+                                        </select>
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmittingHistoryPayment}
+                                            style={{ padding: '0.4rem 0.85rem', borderRadius: '6px', background: '#166534', color: '#FFFFFF', border: 'none', fontSize: '0.78rem', fontWeight: '800', cursor: isSubmittingHistoryPayment ? 'not-allowed' : 'pointer' }}
+                                        >
+                                            {isSubmittingHistoryPayment ? 'Saving...' : 'Confirm'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {/* Audit Trail Timeline */}
+                            <div style={{ padding: '1.25rem 1.5rem', maxHeight: '340px', overflowY: 'auto' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', paddingLeft: '1.25rem', borderLeft: '2px solid #E2E8F0' }}>
                                     {/* Event 1: Invoice Created */}
                                     <div style={{ position: 'relative' }}>
@@ -5369,6 +5515,21 @@ const BusinessBilling = () => {
                                         <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
                                             Created as {selectedHistoryInvoice.invoice_type || 'GST'} invoice{selectedHistoryInvoice.billed_by ? ` by ${selectedHistoryInvoice.billed_by}` : ''} for {selectedHistoryInvoice.client_name} with taxable base {formatCurrency(selectedHistoryInvoice.amount || 0)}.
                                         </p>
+                                        {parsedItems.length > 0 && (
+                                            <div style={{ marginTop: '4px', background: '#F8FAFC', padding: '6px 8px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.7rem', color: '#334155' }}>
+                                                <strong style={{ color: '#0F172A', display: 'block', marginBottom: '2px' }}>Billed Items ({parsedItems.length}):</strong>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                    {parsedItems.slice(0, 5).map((it, i) => (
+                                                        <span key={i} style={{ background: '#FFFFFF', border: '1px solid #CBD5E1', padding: '1px 5px', borderRadius: '4px' }}>
+                                                            {it.name || it.description || 'Item'} (×{it.quantity || 1})
+                                                        </span>
+                                                    ))}
+                                                    {parsedItems.length > 5 && (
+                                                        <span style={{ color: '#64748B', fontStyle: 'italic', alignSelf: 'center' }}>+{parsedItems.length - 5} more</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>{createdTimeStr}</span>
                                     </div>
 
@@ -5377,33 +5538,50 @@ const BusinessBilling = () => {
                                         <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: '#1D4ED8', border: '3px solid #EFF6FF' }}></div>
                                         <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Tax & Discounts Applied</h4>
                                         <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
-                                            GST/Tax: {formatCurrency(selectedHistoryInvoice.tax_amount || 0)} ({selectedHistoryInvoice.tax_type || 'Exclusive'}), Discount: {formatCurrency(selectedHistoryInvoice.discount_amount || 0)}, Total: {formatCurrency(totalVal)}.
+                                            Tax regime: {selectedHistoryInvoice.tax_type || 'GST'} ({formatCurrency(selectedHistoryInvoice.tax_amount || 0)}), Trade Discount: {formatCurrency(selectedHistoryInvoice.discount_amount || 0)}. Net Payable: {formatCurrency(totalVal)}.
                                         </p>
                                         <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>{createdTimeStr}</span>
                                     </div>
 
-                                    {/* Event 3: Payment Status */}
-                                    <div style={{ position: 'relative' }}>
-                                        <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: pill.dot, border: `3px solid ${pill.ring}` }}></div>
-                                        <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>
-                                            Payment Status: {historyStatus.toUpperCase()}
-                                        </h4>
-                                        <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
-                                            {historyStatus === 'Paid' && (
-                                                `Full payment of ${formatCurrency(totalVal)} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
-                                            )}
-                                            {historyStatus === 'Partially Paid' && (
-                                                `Partial payment of ${formatCurrency(paidVal)} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}. Outstanding balance due: ${formatCurrency(dueVal)}.`
-                                            )}
-                                            {(historyStatus === 'Unpaid' || historyStatus === 'Draft') && (
-                                                `Awaiting payment of ${formatCurrency(totalVal)} via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
-                                            )}
-                                            {historyStatus === 'Overdue' && (
-                                                `Payment of ${formatCurrency(dueVal > 0 ? dueVal : totalVal)} is overdue since ${selectedHistoryInvoice.due_date || 'due date'}.`
-                                            )}
-                                        </p>
-                                        <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>{updatedTimeStr}</span>
-                                    </div>
+                                    {/* Event 3+: Recorded Payments / Status */}
+                                    {historyPayments.length > 0 ? (
+                                        historyPayments.map((pay, pIdx) => (
+                                            <div key={pay.id || pIdx} style={{ position: 'relative' }}>
+                                                <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: '#059669', border: '3px solid #D1FAE5' }}></div>
+                                                <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#065F46', marginBottom: '0.15rem', margin: 0 }}>
+                                                    Payment Received: {formatCurrency(pay.amount)}
+                                                </h4>
+                                                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
+                                                    Received via {pay.payment_method || 'Cash'}. {pay.notes ? `Note: ${pay.notes}. ` : ''}Remaining Balance: {formatCurrency(Math.max(0, totalVal - (paidVal)))}.
+                                                </p>
+                                                <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>
+                                                    {formatHistoryDate(pay.payment_date || pay.created_at)}
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: pill.dot, border: `3px solid ${pill.ring}` }}></div>
+                                            <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>
+                                                Payment Status: {historyStatus.toUpperCase()}
+                                            </h4>
+                                            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
+                                                {historyStatus === 'Paid' && (
+                                                    `Full payment of ${formatCurrency(totalVal)} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
+                                                )}
+                                                {historyStatus === 'Partially Paid' && (
+                                                    `Partial payment of ${formatCurrency(paidVal)} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}. Outstanding balance due: ${formatCurrency(dueVal)}.`
+                                                )}
+                                                {(historyStatus === 'Unpaid' || historyStatus === 'Draft') && (
+                                                    `Awaiting payment of ${formatCurrency(totalVal)} via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
+                                                )}
+                                                {historyStatus === 'Overdue' && (
+                                                    `Payment of ${formatCurrency(dueVal > 0 ? dueVal : totalVal)} is overdue since ${selectedHistoryInvoice.due_date || 'due date'}.`
+                                                )}
+                                            </p>
+                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>{updatedTimeStr}</span>
+                                        </div>
+                                    )}
 
                                     {/* Event 4: E-Invoice if registered */}
                                     {(selectedHistoryInvoice.Irn || selectedHistoryInvoice.AckNo || selectedHistoryInvoice.ack_no) && (
