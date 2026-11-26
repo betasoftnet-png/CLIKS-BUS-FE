@@ -235,8 +235,8 @@ export default function BusinessLoyalty() {
             customProgramName: (formData.customProgramName ?? '').trim(),
             loyaltyRsPer1Point: Math.max(1, Number(formData.loyaltyRsPer1Point) || 100),
             minOrderSpend: formData.minOrderSpend === '' ? 0 : Math.max(0, Number(formData.minOrderSpend) || 0),
-            pointValueCurrency: Math.max(0.01, Number(formData.pointValueCurrency) || 1.0),
-            minPointsToRedeem: Math.max(1, Number(formData.minPointsToRedeem) || 10),
+            pointValueCurrency: formData.pointValueCurrency === '' ? 1.0 : (Number(formData.pointValueCurrency) >= 0 ? Number(formData.pointValueCurrency) : 1.0),
+            minPointsToRedeem: formData.minPointsToRedeem === '' ? 0 : Math.max(0, Number(formData.minPointsToRedeem) ?? 0),
             loyaltyMaxClaimPercent: Math.min(100, Math.max(1, Number(formData.loyaltyMaxClaimPercent) || 50)),
             maxPointsPerOrder: Math.max(10, Number(formData.maxPointsPerOrder) || 5000),
             tierConfig: (formData.tierConfig || DEFAULT_TIERS).map(t => ({
@@ -703,6 +703,15 @@ export default function BusinessLoyalty() {
                             <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1B6B3A', marginTop: '0.25rem' }}>
                                 {earnedPreview} Points
                             </div>
+                            {formData.enableTiers ? (
+                                <p style={{ fontSize: '0.74rem', color: '#15803D', margin: '0.35rem 0 0', fontWeight: '700' }}>
+                                    ⭐ VIP Tiers are Active: Customers in higher tiers receive up to 2x multiplier bonus points.
+                                </p>
+                            ) : (
+                                <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0', fontWeight: '600' }}>
+                                    ℹ️ VIP Tiers are Disabled: Customers earn base points without tier multipliers.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -725,17 +734,19 @@ export default function BusinessLoyalty() {
                                 <span style={{ fontWeight: '800', color: '#64748B' }}>1 pt = ₹</span>
                                 <input
                                     type="number"
-                                    step="0.05"
-                                    min="0.01"
+                                    step="any"
+                                    min="0"
                                     value={formData?.pointValueCurrency ?? ''}
                                     onChange={(e) => {
                                         const val = e.target.value;
                                         setFormData(prev => ({ ...prev, pointValueCurrency: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
                                     }}
                                     onBlur={(e) => {
-                                        const num = parseFloat(e.target.value);
-                                        setFormData(prev => ({ ...prev, pointValueCurrency: isNaN(num) || num <= 0 ? 1.0 : num }));
+                                        const val = e.target.value.trim();
+                                        const num = parseFloat(val);
+                                        setFormData(prev => ({ ...prev, pointValueCurrency: val === '' || isNaN(num) || num < 0 ? 1.0 : num }));
                                     }}
+                                    placeholder="1.00"
                                     style={{ width: '120px', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.95rem', fontWeight: '800', outline: 'none' }}
                                 />
                                 <span style={{ fontSize: '0.85rem', color: '#64748B' }}>discount</span>
@@ -751,20 +762,22 @@ export default function BusinessLoyalty() {
                             </label>
                             <input
                                 type="number"
-                                min="1"
+                                min="0"
                                 value={formData?.minPointsToRedeem ?? ''}
                                 onChange={(e) => {
                                     const val = e.target.value;
                                     setFormData(prev => ({ ...prev, minPointsToRedeem: val === '' ? '' : (isNaN(val) ? val : Number(val)) }));
                                 }}
                                 onBlur={(e) => {
-                                    const num = parseFloat(e.target.value);
-                                    setFormData(prev => ({ ...prev, minPointsToRedeem: isNaN(num) || num < 1 ? 1 : num }));
+                                    const val = e.target.value.trim();
+                                    const num = parseFloat(val);
+                                    setFormData(prev => ({ ...prev, minPointsToRedeem: val === '' || isNaN(num) || num < 0 ? 0 : num }));
                                 }}
+                                placeholder="0"
                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
                             />
                             <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0' }}>
-                                Customer must accumulate at least this balance before redemption is unlocked.
+                                Customer must accumulate at least this balance before redemption is unlocked. Set to 0 for no minimum restriction.
                             </p>
                         </div>
 
@@ -880,7 +893,7 @@ export default function BusinessLoyalty() {
 
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                 <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#334155' }}>
-                                    Enable Tiers
+                                    {formData.enableTiers ? 'Tiers Enabled' : 'Tiers Disabled'}
                                 </span>
                                 <input
                                     type="checkbox"
@@ -891,6 +904,19 @@ export default function BusinessLoyalty() {
                             </label>
                         </div>
 
+                        {/* Status banner for Enable Tiers */}
+                        {formData.enableTiers ? (
+                            <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontSize: '0.82rem', fontWeight: '750' }}>
+                                <CheckCircle2 size={16} color="#16A34A" />
+                                <span><b>VIP Membership Tiers are Active:</b> Customers qualify for tiers based on lifetime spending and receive bonus points multipliers (1x to 2x) at checkout.</span>
+                            </div>
+                        ) : (
+                            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#92400E', fontSize: '0.82rem', fontWeight: '750' }}>
+                                <Sparkles size={16} color="#D97706" />
+                                <span><b>VIP Membership Tiers are Currently Disabled:</b> All customers earn standard base points without tier multipliers. Toggle on above to re-activate.</span>
+                            </div>
+                        )}
+
                         {/* Tier Grid Cards */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
                             {formData.tierConfig.map((tier, idx) => (
@@ -899,11 +925,14 @@ export default function BusinessLoyalty() {
                                     style={{
                                         background: '#FFFFFF',
                                         borderRadius: '16px',
-                                        border: `2px solid ${tier.color}30`,
+                                        border: `2px solid ${formData.enableTiers ? `${tier.color}30` : '#E2E8F0'}`,
+                                        opacity: formData.enableTiers ? 1 : 0.65,
+                                        filter: formData.enableTiers ? 'none' : 'grayscale(35%)',
                                         padding: '1.25rem',
                                         boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                                         display: 'flex',
-                                        flexDirection: 'column'
+                                        flexDirection: 'column',
+                                        transition: 'all 0.2s ease'
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -918,8 +947,8 @@ export default function BusinessLoyalty() {
                                         }}>
                                             {tier.name}
                                         </span>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: tier.color }}>
-                                            {tier.multiplier}x Multiplier
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: formData.enableTiers ? tier.color : '#64748B' }}>
+                                            {formData.enableTiers ? `${tier.multiplier}x Multiplier` : 'Tier Inactive'}
                                         </span>
                                     </div>
 
@@ -971,7 +1000,7 @@ export default function BusinessLoyalty() {
                                         <input
                                             type="number"
                                             step="0.05"
-                                            min="1"
+                                            min="0"
                                             value={tier.multiplier ?? ''}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -980,11 +1009,13 @@ export default function BusinessLoyalty() {
                                                 setFormData(prev => ({ ...prev, tierConfig: updated }));
                                             }}
                                             onBlur={(e) => {
-                                                const num = parseFloat(e.target.value);
+                                                const val = e.target.value.trim();
+                                                const num = parseFloat(val);
                                                 const updated = [...formData.tierConfig];
-                                                updated[idx].multiplier = isNaN(num) || num < 1 ? 1 : num;
+                                                updated[idx].multiplier = val === '' || isNaN(num) || num < 0 ? 1 : num;
                                                 setFormData(prev => ({ ...prev, tierConfig: updated }));
                                             }}
+                                            placeholder="1.0"
                                             style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '750' }}
                                         />
                                     </div>
@@ -1103,11 +1134,11 @@ export default function BusinessLoyalty() {
                                                     borderRadius: '6px',
                                                     fontSize: '0.72rem',
                                                     fontWeight: '800',
-                                                    background: c.tier?.badge_bg || '#F1F5F9',
-                                                    color: c.tier?.badge_text || '#334155',
-                                                    border: `1px solid ${c.tier?.color || '#CBD5E1'}40`
+                                                    background: formData.enableTiers ? (c.tier?.badge_bg || '#F1F5F9') : '#F1F5F9',
+                                                    color: formData.enableTiers ? (c.tier?.badge_text || '#334155') : '#64748B',
+                                                    border: `1px solid ${formData.enableTiers ? (c.tier?.color || '#CBD5E1') : '#CBD5E1'}40`
                                                 }}>
-                                                    {c.tier?.name || 'Bronze'}
+                                                    {formData.enableTiers ? `${c.tier?.name || 'Bronze Club'} (${c.tier?.multiplier || 1}x)` : 'Standard (Tiers Inactive)'}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#334155' }}>

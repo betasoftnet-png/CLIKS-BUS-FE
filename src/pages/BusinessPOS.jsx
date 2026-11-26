@@ -3138,8 +3138,17 @@ const BusinessPOS = () => {
     const roundOff = finalTotal - totalBeforeRound;
     const hasValidCartItems = cart.some(item => (parseFloat(item.quantity) || 0) > 0);
 
-    // Dynamic loyalty points earned based on bill value
-    const autoEarnedPoints = (loyaltyEnabled && rsPer1Point > 0) ? Math.floor(finalTotal / rsPer1Point) : 0;
+    // Dynamic loyalty points earned based on bill value with tier multiplier if enabled
+    let tierMultiplier = 1.0;
+    if (loyaltyProgramSettings?.enableTiers && Array.isArray(loyaltyProgramSettings?.tierConfig) && selectedCustomerObj) {
+        const custSpend = parseFloat(selectedCustomerObj?.total_spent || selectedCustomerObj?.totalSpent || 0);
+        const sortedTiers = [...loyaltyProgramSettings.tierConfig].sort((a, b) => (Number(b.min_spend) || 0) - (Number(a.min_spend) || 0));
+        const matchedTier = sortedTiers.find(t => custSpend >= (Number(t.min_spend) || 0));
+        if (matchedTier && Number(matchedTier.multiplier) > 1.0) {
+            tierMultiplier = Number(matchedTier.multiplier);
+        }
+    }
+    const autoEarnedPoints = (loyaltyEnabled && rsPer1Point > 0) ? Math.floor((finalTotal / rsPer1Point) * tierMultiplier) : 0;
     const effectivePointsEarned = isPtsEarnedManuallyEdited ? (parseFloat(loyaltyPointsEarned) || 0) : autoEarnedPoints;
 
     React.useEffect(() => {

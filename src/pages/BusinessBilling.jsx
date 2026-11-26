@@ -1398,11 +1398,21 @@ const BusinessBilling = () => {
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
         
-        // Earn points based on final bill amount using dynamic setting
+        // Earn points based on final bill amount using dynamic setting and tier multiplier
+        let tierMultiplier = 1.0;
+        if (activeConfig?.enableTiers && Array.isArray(activeConfig?.tierConfig) && currentFormData?.customer_id) {
+            const customerObj = (customersList || []).find(c => c.id === currentFormData.customer_id);
+            const custSpend = parseFloat(customerObj?.total_spent || 0);
+            const sortedTiers = [...activeConfig.tierConfig].sort((a, b) => (Number(b.min_spend) || 0) - (Number(a.min_spend) || 0));
+            const matchedTier = sortedTiers.find(t => custSpend >= (Number(t.min_spend) || 0));
+            if (matchedTier && Number(matchedTier.multiplier) > 1.0) {
+                tierMultiplier = Number(matchedTier.multiplier);
+            }
+        }
         const earnBase = activeConfig.excludeTaxFromPoints ? (parseFloat(subtotal) || 0) : roundedTotal;
         const minSpend = activeConfig.minOrderSpend || 0;
         const earnedPts = (loyaltyEnabled && rsPer1Point > 0 && earnBase >= minSpend) 
-            ? (activeConfig.roundDownPoints !== false ? Math.floor(earnBase / rsPer1Point) : Math.round((earnBase / rsPer1Point) * 10) / 10)
+            ? (activeConfig.roundDownPoints !== false ? Math.floor((earnBase / rsPer1Point) * tierMultiplier) : Math.round(((earnBase / rsPer1Point) * tierMultiplier) * 10) / 10)
             : 0;
 
         return {
