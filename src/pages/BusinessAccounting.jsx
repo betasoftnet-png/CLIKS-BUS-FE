@@ -973,6 +973,19 @@ const BusinessAccounting = () => {
             }
         }
 
+        if (entryForm.entry_type === 'bank_deposit') {
+            if (entryForm.payment_mode_from === entryForm.payment_mode_to) {
+                alert("Validation Error: Cannot transfer money to the same bank account. Source and destination accounts must be different.");
+                return;
+            }
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (entryForm.date && entryForm.date > todayStr) {
+            alert("Validation Error: Entry date cannot be in the future.");
+            return;
+        }
+
         let finalCategory = entryForm.category;
         if (entryForm.entry_type === 'expense') {
             if (isCustomCategoryMode && customCategoryInput.trim()) {
@@ -3205,7 +3218,21 @@ const BusinessAccounting = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
-                                        <input type="date" value={entryForm.date} onChange={(e) => setEntryForm({ ...entryForm, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                        <input 
+                                            type="date" 
+                                            max={new Date().toISOString().split('T')[0]}
+                                            value={entryForm.date} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                const today = new Date().toISOString().split('T')[0];
+                                                if (val && val > today) {
+                                                    alert("Entry date cannot be in the future.");
+                                                    return;
+                                                }
+                                                setEntryForm({ ...entryForm, date: val });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} 
+                                        />
                                     </div>
                                 </div>
 
@@ -3647,7 +3674,19 @@ const BusinessAccounting = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Source (From)</label>
-                                                <select value={entryForm.payment_mode_from} onChange={(e) => setEntryForm({ ...entryForm, payment_mode_from: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                <select 
+                                                    value={entryForm.payment_mode_from} 
+                                                    onChange={(e) => {
+                                                        const newFrom = e.target.value;
+                                                        const updates = { payment_mode_from: newFrom };
+                                                        if (entryForm.payment_mode_to === newFrom) {
+                                                            const other = activeBankAccounts.find(a => a.account_name !== newFrom && a.account_name !== 'Cash in Hand');
+                                                            if (other) updates.payment_mode_to = other.account_name;
+                                                        }
+                                                        setEntryForm(prev => ({ ...prev, ...updates }));
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}
+                                                >
                                                     {activeBankAccounts.map(acc => (
                                                         <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
                                                     ))}
@@ -3655,10 +3694,16 @@ const BusinessAccounting = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Deposit To (Bank)</label>
-                                                <select value={entryForm.payment_mode_to} onChange={(e) => setEntryForm({ ...entryForm, payment_mode_to: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                                    {activeBankAccounts.filter(acc => acc.account_name !== 'Cash in Hand').map(acc => (
-                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
-                                                    ))}
+                                                <select 
+                                                    value={entryForm.payment_mode_to} 
+                                                    onChange={(e) => setEntryForm({ ...entryForm, payment_mode_to: e.target.value })} 
+                                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}
+                                                >
+                                                    {activeBankAccounts
+                                                        .filter(acc => acc.account_name !== 'Cash in Hand' && acc.account_name !== entryForm.payment_mode_from)
+                                                        .map(acc => (
+                                                            <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                        ))}
                                                 </select>
                                             </div>
                                         </div>
@@ -3687,12 +3732,27 @@ const BusinessAccounting = () => {
 
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol})</label>
-                                    <input required type="number" min="0" step="any" placeholder="0.00" value={entryForm.amount} onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === '' || Number(val) >= 0) {
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        placeholder="0.00" 
+                                        value={entryForm.amount} 
+                                        onKeyDown={(e) => {
+                                            if (['e', 'E', '+', '-'].includes(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            let val = e.target.value.replace(/[^0-9.]/g, '');
+                                            const parts = val.split('.');
+                                            if (parts.length > 2) {
+                                                val = parts[0] + '.' + parts.slice(1).join('');
+                                            }
                                             setEntryForm({ ...entryForm, amount: val });
-                                        }
-                                    }} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
+                                        }} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} 
+                                    />
                                 </div>
 
                                 <div>
@@ -4545,7 +4605,21 @@ const BusinessAccounting = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
-                                    <input type="date" value={ledgerStartDate} onChange={(e) => setLedgerStartDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                    <input 
+                                        type="date" 
+                                        max={new Date().toISOString().split('T')[0]}
+                                        value={ledgerStartDate} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const today = new Date().toISOString().split('T')[0];
+                                            if (val && val > today) {
+                                                alert("From date / Start date cannot be in the future.");
+                                                return;
+                                            }
+                                            setLedgerStartDate(val);
+                                        }} 
+                                        style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
@@ -4770,7 +4844,22 @@ const BusinessAccounting = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
-                                    <input type="date" value={historyStartDate} onChange={(e) => { setHistoryStartDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                    <input 
+                                        type="date" 
+                                        max={new Date().toISOString().split('T')[0]}
+                                        value={historyStartDate} 
+                                        onChange={(e) => { 
+                                            const val = e.target.value;
+                                            const today = new Date().toISOString().split('T')[0];
+                                            if (val && val > today) {
+                                                alert("From date / Start date cannot be in the future.");
+                                                return;
+                                            }
+                                            setHistoryStartDate(val); 
+                                            setHistoryPage(1); 
+                                        }} 
+                                        style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
@@ -4989,7 +5078,22 @@ const BusinessAccounting = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
-                                    <input type="date" value={historyStartDate} onChange={(e) => { setHistoryStartDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                    <input 
+                                        type="date" 
+                                        max={new Date().toISOString().split('T')[0]}
+                                        value={historyStartDate} 
+                                        onChange={(e) => { 
+                                            const val = e.target.value;
+                                            const today = new Date().toISOString().split('T')[0];
+                                            if (val && val > today) {
+                                                alert("From date / Start date cannot be in the future.");
+                                                return;
+                                            }
+                                            setHistoryStartDate(val); 
+                                            setHistoryPage(1); 
+                                        }} 
+                                        style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
@@ -5064,13 +5168,14 @@ const BusinessAccounting = () => {
 
             {/* Profit Analysis Modal */}
             {activeHistoryCard === 'Net Profit' && (() => {
-                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                const hasExportPermission = true;
 
                 // Fetch raw invoices
                 const rawRevenue = dbInvoices.map(inv => ({
                     date: inv.created_at ? inv.created_at.split('T')[0] : 'N/A',
                     amount: parseFloat(inv.total_amount) || 0,
-                    mode: inv.payment_mode || 'Cash'
+                    mode: inv.payment_mode || 'Cash',
+                    rawAmount: inv.total_amount !== undefined && inv.total_amount !== null ? String(inv.total_amount) : String(inv.amount || 0)
                 }));
 
                 // Fetch raw expenses/purchases
@@ -5081,7 +5186,8 @@ const BusinessAccounting = () => {
                         rawExpenses.push({
                             date: exp.date ? exp.date.split('T')[0] : 'N/A',
                             amount: parseFloat(exp.amount) || 0,
-                            category: exp.category_name || exp.category || 'Operational Expense'
+                            category: exp.category_name || exp.category || 'Operational Expense',
+                            rawAmount: exp.amount !== undefined && exp.amount !== null ? String(exp.amount) : '0'
                         });
                     }
                 });
@@ -5090,9 +5196,65 @@ const BusinessAccounting = () => {
                 const filteredRev = rawRevenue.filter(r => (!historyStartDate || r.date >= historyStartDate) && (!historyEndDate || r.date <= historyEndDate));
                 const filteredExp = rawExpenses.filter(e => (!historyStartDate || e.date >= historyStartDate) && (!historyEndDate || e.date <= historyEndDate));
 
-                const totalRev = filteredRev.reduce((sum, r) => sum + r.amount, 0);
-                const totalExp = filteredExp.reduce((sum, e) => sum + e.amount, 0);
-                const netProfitVal = totalRev - totalExp;
+                // High-precision summation for Profit Analysis using BigInt cents
+                let totalRevCents = 0n;
+                filteredRev.forEach(r => {
+                    const rawStr = String(r.rawAmount || r.amount || 0).trim();
+                    const parts = rawStr.split('.');
+                    const intPart = parts[0].replace(/[^\d-]/g, '') || '0';
+                    let fracPart = (parts[1] || '').replace(/[^\d]/g, '').slice(0, 2);
+                    while (fracPart.length < 2) fracPart += '0';
+                    try {
+                        const isNeg = intPart.startsWith('-');
+                        const cleanInt = intPart.replace('-', '');
+                        const cents = BigInt(cleanInt) * 100n + BigInt(fracPart);
+                        totalRevCents += isNeg ? -cents : cents;
+                    } catch {
+                        totalRevCents += BigInt(Math.round((r.amount || 0) * 100));
+                    }
+                });
+
+                let totalExpCents = 0n;
+                filteredExp.forEach(e => {
+                    const rawStr = String(e.rawAmount || e.amount || 0).trim();
+                    const parts = rawStr.split('.');
+                    const intPart = parts[0].replace(/[^\d-]/g, '') || '0';
+                    let fracPart = (parts[1] || '').replace(/[^\d]/g, '').slice(0, 2);
+                    while (fracPart.length < 2) fracPart += '0';
+                    try {
+                        const isNeg = intPart.startsWith('-');
+                        const cleanInt = intPart.replace('-', '');
+                        const cents = BigInt(cleanInt) * 100n + BigInt(fracPart);
+                        totalExpCents += isNeg ? -cents : cents;
+                    } catch {
+                        totalExpCents += BigInt(Math.round((e.amount || 0) * 100));
+                    }
+                });
+
+                const netProfitCents = totalRevCents - totalExpCents;
+
+                const formatCents = (cents, sym = currency?.symbol || '₹') => {
+                    const isNeg = cents < 0n;
+                    const abs = isNeg ? -cents : cents;
+                    const intPart = (abs / 100n).toString();
+                    const decPart = (abs % 100n).toString().padStart(2, '0');
+                    let formattedInt = intPart;
+                    if (intPart.length > 3) {
+                        const last3 = intPart.slice(-3);
+                        const rest = intPart.slice(0, -3);
+                        formattedInt = `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}`;
+                    }
+                    const decSuffix = decPart !== '00' ? `.${decPart}` : '';
+                    return `${isNeg ? '-' : ''}${sym}${formattedInt}${decSuffix}`;
+                };
+
+                const totalRevFormatted = formatCents(totalRevCents);
+                const totalExpFormatted = formatCents(totalExpCents);
+                const netProfitFormatted = formatCents(netProfitCents);
+
+                const totalRev = Number(totalRevCents / 100n);
+                const totalExp = Number(totalExpCents / 100n);
+                const netProfitVal = Number(netProfitCents / 100n);
 
                 // Group Monthly
                 const monthlyRevMap = {};
@@ -5166,7 +5328,8 @@ const BusinessAccounting = () => {
                             <head>
                                 <title>Profit Analysis Report</title>
                                 <style>
-                                    body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                    @page { margin: 0; }
+                                    body { font-family: system-ui, sans-serif; padding: 1.5cm; color: #1E293B; }
                                     h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
                                     table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
                                     td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
@@ -5174,10 +5337,10 @@ const BusinessAccounting = () => {
                                 </style>
                             </head>
                             <body>
-                                <h1>Profit Analysis Report</h1>
-                                <p><strong>Gross Revenue:</strong> ${formatCurrency(totalRev)}</p>
-                                <p><strong>Less Expenses:</strong> ${formatCurrency(totalExp)}</p>
-                                <p><strong>Net Profit:</strong> ${formatCurrency(netProfitVal)}</p>
+                                <h1>Profit Analysis Report (Overall Profit)</h1>
+                                <p><strong>Gross Revenue:</strong> ${totalRevFormatted}</p>
+                                <p><strong>Less Expenses:</strong> ${totalExpFormatted}</p>
+                                <p><strong>Net Profit:</strong> ${netProfitFormatted}</p>
                                 <h2>Monthly Profit Trend</h2>
                                 <table>
                                     <thead>
@@ -5206,9 +5369,9 @@ const BusinessAccounting = () => {
 
                 const handleExcel = () => {
                     const wsData = [
-                        ['Gross Revenue', totalRev],
-                        ['Less Expenses', totalExp],
-                        ['Net Profit', netProfitVal],
+                        ['Gross Revenue', totalRevFormatted],
+                        ['Less Expenses', totalExpFormatted],
+                        ['Net Profit', netProfitFormatted],
                         [],
                         ['Monthly Profit Trend'],
                         ['Month', 'Revenue', 'Expenses', 'Net Profit']
@@ -5226,7 +5389,7 @@ const BusinessAccounting = () => {
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                         <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Profit Analysis</h2>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Profit Analysis (Overall Profit)</h2>
                                 <button onClick={() => setActiveHistoryCard(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
 
@@ -5234,38 +5397,46 @@ const BusinessAccounting = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
-                                    <input type="date" value={historyStartDate} onChange={(e) => setHistoryStartDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                    <input 
+                                        type="date" 
+                                        max={new Date().toISOString().split('T')[0]}
+                                        value={historyStartDate} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const today = new Date().toISOString().split('T')[0];
+                                            if (val && val > today) {
+                                                alert("From date / Start date cannot be in the future.");
+                                                return;
+                                            }
+                                            setHistoryStartDate(val);
+                                        }} 
+                                        style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
                                     <input type="date" value={historyEndDate} onChange={(e) => setHistoryEndDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end', gridColumn: 'span 2' }}>
-                                    {hasExportPermission ? (
-                                        <>
-                                            <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
-                                            <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
-                                        </>
-                                    ) : (
-                                        <div style={{ flex: 1, fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center' }}>View Only</div>
-                                    )}
+                                    <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print / View Profit PDF</button>
+                                    <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel Export</button>
                                 </div>
                             </div>
 
                             {/* Stats */}
                             <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center', minWidth: 0 }}>
                                         <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Gross Revenue</div>
-                                        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#10B981', marginTop: '0.25rem' }}>{formatCurrency(totalRev)}</div>
+                                        <div style={{ fontSize: 'clamp(0.85rem, 1.2vw, 1.2rem)', fontWeight: '900', color: '#10B981', marginTop: '0.25rem', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{totalRevFormatted}</div>
                                     </div>
-                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center', minWidth: 0 }}>
                                         <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Less Expenses</div>
-                                        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#EF4444', marginTop: '0.25rem' }}>{formatCurrency(totalExp)}</div>
+                                        <div style={{ fontSize: 'clamp(0.85rem, 1.2vw, 1.2rem)', fontWeight: '900', color: '#EF4444', marginTop: '0.25rem', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{totalExpFormatted}</div>
                                     </div>
-                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Net Profit</div>
-                                        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#3B82F6', marginTop: '0.25rem' }}>{formatCurrency(netProfitVal)}</div>
+                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center', minWidth: 0 }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Net Profit (Overall Profit)</div>
+                                        <div style={{ fontSize: 'clamp(0.85rem, 1.2vw, 1.2rem)', fontWeight: '900', color: netProfitCents >= 0n ? '#16A34A' : '#DC2626', marginTop: '0.25rem', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{netProfitFormatted}</div>
                                     </div>
                                 </div>
 
@@ -5376,7 +5547,7 @@ const BusinessAccounting = () => {
 
             {/* GST Payable Details Modal */}
             {activeHistoryCard === 'GST Payable' && (() => {
-                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                const hasExportPermission = true;
 
                 const gstRows = [];
                 dbInvoices.filter(inv => (parseFloat(inv.tax_amount) || 0) > 0).forEach(inv => {
@@ -5501,64 +5672,65 @@ const BusinessAccounting = () => {
 
                 return (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                        <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '920px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>GST Payable Details</h2>
                                 <button onClick={() => setActiveHistoryCard(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
 
                             {/* Filters */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', alignItems: 'center' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Search Ref/Customer</label>
                                     <input placeholder="Search..." value={historySearch} onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
-                                    <input type="date" value={historyStartDate} onChange={(e) => { setHistoryStartDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                    <input 
+                                        type="date" 
+                                        max={new Date().toISOString().split('T')[0]}
+                                        value={historyStartDate} 
+                                        onChange={(e) => { 
+                                            const val = e.target.value;
+                                            const today = new Date().toISOString().split('T')[0];
+                                            if (val && val > today) {
+                                                alert("From date / Start date cannot be in the future.");
+                                                return;
+                                            }
+                                            setHistoryStartDate(val); 
+                                            setHistoryPage(1); 
+                                        }} 
+                                        style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
                                     <input type="date" value={historyEndDate} onChange={(e) => { setHistoryEndDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>GST Collected: <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalOutput)}</span></div>
-                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>GST Paid (ITC): <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalInput)}</span></div>
-                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Net GST: <span style={{ color: '#1D4ED8', fontWeight: '900' }}>{formatCurrency(netGstPayable)}</span></div>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', marginBottom: '0.1rem', wordBreak: 'break-all' }}>GST Collected: <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalOutput)}</span></div>
+                                    <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', marginBottom: '0.1rem', wordBreak: 'break-all' }}>GST Paid (ITC): <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalInput)}</span></div>
+                                    <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', wordBreak: 'break-all' }}>Net GST: <span style={{ color: '#1D4ED8', fontWeight: '900' }}>{formatCurrency(netGstPayable)}</span></div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
-                                    {hasExportPermission ? (
-                                        <>
-                                            <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
-                                            <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
-                                        </>
-                                    ) : (
-                                        <div style={{ flex: 1, fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', alignSelf: 'center' }}>View Only</div>
-                                    )}
+                                    <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
+                                    <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
                                 </div>
                             </div>
 
-                            {/* Summary Cards inside GST Popup */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>GSTR-1 Summary</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A', marginTop: '0.15rem' }}>{formatCurrency(totalOutput)}</div>
+                            {/* Summary Cards inside GST Popup - Clean 3 Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <div style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center', minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>GSTR-1 Summary (GST Collected)</div>
+                                    <div style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1.05rem)', fontWeight: '900', color: '#16A34A', marginTop: '0.2rem', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{formatCurrency(totalOutput)}</div>
                                 </div>
-                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>ITC Summary</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A', marginTop: '0.15rem' }}>{formatCurrency(totalInput)}</div>
+                                <div style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center', minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>ITC Summary (GST Paid)</div>
+                                    <div style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1.05rem)', fontWeight: '900', color: '#EF4444', marginTop: '0.2rem', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{formatCurrency(totalInput)}</div>
                                 </div>
-                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>GST Collected</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#16A34A', marginTop: '0.15rem' }}>{formatCurrency(totalOutput)}</div>
-                                </div>
-                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>GST Paid</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#EF4444', marginTop: '0.15rem' }}>{formatCurrency(totalInput)}</div>
-                                </div>
-                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>Net GST Payable</div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1D4ED8', marginTop: '0.15rem' }}>{formatCurrency(netGstPayable)}</div>
+                                <div style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center', minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Net GST Payable</div>
+                                    <div style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1.05rem)', fontWeight: '900', color: '#1D4ED8', marginTop: '0.2rem', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>{formatCurrency(netGstPayable)}</div>
                                 </div>
                             </div>
 
