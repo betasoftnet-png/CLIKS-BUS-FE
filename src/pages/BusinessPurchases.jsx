@@ -35,7 +35,8 @@ import {
     Globe,
     ShieldCheck,
     ArrowRightLeft,
-    CreditCard
+    CreditCard,
+    PackageCheck
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -124,10 +125,12 @@ const BusinessPurchases = () => {
         const create = searchParams.get('create');
         const tab = searchParams.get('tab');
         
-        if (tab && ['purchase-orders', 'purchase-bills', 'supplier-returns'].includes(tab)) {
+        if (tab && ['purchase-orders', 'purchase-bills', 'supplier-returns', 'incoming-orders'].includes(tab)) {
             setActiveTab(tab);
         } else if (tab === 'purchase-returns') {
             setActiveTab('supplier-returns');
+        } else if (tab === 'incoming' || tab === 'supplier-orders') {
+            setActiveTab('incoming-orders');
         }
         
         if (create === 'true') {
@@ -402,8 +405,9 @@ const BusinessPurchases = () => {
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    const purchaseOrders = applyFilters(allPurchases.filter(p => p.doc_type === 'PO'));
-    const purchaseBills = applyFilters(allPurchases.filter(p => p.doc_type === 'BILL'));
+    const purchaseOrders = applyFilters(allPurchases.filter(p => p.doc_type === 'PO' && !p.is_incoming_po));
+    const incomingOrders = applyFilters(allPurchases.filter(p => p.is_incoming_po));
+    const purchaseBills = applyFilters(allPurchases.filter(p => p.doc_type === 'BILL' && !p.is_incoming_po));
     const purchaseReturns = applyFilters(allPurchases.filter(p => p.doc_type === 'RETURN'));
 
     // Warehouse query for Receive Goods dropdown
@@ -1102,7 +1106,7 @@ const BusinessPurchases = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                 <button 
                     onClick={() => setActiveTab('purchase-orders')}
                     style={{ 
@@ -1118,6 +1122,36 @@ const BusinessPurchases = () => {
                     }}
                 >
                     <ShoppingCart size={15} /> Purchase Orders (PO)
+                </button>
+                <button 
+                    onClick={() => setActiveTab('incoming-orders')}
+                    style={{ 
+                        padding: '0.55rem 1.1rem', borderRadius: '10px', 
+                        background: activeTab === 'incoming-orders' ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'white', 
+                        color: activeTab === 'incoming-orders' ? 'white' : '#64748B',
+                        border: '1px solid',
+                        borderColor: activeTab === 'incoming-orders' ? '#047857' : '#E2E8F0', 
+                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.45rem',
+                        boxShadow: activeTab === 'incoming-orders' ? '0 4px 10px rgba(5, 150, 105, 0.2)' : 'none',
+                        transition: 'all 0.15s',
+                        position: 'relative'
+                    }}
+                >
+                    <PackageOpen size={15} /> Incoming Orders (Supplier)
+                    {incomingOrders.length > 0 && (
+                        <span style={{
+                            background: activeTab === 'incoming-orders' ? '#FDE047' : '#10B981',
+                            color: activeTab === 'incoming-orders' ? '#854D0E' : 'white',
+                            padding: '1px 6px',
+                            borderRadius: '999px',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            marginLeft: '4px'
+                        }}>
+                            {incomingOrders.length}
+                        </span>
+                    )}
                 </button>
                 <button 
                     onClick={() => setActiveTab('purchase-bills')}
@@ -1158,7 +1192,51 @@ const BusinessPurchases = () => {
 
             {/* Tab 1: Purchase Orders (PO) */}
             {activeTab === 'purchase-orders' && (
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                <React.Fragment>
+                    {incomingOrders.length > 0 && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+                            border: '1.5px solid #86EFAC',
+                            borderRadius: '14px',
+                            padding: '0.85rem 1.25rem',
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '1rem',
+                            flexWrap: 'wrap'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <PackageCheck size={20} color="#047857" />
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#064E3B' }}>
+                                        You have {incomingOrders.length} incoming Purchase Order{incomingOrders.length > 1 ? 's' : ''} from connected buyers awaiting review!
+                                    </h4>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: '#065F46' }}>
+                                        Confirm incoming orders to notify the buyer and enable goods delivery.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('incoming-orders')}
+                                style={{
+                                    background: '#047857',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '9px',
+                                    fontWeight: 800,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                Review & Confirm ({incomingOrders.length}) →
+                            </button>
+                        </div>
+                    )}
+                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
                     <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div style={{ position: 'relative', minWidth: '280px', flex: 1, maxWidth: '420px' }}>
                             <Search size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
@@ -1273,7 +1351,7 @@ const BusinessPurchases = () => {
                                             {(() => {
                                                 const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
                                                 const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
-                                                const isConfirmed = statusType === 'CONFIRMED' || po.status === 'Paid';
+                                                const isConfirmed = statusType === 'CONFIRMED' || statusType === 'CONFIRMED BY SUPPLIER' || String(statusType || '').toUpperCase().includes('CONFIRM') || po.status === 'Paid';
                                                 const isPartiallyAvailable = statusType === 'PARTIALLY_AVAILABLE';
                                                 const isPartiallyAccepted = statusType === 'PARTIAL_ACCEPTED';
                                                 const isPartiallyRejected = statusType === 'PARTIAL_REJECTED';
@@ -1510,11 +1588,12 @@ const BusinessPurchases = () => {
                                                         po.supplierConfirmed === true ||
                                                         po.supplier_confirmed === true ||
                                                         po.status === 'CONFIRMED' ||
-                                                        po.supplier_response_type === 'CONFIRMED' ||
-                                                        po.supplier_confirmation_status === 'CONFIRMED'
+                                                        String(po.status || '').toUpperCase().includes('CONFIRM') ||
+                                                        String(po.supplier_response_type || '').toUpperCase().includes('CONFIRM') ||
+                                                        String(po.supplier_confirmation_status || '').toUpperCase().includes('CONFIRM')
                                                     );
                                                     const rawStatusStr = String(po.status || '').toUpperCase();
-                                                    const isPending = !isConfirmed || rawStatusStr.includes('PENDING') || rawStatusStr.includes('SENT TO SUPPLIER');
+                                                    const isPending = !isConfirmed && (rawStatusStr.includes('PENDING') || rawStatusStr.includes('SENT TO SUPPLIER'));
 
                                                     if (isPending && !isConfirmed) {
                                                         return (
@@ -1573,6 +1652,7 @@ const BusinessPurchases = () => {
                         </table>
                     </div>
                 </div>
+                </React.Fragment>
             )}
 
             {/* Tab 2: Purchase Bills */}
@@ -1898,6 +1978,135 @@ const BusinessPurchases = () => {
                                             </td>
                                         </tr>
                                     ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 4: Incoming Orders (Supplier) */}
+            {activeTab === 'incoming-orders' && (
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Incoming Orders from Buyers</h2>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>Review and confirm purchase orders sent to you by registered business buyers.</p>
+                        </div>
+                    </div>
+
+                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflowX: 'auto', background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                        <table className="table-fixed" style={{ width: '100%', minWidth: '950px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ width: '18%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>PO Details</th>
+                                    <th style={{ width: '22%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Buyer / Client</th>
+                                    <th style={{ width: '20%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Ordered</th>
+                                    <th style={{ width: '14%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</th>
+                                    <th style={{ width: '14%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ width: '12%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {incomingOrders.length > 0 ? (
+                                    incomingOrders.map((po) => {
+                                        const rawConf = String(po.supplier_confirmation_status || po.supplier_response_type || po.status || '').toUpperCase();
+                                        const isOrderConfirmed = rawConf.includes('CONFIRM') || rawConf === 'COMPLETED';
+                                        const isPartial = rawConf.includes('PARTIAL');
+                                        const isLater = rawConf.includes('LATER');
+                                        const isDeclined = rawConf.includes('DECLINE') || rawConf.includes('REJECT');
+
+                                        return (
+                                            <tr key={po.id || po.purchase_number} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                <td className="align-top" style={{ width: '18%', verticalAlign: 'top', padding: '0.85rem 1rem', fontWeight: '850', color: '#0F172A', overflow: 'hidden' }}>
+                                                    <p style={{ margin: 0, fontSize: '0.88rem' }}>{po.purchase_number || `PO-${po.id}`}</p>
+                                                    <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '2px' }}>
+                                                        Date: {po.purchase_date || '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '0.85rem 1rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
+                                                    <p style={{ margin: 0, fontSize: '0.88rem' }}>{po.buyer_business_name || po.dealer_name || po.buyer_username || 'Buyer Client'}</p>
+                                                    {po.buyer_email && (
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '2px' }}>
+                                                            {po.buyer_email}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
+                                                    <div style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                                        {(po.items || []).map((it, idx) => (
+                                                            <div key={idx} style={{ background: '#F8FAFC', padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #F1F5F9', fontSize: '0.75rem' }}>
+                                                                <p style={{ fontWeight: '700', color: '#334155', margin: 0 }}>{it.product_name || it.name || 'Item'}</p>
+                                                                <span style={{ color: '#64748B', fontSize: '0.7rem' }}>Qty: {it.quantity || 1} {it.primary_unit || 'pcs'}</span>
+                                                            </div>
+                                                        ))}
+                                                        {(!po.items || po.items.length === 0) && (
+                                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Itemized Order</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="align-top" style={{ width: '14%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
+                                                    <span style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.88rem', display: 'block' }}>
+                                                        {formatCurrency(po.grand_total || 0)}
+                                                    </span>
+                                                    {(parseFloat(po.advance_amount) > 0 || parseFloat(po.paid_amount) > 0) && (
+                                                        <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '700', display: 'block', marginTop: '2px' }}>
+                                                            Adv: {formatCurrency((parseFloat(po.advance_amount) || 0) + (parseFloat(po.paid_amount) || 0))}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="align-top" style={{ width: '14%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
+                                                    {isOrderConfirmed ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.6rem', borderRadius: '7px', background: '#F0FDF4', color: '#15803D', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                            <CheckCircle2 size={12} /> Confirmed by You
+                                                        </span>
+                                                    ) : isPartial ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.6rem', borderRadius: '7px', background: '#FFF7ED', color: '#C2410C', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                            <AlertTriangle size={12} /> Partial Accepted
+                                                        </span>
+                                                    ) : isLater ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.6rem', borderRadius: '7px', background: '#EFF6FF', color: '#1D4ED8', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                            <Clock size={12} /> Proposed Date
+                                                        </span>
+                                                    ) : isDeclined ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.6rem', borderRadius: '7px', background: '#FEF2F2', color: '#DC2626', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                            <X size={12} /> Declined
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.6rem', borderRadius: '7px', background: '#FFFBEB', color: '#B45309', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                            <Clock size={12} /> Awaiting Your Review
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="align-top" style={{ width: '12%', verticalAlign: 'top', padding: '0.85rem 1rem', textAlign: 'right' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenSupplierView(po)}
+                                                        style={{
+                                                            padding: '0.45rem 0.8rem',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            background: isOrderConfirmed ? '#F1F5F9' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                                            color: isOrderConfirmed ? '#475569' : 'white',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.75rem',
+                                                            cursor: 'pointer',
+                                                            whiteSpace: 'nowrap',
+                                                            boxShadow: isOrderConfirmed ? 'none' : '0 2px 6px rgba(5, 150, 105, 0.25)'
+                                                        }}
+                                                    >
+                                                        {isOrderConfirmed ? 'Review Details' : 'Review & Confirm'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8', fontSize: '0.88rem' }}>
+                                            No incoming purchase orders found from connected buyers.
+                                        </td>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>

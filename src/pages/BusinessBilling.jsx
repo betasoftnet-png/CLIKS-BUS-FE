@@ -1635,7 +1635,7 @@ const BusinessBilling = () => {
     const pendingB2BRequest = React.useMemo(() => {
         return (billingNotifications || []).find(n => {
             const text = String(n.message || n.text || n.title || '').toLowerCase();
-            return (n.type === 'b2b_connection_request' || text.includes('requested to connect with you as a supplier')) &&
+            return (n.type === 'b2b_connection_request' || text.includes('trying to add you as a supplier') || text.includes('requested to connect with you as a supplier')) &&
                 n.connectionStatus !== 'ACCEPTED' && n.connectionStatus !== 'REJECTED';
         });
     }, [billingNotifications]);
@@ -5008,10 +5008,10 @@ const BusinessBilling = () => {
                                 </div>
                                 <div>
                                     <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#14532D' }}>
-                                        {pendingB2BRequest.text || pendingB2BRequest.message || 'A buyer has requested to connect with you as a supplier'}
+                                        {pendingB2BRequest.text || pendingB2BRequest.message || `${pendingB2BRequest.senderName || 'A buyer'} is trying to add you as a supplier`}
                                     </h4>
                                     <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#166534' }}>
-                                        Accept this connection to receive their purchase orders and synchronize them into your Orders List.
+                                        Accept this request to receive their purchase orders directly into your system.
                                     </p>
                                 </div>
                             </div>
