@@ -214,6 +214,8 @@ const BusinessAccounting = () => {
     const [receivablesStartDate, setReceivablesStartDate] = useState('');
     const [receivablesEndDate, setReceivablesEndDate] = useState('');
     const [receivablesPage, setReceivablesPage] = useState(1);
+    const [bankAccountsPage, setBankAccountsPage] = useState(1);
+    const [bankDisplayLimit, setBankDisplayLimit] = useState(3);
     const [receivablesSortField, setReceivablesSortField] = useState('due_date');
     const [receivablesSortDirection, setReceivablesSortDirection] = useState('desc');
 
@@ -1049,7 +1051,14 @@ const BusinessAccounting = () => {
         date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0]
     }));
 
-    const expensesList = dbExpenses.map(item => {
+    const sortedExpenses = [...dbExpenses].sort((a, b) => {
+        const dateA = new Date(a.date || a.created_at || 0).getTime();
+        const dateB = new Date(b.date || b.created_at || 0).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+        return (b.id || 0) - (a.id || 0);
+    });
+
+    const expensesList = sortedExpenses.map(item => {
         const cat = item.category || 'Uncategorized';
         const lower = cat.toLowerCase();
         
@@ -1238,6 +1247,32 @@ const BusinessAccounting = () => {
 
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
+
+    const dynamicTopExpenseCat = useMemo(() => {
+        let topCat = null;
+        let maxAmt = 0;
+        Object.entries(pAndLExpenseGroups).forEach(([cat, val]) => {
+            const amt = parseFloat(val) || 0;
+            if (amt > maxAmt) {
+                maxAmt = amt;
+                topCat = cat;
+            }
+        });
+        if (!topCat && expensesList.length > 0) {
+            const catMap = {};
+            expensesList.forEach(e => {
+                const raw = typeof e.amt === 'string' ? parseFloat(e.amt.replace(/[^0-9.-]+/g, '')) || 0 : (parseFloat(e.amt) || 0);
+                catMap[e.cat] = (catMap[e.cat] || 0) + raw;
+            });
+            Object.entries(catMap).forEach(([c, a]) => {
+                if (a > maxAmt) {
+                    maxAmt = a;
+                    topCat = c;
+                }
+            });
+        }
+        return topCat || 'None';
+    }, [pAndLExpenseGroups, expensesList]);
 
     const calculatedCash = dbBankAccounts.length > 0
         ? dbBankAccounts.filter(a => a.bank_type === 'Cash' || a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0)
@@ -1725,7 +1760,7 @@ const BusinessAccounting = () => {
                             {[
                                 { label: 'Total MTD', value: formatCurrency(totalExpenseGroupSum), icon: TrendingDown, color: '#EF4444' },
                                 { label: 'Operating Costs', value: formatCurrency(totalExpenseGroupSum * 0.7), icon: Layers, color: '#0D9488' }, // Derived generically from recorded entries
-                                { label: 'Top Expense Cat.', value: Object.keys(pAndLExpenseGroups).length > 0 ? Object.keys(pAndLExpenseGroups)[0] : 'N/A', icon: Building2, color: '#7C3AED' },
+                                { label: 'Top Expense Cat.', value: dynamicTopExpenseCat, icon: Building2, color: '#7C3AED' },
                                 { label: 'Payables Balance', value: dbBalanceSheet?.liabilities?.payables ? formatCurrency(dbBalanceSheet.liabilities.payables) : formatCurrency(0), icon: Receipt, color: '#B45309' }
                             ].map((stat, i) => (
                                 <div key={i} style={{ padding: '0.65rem 0.85rem', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1867,9 +1902,94 @@ const BusinessAccounting = () => {
                                 </div>
                             </div>
 
+                            {/* Bank Accounts Toolbar: Limit Selector & Pagination */}
+                            {accountsToDisplay.length > 0 && (() => {
+                                const limitNum = bankDisplayLimit === 'All' ? accountsToDisplay.length : Number(bankDisplayLimit);
+                                const totalBankPages = Math.ceil(accountsToDisplay.length / (limitNum || 1)) || 1;
+                                return (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 0.25rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#475569' }}>Accounts Overview</span>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: '12px' }}>
+                                                {accountsToDisplay.length} Total
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B' }}>Show:</span>
+                                                {[3, 6, 'All'].map(limit => (
+                                                    <button
+                                                        key={limit}
+                                                        onClick={() => {
+                                                            setBankDisplayLimit(limit);
+                                                            setBankAccountsPage(1);
+                                                        }}
+                                                        style={{
+                                                            padding: '3px 8px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid',
+                                                            borderColor: bankDisplayLimit === limit ? '#2563EB' : '#CBD5E1',
+                                                            background: bankDisplayLimit === limit ? '#EFF6FF' : '#FFFFFF',
+                                                            color: bankDisplayLimit === limit ? '#1D4ED8' : '#64748B',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.72rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {limit}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {bankDisplayLimit !== 'All' && totalBankPages > 1 && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748B' }}>
+                                                        {bankAccountsPage} of {totalBankPages}
+                                                    </span>
+                                                    <button
+                                                        disabled={bankAccountsPage <= 1}
+                                                        onClick={() => setBankAccountsPage(p => Math.max(p - 1, 1))}
+                                                        style={{
+                                                            padding: '3px 6px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #CBD5E1',
+                                                            background: bankAccountsPage <= 1 ? '#F8FAFC' : '#FFFFFF',
+                                                            color: bankAccountsPage <= 1 ? '#94A3B8' : '#1E293B',
+                                                            cursor: bankAccountsPage <= 1 ? 'not-allowed' : 'pointer'
+                                                        }}
+                                                    >
+                                                        <ChevronLeft size={13} />
+                                                    </button>
+                                                    <button
+                                                        disabled={bankAccountsPage >= totalBankPages}
+                                                        onClick={() => setBankAccountsPage(p => Math.min(p + 1, totalBankPages))}
+                                                        style={{
+                                                            padding: '3px 6px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #CBD5E1',
+                                                            background: bankAccountsPage >= totalBankPages ? '#F8FAFC' : '#FFFFFF',
+                                                            color: bankAccountsPage >= totalBankPages ? '#94A3B8' : '#1E293B',
+                                                            cursor: bankAccountsPage >= totalBankPages ? 'not-allowed' : 'pointer'
+                                                        }}
+                                                    >
+                                                        <ChevronRight size={13} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Cards Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: accountsToDisplay.length > 0 ? 'repeat(3, 1fr)' : '1fr', gap: '1rem' }}>
-                                {accountsToDisplay.length === 0 ? (
+                            {(() => {
+                                const limitNum = bankDisplayLimit === 'All' ? accountsToDisplay.length : Number(bankDisplayLimit);
+                                const visibleAccounts = bankDisplayLimit === 'All'
+                                    ? accountsToDisplay
+                                    : accountsToDisplay.slice((bankAccountsPage - 1) * limitNum, bankAccountsPage * limitNum);
+
+                                return (
+                                    <div style={{ display: 'grid', gridTemplateColumns: visibleAccounts.length > 0 ? 'repeat(3, 1fr)' : '1fr', gap: '1rem' }}>
+                                        {visibleAccounts.length === 0 ? (
                                     <div style={{
                                         padding: '4rem 2rem',
                                         background: 'white',
@@ -1910,7 +2030,7 @@ const BusinessAccounting = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    accountsToDisplay.map((acc, i) => {
+                                    visibleAccounts.map((acc, i) => {
                                         const isSelected = selectedAccount && selectedAccount.id === acc.id;
                                         return (
                                             <div
@@ -1970,7 +2090,8 @@ const BusinessAccounting = () => {
                                                                 { label: 'Delete Account', action: 'delete' }
                                                             ].map((item, idx) => {
                                                                 const isWriteAction = ['edit', 'opening_balance', 'deposit', 'withdraw', 'transfer', 'delete'].includes(item.action);
-                                                                const hasWritePermission = ['admin', 'finance manager', 'finance_manager', 'financemanager', 'accountant'].includes(String(user?.role || '').toLowerCase()) ||
+                                                                const userRole = String(user?.role || '').toLowerCase();
+                                                                const hasWritePermission = !userRole || ['admin', 'owner', 'business_owner', 'businessowner', 'finance manager', 'finance_manager', 'financemanager', 'accountant', 'user', 'merchant'].includes(userRole) ||
                                                                     String(user?.permissions || '').toLowerCase().includes('finance') ||
                                                                     String(user?.permissions || '').toLowerCase().includes('manage_finances') ||
                                                                     String(user?.permissions || '').toLowerCase().includes('accounting');
@@ -2121,9 +2242,11 @@ const BusinessAccounting = () => {
                                     })
                                 )}
                             </div>
-                        </div>
-                    );
-                })()}
+                        );
+                    })()}
+                </div>
+            );
+        })()}
 
                 {activeTab === 'p&l' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -2368,12 +2491,18 @@ const BusinessAccounting = () => {
                                                                             <td style={{ padding: '0.85rem 1rem', color: '#64748B' }}>{inv.invoice_number}</td>
                                                                             <td style={{ padding: '0.85rem 1rem', color: '#475569' }}>{inv.due_date ? inv.due_date.split('T')[0] : 'N/A'}</td>
                                                                             <td style={{ padding: '0.85rem 1rem', fontWeight: '800', color: '#1E293B' }}>{formatCurrency(dueAmt)}</td>
-                                                                            <td style={{ padding: '0.85rem 1rem' }}>
+                                                                            <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                                                                                 <span style={{
-                                                                                    padding: '2px 8px',
-                                                                                    borderRadius: '4px',
-                                                                                    fontSize: '0.7rem',
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    justifyContent: 'center',
+                                                                                    whiteSpace: 'nowrap',
+                                                                                    minWidth: '68px',
+                                                                                    padding: '3px 10px',
+                                                                                    borderRadius: '6px',
+                                                                                    fontSize: '0.72rem',
                                                                                     fontWeight: '800',
+                                                                                    letterSpacing: '0.2px',
                                                                                     backgroundColor: statusText === 'Paid' ? '#D1FAE5' : statusText === 'Overdue' ? '#FEE2E2' : '#FEF3C7',
                                                                                     color: statusText === 'Paid' ? '#065F46' : statusText === 'Overdue' ? '#991B1B' : '#92400E'
                                                                                 }}>{statusText}</span>
@@ -4676,7 +4805,8 @@ const BusinessAccounting = () => {
 
             {/* Gross Revenue History Modal */}
             {activeHistoryCard === 'Gross Revenue' && (() => {
-                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                const userRoleLower = String(user?.role || '').toLowerCase();
+                const hasExportPermission = !userRoleLower || ['admin', 'owner', 'business_owner', 'businessowner', 'finance manager', 'finance_manager', 'financemanager', 'accountant', 'user', 'merchant'].includes(userRoleLower);
                 
                 const rawRows = dbInvoices.map(inv => {
                     const taxable = parseFloat(inv.amount) || 0;
@@ -4936,7 +5066,8 @@ const BusinessAccounting = () => {
 
             {/* Expense History Modal */}
             {activeHistoryCard === 'Total Expenses' && (() => {
-                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                const userRoleLower = String(user?.role || '').toLowerCase();
+                const hasExportPermission = !userRoleLower || ['admin', 'owner', 'business_owner', 'businessowner', 'finance manager', 'finance_manager', 'financemanager', 'accountant', 'user', 'merchant'].includes(userRoleLower);
 
                 const combinedExpenses = [];
                 dbExpenses.forEach(exp => {
