@@ -367,10 +367,9 @@ const BusinessSuppliers = () => {
             return;
         }
 
-        const supName = supplier.name || supplier.supplier_name || 'Supplier';
-        const cleanName = supName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-        const todayStr = new Date().toISOString().split('T')[0];
-        const pdfFileName = `Statement_of_Account_${cleanName}_${todayStr}.pdf`;
+        const supName = (supplier.name || supplier.supplier_name || 'Supplier').trim();
+        const formattedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const pdfDocTitle = `Statement of Account - ${supName} (${formattedDate})`;
 
         const gstin = supplier.gstin || 'N/A';
         const phone = supplier.phone || supplier.phone_number || 'N/A';
@@ -420,9 +419,20 @@ const BusinessSuppliers = () => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>${pdfFileName}</title>
+                <title>${pdfDocTitle}</title>
                 <style>
-                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; color: #0F172A; }
+                    @page {
+                        size: A4 portrait;
+                        margin: 12mm 15mm;
+                    }
+                    @media print {
+                        body {
+                            margin: 0;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                    }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 30px; color: #0F172A; }
                     .header { border-bottom: 2px solid #064E3B; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
                     .title { font-size: 24px; font-weight: bold; color: #064E3B; margin: 0 0 5px 0; }
                     .subtitle { font-size: 14px; color: #64748B; margin: 0; }
@@ -432,9 +442,6 @@ const BusinessSuppliers = () => {
                     td { padding: 10px; font-size: 13px; }
                     tfoot td { font-weight: bold; background: #F1F5F9; border-top: 2px solid #064E3B; }
                     .footer { margin-top: 40px; font-size: 11px; color: #94A3B8; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 15px; }
-                    @media print {
-                        body { margin: 20px; }
-                    }
                 </style>
             </head>
             <body>
@@ -984,6 +991,48 @@ const BusinessSuppliers = () => {
         }
     };
 
+    const handleSendEmailReminder = async (supplier) => {
+        if (!supplier) return;
+        const email = supplier.email;
+        const supName = supplier.name || supplier.supplier_name || 'Vendor';
+        const bal = parseFloat(supplier.outstanding_balance || supplier.current_balance || 0);
+        const code = supplier.supplier_code || `SUP-${supplier.id}`;
+
+        if (!email) {
+            alert(`Supplier "${supName}" does not have an email registered. Please edit the profile and add an email to send scheduled reminder emails.`);
+            return;
+        }
+
+        try {
+            setIsAutoTriggering(true);
+            await suppliersService.sendEmailReminder(supplier.id || supplier.supplier_id, {
+                email,
+                balance: bal,
+                supplier_code: code,
+                name: supName
+            });
+            alert(`Scheduled payment reminder email successfully dispatched to ${supName} (${email})!\n\nOutstanding Balance: ${formatCurrency(bal)}.`);
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        } catch (err) {
+            console.warn('Backend email reminder fallback to mailto:', err);
+            const subject = encodeURIComponent(`Payment Statement Notice: ${formatCurrency(bal)} Outstanding Balance Due - ${supName}`);
+            const body = encodeURIComponent(
+                `Dear ${supName},\n\n` +
+                `This is a scheduled payment reminder regarding your account (${code}) with us.\n\n` +
+                `• Current Outstanding Balance: ${formatCurrency(bal)}\n` +
+                `• Account Code: ${code}\n` +
+                `• GSTIN: ${supplier.gstin || 'N/A'}\n\n` +
+                `Please review your ledger statement and arrange payment settlement.\n\n` +
+                `Thank you,\n` +
+                `Accounts & Finance Department`
+            );
+            window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+            alert(`Scheduled payment reminder email prepared and opened for ${supName} (${email})!`);
+        } finally {
+            setIsAutoTriggering(false);
+        }
+    };
+
     const handleOpenPayNowModal = (supplier) => {
         setPayNowSupplier(supplier);
         const bal = supplier.outstanding_balance || supplier.current_balance || 0;
@@ -1093,8 +1142,73 @@ const BusinessSuppliers = () => {
         setDocsSupplier(prev => ({ ...prev, documents: JSON.stringify(updatedDocs) }));
     };
 
+    // Deduplicated suppliers list: ensures unique suppliers by normalized name so duplicate database records are shown only once
+    const uniqueSuppliers = React.useMemo(() => {
+        const map = new Map();
+        (suppliers || []).forEach(s => {
+            const normName = (s.name || s.supplier_name || '').trim().toLowerCase();
+            if (!normName) return;
+            if (!map.has(normName)) {
+                map.set(normName, { ...s });
+            } else {
+                const existing = map.get(normName);
+                const curBal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+                const exBal = parseFloat(existing.outstanding_balance || existing.current_balance || 0);
+                if (curBal > exBal) {
+                    existing.outstanding_balance = curBal;
+                }
+                if (!existing.reminder_schedule && s.reminder_schedule) {
+                    existing.reminder_schedule = s.reminder_schedule;
+                }
+                const curPurch = parseFloat(s.total_purchases || s.total_purchased || 0);
+                const exPurch = parseFloat(existing.total_purchases || existing.total_purchased || 0);
+                existing.total_purchases = Math.max(exPurch, curPurch);
+                existing.total_purchased = Math.max(exPurch, curPurch);
+            }
+        });
+        return Array.from(map.values());
+    }, [suppliers]);
+
+    const uniqueProcurementShares = React.useMemo(() => {
+        const map = new Map();
+        (uniqueSuppliers || []).forEach(s => {
+            const normName = (s.name || s.supplier_name || '').trim();
+            if (!normName) return;
+            const key = normName.toLowerCase();
+            const purchases = parseFloat(s.total_purchases || s.total_purchased || 0);
+            if (!map.has(key)) {
+                map.set(key, { ...s, supplier_name: normName, total_purchases: purchases });
+            } else {
+                const existing = map.get(key);
+                existing.total_purchases += purchases;
+            }
+        });
+        return Array.from(map.values()).sort((a, b) => b.total_purchases - a.total_purchases);
+    }, [uniqueSuppliers]);
+
+    const uniqueBalanceReminders = React.useMemo(() => {
+        const map = new Map();
+        (uniqueSuppliers || []).forEach(s => {
+            const bal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+            if (bal <= 0) return;
+            const normName = (s.name || s.supplier_name || '').trim();
+            if (!normName) return;
+            const key = normName.toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, { ...s, supplier_name: normName, outstanding_balance: bal });
+            } else {
+                const existing = map.get(key);
+                if (!existing.reminder_schedule && s.reminder_schedule) {
+                    existing.reminder_schedule = s.reminder_schedule;
+                }
+                existing.outstanding_balance = Math.max(existing.outstanding_balance, bal);
+            }
+        });
+        return Array.from(map.values()).sort((a, b) => parseFloat(b.outstanding_balance || 0) - parseFloat(a.outstanding_balance || 0));
+    }, [uniqueSuppliers]);
+
     const filteredSuppliers = React.useMemo(() => {
-        let list = suppliers.filter(s => {
+        let list = uniqueSuppliers.filter(s => {
             const sName = s.name || s.supplier_name || '';
             const sComp = s.company || s.company_name || '';
             const sCode = s.supplier_code || '';
@@ -1159,11 +1273,11 @@ const BusinessSuppliers = () => {
             if (sortBy === 'limit_asc') return limitA - limitB;
             return (b.id || 0) - (a.id || 0); // Default 'newest'
         });
-    }, [suppliers, searchTerm, filterType, supplierStatusFilter, balanceFilter, sortBy]);
+    }, [uniqueSuppliers, searchTerm, filterType, supplierStatusFilter, balanceFilter, sortBy]);
 
     // Dedicated filter for Running Ledger Statements sidebar to distinguish suppliers with same name/credit
     const ledgerFilteredSuppliers = React.useMemo(() => {
-        return (suppliers || []).filter(s => {
+        return (uniqueSuppliers || []).filter(s => {
             const sName = (s.name || s.supplier_name || '').toLowerCase();
             const sCode = (s.supplier_code || '').toLowerCase();
             const sGstin = (s.gstin || '').toLowerCase();
@@ -1185,12 +1299,12 @@ const BusinessSuppliers = () => {
 
             return matchesSearch && matchesBal;
         });
-    }, [suppliers, ledgerSearchTerm, ledgerBalanceFilter]);
+    }, [uniqueSuppliers, ledgerSearchTerm, ledgerBalanceFilter]);
 
-    // Report computations
-    const totalPayablesSum = suppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0 ? parseFloat(s.outstanding_balance || s.current_balance || 0) : 0), 0);
-    const totalAdvancePaymentsSum = suppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) < 0 ? Math.abs(parseFloat(s.outstanding_balance || s.current_balance || 0)) : 0), 0);
-    const totalOutwardPurchasesSum = suppliers.reduce((acc, s) => acc + parseFloat(s.total_purchased || s.total_purchases || 0), 0);
+    // Report computations based on deduplicated suppliers
+    const totalPayablesSum = uniqueSuppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0 ? parseFloat(s.outstanding_balance || s.current_balance || 0) : 0), 0);
+    const totalAdvancePaymentsSum = uniqueSuppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) < 0 ? Math.abs(parseFloat(s.outstanding_balance || s.current_balance || 0)) : 0), 0);
+    const totalOutwardPurchasesSum = uniqueSuppliers.reduce((acc, s) => acc + parseFloat(s.total_purchased || s.total_purchases || 0), 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -1694,14 +1808,14 @@ const BusinessSuppliers = () => {
                         <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
                             <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Supplier Procurement Shares</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                {suppliers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((s, idx) => (
+                                {uniqueProcurementShares.map((s, idx) => (
                                     <div key={idx}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.35rem' }}>
                                             <span>{s.supplier_name}</span>
                                             <span>Total bought: {formatCurrency(s.total_purchases)}</span>
                                         </div>
                                         <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: '#1B6B3A', width: `${Math.min(100, (s.total_purchases / totalOutwardPurchasesSum) * 100)}%` }}></div>
+                                            <div style={{ height: '100%', background: '#1B6B3A', width: `${Math.min(100, (s.total_purchases / (totalOutwardPurchasesSum || 1)) * 100)}%` }}></div>
                                         </div>
                                     </div>
                                 ))}
@@ -1713,7 +1827,7 @@ const BusinessSuppliers = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
                                 <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', margin: '0 0 4px 0' }}>Payment Follow-up & Automated Reminders Log</h3>
-                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Automated scheduled background triggers and WhatsApp balance alerts for outstanding payables without human intervention.</p>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Automated scheduled background triggers, email dispatches, and WhatsApp balance alerts for outstanding payables without human intervention.</p>
                             </div>
                             <button 
                                 onClick={handleRunAllAutoTriggers}
@@ -1724,24 +1838,42 @@ const BusinessSuppliers = () => {
                             </button>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {suppliers.filter(s => (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0)).map((s, idx) => {
+                            {uniqueBalanceReminders.map((s, idx) => {
                                 const bal = parseFloat(s.outstanding_balance || s.current_balance || 0);
                                 const hasSchedule = !!s.reminder_schedule;
                                 let schedObj = null;
                                 try { schedObj = typeof s.reminder_schedule === 'string' ? JSON.parse(s.reminder_schedule) : s.reminder_schedule; } catch(e) {}
 
                                 return (
-                                    <div key={idx} style={{ border: '1px solid #E2E8F0', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                                    <div key={s.id || idx} style={{ border: '1px solid #E2E8F0', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '1rem' }}>
                                         <div>
                                             <p style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.95rem', margin: '0 0 4px 0' }}>{s.name || s.supplier_name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '800' }}>Balance Due: {formatCurrency(bal)}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                <span style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '800' }}>Balance Due: {formatCurrency(bal)}</span>
+                                                {s.email && <span style={{ fontSize: '0.75rem', color: '#64748B' }}>• {s.email}</span>}
+                                            </div>
                                             {schedObj && (
-                                                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#047857', background: '#ECFDF5', padding: '0.2rem 0.5rem', borderRadius: '6px', width: 'fit-content', fontWeight: '700' }}>
-                                                    🔔 Auto-Schedule: {schedObj.frequency} via {schedObj.channel} ({schedObj.time || '10:00 AM'})
+                                                <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontSize: '0.72rem', color: '#6D28D9', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '0.2rem 0.5rem', borderRadius: '6px', width: 'fit-content', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                        <Clock size={12} /> Scheduled for {schedObj.channel} Dispatch: {schedObj.frequency} ({schedObj.time || '10:00 AM'})
+                                                    </span>
+                                                    <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.2rem 0.45rem', borderRadius: '6px', fontWeight: '800' }}>
+                                                        ● Scheduled & Active for Sending
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            {(schedObj?.channel === 'Email' || schedObj?.channel === 'Both' || s.email) && (
+                                                <button 
+                                                    onClick={() => handleSendEmailReminder(s)}
+                                                    disabled={isAutoTriggering}
+                                                    style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid #8B5CF6', background: '#F5F3FF', color: '#6D28D9', fontWeight: '700', fontSize: '0.8rem', cursor: isAutoTriggering ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                                    title="Send / Dispatch Scheduled Email Reminder"
+                                                >
+                                                    <Mail size={14} /> Send Scheduled Email
+                                                </button>
+                                            )}
                                             <button 
                                                 onClick={() => handleTriggerAutoBalance(s)} 
                                                 disabled={isAutoTriggering}

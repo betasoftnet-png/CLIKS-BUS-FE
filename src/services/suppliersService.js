@@ -13,6 +13,8 @@ export const suppliersService = {
 
     triggerAutoBalanceAlert: (id) => apiClient.post(`/suppliers/${id}/auto-balance-trigger`).then(res => res.data.data || res.data),
 
+    sendEmailReminder: (id, data) => apiClient.post(`/suppliers/${id}/send-email-reminder`, data).then(res => res.data.data || res.data),
+
     autoDispatchAllReminders: () => apiClient.post('/suppliers/reminders/auto-dispatch-all').then(res => res.data.data || res.data),
 
     createB2BRequest: (data) => apiClient.post('/suppliers/b2b-request', data).then(res => res.data.data || res.data),

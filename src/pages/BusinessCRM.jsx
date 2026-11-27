@@ -328,7 +328,7 @@ const BusinessCRM = () => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Statement_of_Account_${(party.name || 'Customer').replace(/[^a-zA-Z0-9]/g, '_')}</title>
+                <title>Statement of Account - ${party.name || 'Customer'}</title>
                 <style>
                     @page {
                         size: A4 portrait;
