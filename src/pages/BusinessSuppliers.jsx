@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -606,45 +606,88 @@ const BusinessSuppliers = () => {
         upi_id: ''
     }));
 
-    // GSTIN Compliance Verification States
+    // GSTIN Compliance Verification States with Rate-Limiting & Debouncing
     const [isVerifyingGstin, setIsVerifyingGstin] = useState(false);
     const [gstinVerifiedData, setGstinVerifiedData] = useState(null);
     const [gstinVerifyError, setGstinVerifyError] = useState('');
+    const debounceTimeoutRef = useRef(null);
+    const gstinCacheRef = useRef(new Map());
 
-    const handleGstinChange = async (rawVal) => {
+    useEffect(() => {
+        return () => {
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleGstinChange = (rawVal) => {
         const cleanVal = rawVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
         setFormData(prev => ({ ...prev, gstin: cleanVal }));
         setGstinVerifyError('');
         if (formErrors.gstin) setFormErrors(prev => ({ ...prev, gstin: null }));
 
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
         if (cleanVal.length === 15) {
-            setIsVerifyingGstin(true);
-            try {
-                const data = await complianceService.verifyGstin(cleanVal);
-                setGstinVerifiedData(data);
+            // Check frontend session cache first to eliminate duplicate API calls
+            if (gstinCacheRef.current.has(cleanVal)) {
+                const cachedData = gstinCacheRef.current.get(cleanVal);
+                setGstinVerifiedData(cachedData);
                 setFormData(prev => ({
                     ...prev,
                     gstin: cleanVal,
-                    company_name: prev.company_name || data.tradeName || data.legalName || '',
-                    supplier_name: prev.supplier_name || data.legalName || data.tradeName || '',
+                    company_name: prev.company_name || cachedData.tradeName || cachedData.legalName || '',
+                    supplier_name: prev.supplier_name || cachedData.legalName || cachedData.tradeName || '',
                     pan_number: cleanVal.slice(2, 12),
-                    tax_type: data.registrationType?.toLowerCase().includes('comp') ? 'unregistered' : 'registered',
-                    place_of_supply: data.state || prev.place_of_supply,
-                    billing_address: prev.billing_address || data.address || '',
-                    shipping_address: prev.shipping_address || data.address || '',
-                    city: prev.city || data.city || '',
-                    state: prev.state || data.state || '',
-                    pincode: prev.pincode || data.pincode || ''
+                    tax_type: cachedData.registrationType?.toLowerCase().includes('comp') ? 'unregistered' : 'registered',
+                    place_of_supply: cachedData.state || prev.place_of_supply,
+                    billing_address: prev.billing_address || cachedData.address || '',
+                    shipping_address: prev.shipping_address || cachedData.address || '',
+                    city: prev.city || cachedData.city || '',
+                    state: prev.state || cachedData.state || '',
+                    pincode: prev.pincode || cachedData.pincode || ''
                 }));
-            } catch (err) {
-                console.error('Vendor GSTIN verification error:', err);
-                setGstinVerifyError(err.message || 'GSTIN verification failed');
-                setGstinVerifiedData(null);
-            } finally {
                 setIsVerifyingGstin(false);
+                return;
             }
+
+            setIsVerifyingGstin(true);
+            debounceTimeoutRef.current = setTimeout(async () => {
+                try {
+                    const data = await complianceService.verifyGstin(cleanVal);
+                    gstinCacheRef.current.set(cleanVal, data);
+                    setGstinVerifiedData(data);
+                    setFormData(prev => ({
+                        ...prev,
+                        gstin: cleanVal,
+                        company_name: prev.company_name || data.tradeName || data.legalName || '',
+                        supplier_name: prev.supplier_name || data.legalName || data.tradeName || '',
+                        pan_number: cleanVal.slice(2, 12),
+                        tax_type: data.registrationType?.toLowerCase().includes('comp') ? 'unregistered' : 'registered',
+                        place_of_supply: data.state || prev.place_of_supply,
+                        billing_address: prev.billing_address || data.address || '',
+                        shipping_address: prev.shipping_address || data.address || '',
+                        city: prev.city || data.city || '',
+                        state: prev.state || data.state || '',
+                        pincode: prev.pincode || data.pincode || ''
+                    }));
+                } catch (err) {
+                    console.error('Vendor GSTIN verification error:', err);
+                    const errMsg = err.response?.status === 429
+                        ? 'Rate limit reached (15 lookups/min). Please wait a moment before trying again.'
+                        : (err.response?.data?.message || err.message || 'GSTIN verification failed');
+                    setGstinVerifyError(errMsg);
+                    setGstinVerifiedData(null);
+                } finally {
+                    setIsVerifyingGstin(false);
+                }
+            }, 400);
         } else {
             setGstinVerifiedData(null);
+            setIsVerifyingGstin(false);
         }
     };
 

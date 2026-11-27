@@ -1200,24 +1200,24 @@ const BusinessPurchases = () => {
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                        <table className="table-fixed" style={{ width: '100%', minWidth: '1050px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'po_number', label: 'PO Details', placeholder: 'PO No', style: { width: '16%' } },
-                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
-                                { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '22%' } },
-                                { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000', style: { width: '14%' } },
-                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '15%' } },
-                                { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '13%' } }
+                                { key: 'po_number', label: 'PO Details', placeholder: 'PO No', style: { width: '18%', minWidth: '170px' } },
+                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%', minWidth: '180px' } },
+                                { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '18%', minWidth: '170px' } },
+                                { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000', style: { width: '14%', minWidth: '135px' } },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '16%', minWidth: '150px' } },
+                                { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '14%', minWidth: '150px' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPOs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((po) => (
                                     <tr key={po.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td className="align-top" style={{ width: '16%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td className="align-top" style={{ width: '18%', minWidth: '170px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.purchase_number}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '3px' }}>Date: {po.purchase_date} | Due: {po.due_date}</span>
                                         </td>
-                                        <td className="align-top" style={{ width: '20%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td className="align-top" style={{ width: '20%', minWidth: '180px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.supplier_name}</p>
                                             {(po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom')) ? (
                                                 <span style={{ fontSize: '0.74rem', color: '#6366F1', fontWeight: '800', display: 'block', marginTop: '3px' }}>
@@ -1227,7 +1227,7 @@ const BusinessPurchases = () => {
                                                 <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '3px' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
                                             )}
                                         </td>
-                                        <td className="align-top" style={{ width: '22%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
+                                        <td className="align-top" style={{ width: '18%', minWidth: '170px', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             {Array.isArray(po.items) && po.items.length > 0 ? (
                                                 <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.25rem' }}>
                                                     {po.items.map((item, idx) => (
@@ -1246,7 +1246,7 @@ const BusinessPurchases = () => {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="align-top" style={{ width: '14%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td className="align-top" style={{ width: '14%', minWidth: '135px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(po.items, po.shipping_charge);
                                                 const grandTotal = totals.grand_total || parseFloat(po.grand_total) || 0;
@@ -1269,7 +1269,7 @@ const BusinessPurchases = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td className="align-top" style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
+                                        <td className="align-top" style={{ width: '16%', minWidth: '150px', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             {(() => {
                                                 const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
                                                 const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
@@ -1454,8 +1454,8 @@ const BusinessPurchases = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td className="align-middle" style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'inline-flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                        <td className="align-middle" style={{ width: '14%', minWidth: '150px', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                                            <div style={{ display: 'inline-flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                 {(() => {
                                                     const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
                                                     
@@ -1595,28 +1595,28 @@ const BusinessPurchases = () => {
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                        <table className="table-fixed" style={{ width: '100%', minWidth: '1100px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'po_number', label: 'Bill Details', placeholder: 'Bill No', style: { width: '16%' } },
-                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
-                                { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '22%' } },
-                                { key: 'total', label: 'Bill Amount', placeholder: 'e.g. 5000', style: { width: '15%' } },
-                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '14%' } },
-                                { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '13%' } }
+                                { key: 'po_number', label: 'Bill Details', placeholder: 'Bill No', style: { width: '16%', minWidth: '160px' } },
+                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%', minWidth: '180px' } },
+                                { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '18%', minWidth: '170px' } },
+                                { key: 'total', label: 'Bill Amount', placeholder: 'e.g. 5000', style: { width: '14%', minWidth: '135px' } },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '14%', minWidth: '140px' } },
+                                { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '18%', minWidth: '220px' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredBills.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bill) => (
                                     <tr key={bill.id || bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ width: '16%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td style={{ width: '16%', minWidth: '160px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.purchase_number}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '3px' }}>Date: {bill.purchase_date} | Due: {bill.due_date || '—'}</span>
                                         </td>
-                                        <td style={{ width: '20%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td style={{ width: '20%', minWidth: '180px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.supplier_name}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.billing_address || (bill.supplier_gstin ? `GSTIN: ${bill.supplier_gstin}` : 'Unregistered')}</span>
                                         </td>
-                                        <td style={{ width: '22%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
+                                        <td style={{ width: '18%', minWidth: '170px', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             {bill.items && bill.items.length > 0 ? (
                                                 <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.25rem' }}>
                                                     {bill.items.map((item, idx) => (
@@ -1632,7 +1632,7 @@ const BusinessPurchases = () => {
                                                 </span>
                                             )}
                                         </td>
-                                        <td style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td style={{ width: '14%', minWidth: '135px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
                                                 const finalTotal = totals.grand_total || parseFloat(bill.grand_total) || 0;
@@ -1665,7 +1665,7 @@ const BusinessPurchases = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ width: '14%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
+                                        <td style={{ width: '14%', minWidth: '140px', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
                                                 const finalTotal = totals.grand_total || parseFloat(bill.grand_total) || 0;
@@ -1734,7 +1734,7 @@ const BusinessPurchases = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                        <td style={{ width: '18%', minWidth: '220px', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
                                                 const finalTotal = totals.grand_total || parseFloat(bill.grand_total) || 0;
@@ -1742,7 +1742,7 @@ const BusinessPurchases = () => {
                                                 const dueAmount = Math.max(0, finalTotal - paidAmount);
 
                                                 return (
-                                                    <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                                                    <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                                         {bill.status !== 'Completed' && (
                                                             <button
                                                                 type="button"
@@ -1816,8 +1816,8 @@ const BusinessPurchases = () => {
                         </button>
                     </div>
 
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
-                        <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflowX: 'auto', background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                        <table className="table-fixed" style={{ width: '100%', minWidth: '950px', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead style={{ background: '#F8FAFC' }}>
                                 <tr>
                                     <th style={{ width: '20%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / ID</th>
