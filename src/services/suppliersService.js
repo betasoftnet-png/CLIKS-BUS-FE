@@ -11,6 +11,10 @@ export const suppliersService = {
 
     getRegisteredNetworkSuppliers: () => apiClient.get('/suppliers/network/registered').then(res => res.data.data || res.data),
 
+    triggerAutoBalanceAlert: (id) => apiClient.post(`/suppliers/${id}/auto-balance-trigger`).then(res => res.data.data || res.data),
+
+    autoDispatchAllReminders: () => apiClient.post('/suppliers/reminders/auto-dispatch-all').then(res => res.data.data || res.data),
+
     createB2BRequest: (data) => apiClient.post('/suppliers/b2b-request', data).then(res => res.data.data || res.data),
 
     updateSupplier: (id, data) => apiClient.put(`/suppliers/${id}`, data).then(res => res.data.data || res.data),

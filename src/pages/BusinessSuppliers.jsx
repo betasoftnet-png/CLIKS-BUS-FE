@@ -51,6 +51,7 @@ import {
     Receipt,
     Link,
     Lock,
+    Zap,
     Loader2
 } from 'lucide-react';
 import '../App.css';
@@ -101,6 +102,11 @@ const BusinessSuppliers = () => {
     // Advanced Sorting & Status Filtering
     const [sortBy, setSortBy] = useState('newest');
     const [supplierStatusFilter, setSupplierStatusFilter] = useState('All');
+    const [balanceFilter, setBalanceFilter] = useState('All');
+
+    // Running Ledger Statements Sidebar Filtering
+    const [ledgerSearchTerm, setLedgerSearchTerm] = useState('');
+    const [ledgerBalanceFilter, setLedgerBalanceFilter] = useState('All');
 
     // Instant Pay Now Gateway Modal states
     const [isPayNowModalOpen, setIsPayNowModalOpen] = useState(false);
@@ -858,6 +864,14 @@ const BusinessSuppliers = () => {
             if (emailErr) errors.email = emailErr;
         }
 
+        // Prevent duplicate email registration across suppliers
+        if (!editingSupplier && cleanEmail) {
+            const dupSup = (suppliers || []).find(s => (s.email || '').trim().toLowerCase() === cleanEmail);
+            if (dupSup) {
+                errors.email = `A supplier with email '${cleanEmail}' is already registered (${dupSup.name || dupSup.supplier_name}). To reuse this email, please delete the existing supplier first.`;
+            }
+        }
+
         const gstinErr = validateGstin(formData.gstin, false);
         if (gstinErr) errors.gstin = gstinErr;
 
@@ -949,6 +963,25 @@ const BusinessSuppliers = () => {
         const text = `Dear ${supplier.name || supplier.supplier_name}, here is your current statement summary with us: Outstanding Payable: INR ${bal.toLocaleString()}. Thank you!`;
         const phoneNo = supplier.phone || supplier.phone_number || '';
         window.open(`https://api.whatsapp.com/send?phone=${phoneNo.replace(/\D/g, '')}&text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handleTriggerAutoBalance = async (supplier) => {
+        try {
+            const res = await suppliersService.triggerAutoBalanceAlert(supplier.id || supplier.supplier_id);
+            alert(`⚡ Automated Balance Alert Triggered!\n\nSystem has automatically processed the balance notice for ${supplier.name || supplier.supplier_name} (Payable: ${formatCurrency(supplier.outstanding_balance || 0)}).\n\nNo manual intervention needed!`);
+        } catch(e) {
+            alert(e?.response?.data?.message || 'Failed to trigger automated balance alert');
+        }
+    };
+
+    const handleRunAllAutoTriggers = async () => {
+        try {
+            const res = await suppliersService.autoDispatchAllReminders();
+            alert(`⚡ Batch Automated Reminders Triggered!\n\nAutomated balance notices processed for ${res.total_triggered || 0} suppliers with outstanding payables.\n\nAll notifications dispatched without human intervention!`);
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        } catch(e) {
+            alert(e?.response?.data?.message || 'Failed to run batch auto-triggers');
+        }
     };
 
     const handleOpenPayNowModal = (supplier) => {
@@ -1064,8 +1097,18 @@ const BusinessSuppliers = () => {
         let list = suppliers.filter(s => {
             const sName = s.name || s.supplier_name || '';
             const sComp = s.company || s.company_name || '';
-            const matchesSearch = sName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                sComp.toLowerCase().includes(searchTerm.toLowerCase());
+            const sCode = s.supplier_code || '';
+            const sGstin = s.gstin || '';
+            const sPhone = s.phone || s.phone_number || '';
+            const sEmail = s.email || '';
+            const q = searchTerm.toLowerCase();
+
+            const matchesSearch = sName.toLowerCase().includes(q) || 
+                                sComp.toLowerCase().includes(q) ||
+                                sCode.toLowerCase().includes(q) ||
+                                sGstin.toLowerCase().includes(q) ||
+                                sPhone.toLowerCase().includes(q) ||
+                                sEmail.toLowerCase().includes(q);
             const matchesType = filterType === 'All' || (s.supplier_type || 'local') === filterType.toLowerCase();
             
             const rawSt = (s.status || s.supplier_status || 'active').toLowerCase();
@@ -1085,7 +1128,19 @@ const BusinessSuppliers = () => {
                 }
             }
 
-            return matchesSearch && matchesType && matchesStatus;
+            const bal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+            let matchesBalance = true;
+            if (balanceFilter === 'due') {
+                matchesBalance = bal > 0;
+            } else if (balanceFilter === 'settled') {
+                matchesBalance = bal === 0;
+            } else if (balanceFilter === 'adv') {
+                matchesBalance = bal < 0;
+            } else if (balanceFilter === 'high') {
+                matchesBalance = bal >= 50000;
+            }
+
+            return matchesSearch && matchesType && matchesStatus && matchesBalance;
         });
 
         return list.sort((a, b) => {
@@ -1104,7 +1159,33 @@ const BusinessSuppliers = () => {
             if (sortBy === 'limit_asc') return limitA - limitB;
             return (b.id || 0) - (a.id || 0); // Default 'newest'
         });
-    }, [suppliers, searchTerm, filterType, supplierStatusFilter, sortBy]);
+    }, [suppliers, searchTerm, filterType, supplierStatusFilter, balanceFilter, sortBy]);
+
+    // Dedicated filter for Running Ledger Statements sidebar to distinguish suppliers with same name/credit
+    const ledgerFilteredSuppliers = React.useMemo(() => {
+        return (suppliers || []).filter(s => {
+            const sName = (s.name || s.supplier_name || '').toLowerCase();
+            const sCode = (s.supplier_code || '').toLowerCase();
+            const sGstin = (s.gstin || '').toLowerCase();
+            const sEmail = (s.email || '').toLowerCase();
+            const sPhone = (s.phone || s.phone_number || '').toLowerCase();
+            const q = ledgerSearchTerm.toLowerCase().trim();
+
+            const matchesSearch = !q || sName.includes(q) || sCode.includes(q) || sGstin.includes(q) || sEmail.includes(q) || sPhone.includes(q);
+
+            const bal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+            let matchesBal = true;
+            if (ledgerBalanceFilter === 'due') {
+                matchesBal = bal > 0;
+            } else if (ledgerBalanceFilter === 'settled') {
+                matchesBal = bal === 0;
+            } else if (ledgerBalanceFilter === 'adv') {
+                matchesBal = bal < 0;
+            }
+
+            return matchesSearch && matchesBal;
+        });
+    }, [suppliers, ledgerSearchTerm, ledgerBalanceFilter]);
 
     // Report computations
     const totalPayablesSum = suppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0 ? parseFloat(s.outstanding_balance || s.current_balance || 0) : 0), 0);
@@ -1278,6 +1359,19 @@ const BusinessSuppliers = () => {
                                 <option value="Local">Local</option>
                                 <option value="Import">Import</option>
                             </select>
+
+                            {/* Balance & Payables Filter */}
+                            <select 
+                                value={balanceFilter} 
+                                onChange={(e) => setBalanceFilter(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}
+                            >
+                                <option value="All">Balance: All</option>
+                                <option value="due">Balance: Outstanding Due (&gt; ₹0)</option>
+                                <option value="settled">Balance: Settled / Zero (₹0)</option>
+                                <option value="adv">Balance: Advance Outflows (Adv)</option>
+                                <option value="high">Balance: High Payables (&gt; ₹50k)</option>
+                            </select>
                         </div>
                     </div>
 
@@ -1383,28 +1477,93 @@ const BusinessSuppliers = () => {
             {activeTab === 'ledger' && (
                 <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                     {/* Left side list */}
-                    <div className="lg:col-span-2" style={{ background: 'white', padding: '1.5rem', borderRadius: '28px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
-                        <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '1rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Select Supplier</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {suppliers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => {
-                                const sId = s.id || s.supplier_id;
-                                const sName = s.name || s.supplier_name || 'Unnamed';
-                                const sBal = parseFloat(s.outstanding_balance || s.current_balance || 0);
-                                return (
-                                    <button 
-                                        key={sId}
-                                        onClick={() => setSelectedSupplier(s)}
-                                        style={{ 
-                                            width: '100%', padding: '1rem', borderRadius: '16px', border: (selectedSupplier?.id === s.id || selectedSupplier?.supplier_id === s.supplier_id) ? '2px solid #064E3B' : '1px solid #E2E8F0',
-                                            background: (selectedSupplier?.id === s.id || selectedSupplier?.supplier_id === s.supplier_id) ? '#F0F9F4' : 'white',
-                                            textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.9rem' }}>{sName}</p>
-                                        <span style={{ fontSize: '0.8rem', color: sBal > 0 ? '#EF4444' : '#15803D', fontWeight: '700' }}>Payable: {formatCurrency(sBal)}</span>
-                                    </button>
-                                );
-                            })}
+                    <div className="lg:col-span-2" style={{ background: 'white', padding: '1.5rem', borderRadius: '28px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <h4 style={{ fontSize: '1rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>Select Supplier</h4>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748B', background: '#F1F5F9', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                                {ledgerFilteredSuppliers.length} Listed
+                            </span>
+                        </div>
+
+                        {/* Search Bar for Ledger Suppliers */}
+                        <div style={{ position: 'relative', width: '100%' }}>
+                            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <input 
+                                type="text"
+                                placeholder="Search by name, code, GST, phone..."
+                                value={ledgerSearchTerm}
+                                onChange={(e) => setLedgerSearchTerm(e.target.value)}
+                                style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.78rem' }}
+                            />
+                        </div>
+
+                        {/* Balance Filter for Ledger Suppliers */}
+                        <select
+                            value={ledgerBalanceFilter}
+                            onChange={(e) => setLedgerBalanceFilter(e.target.value)}
+                            style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.78rem' }}
+                        >
+                            <option value="All">All Balance Statuses</option>
+                            <option value="due">Payable Balance Due (&gt; ₹0)</option>
+                            <option value="settled">Settled / Zero Balance (₹0)</option>
+                            <option value="adv">Advance Outflow (Adv)</option>
+                        </select>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '600px', overflowY: 'auto' }}>
+                            {ledgerFilteredSuppliers.length === 0 ? (
+                                <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.8rem' }}>
+                                    No matching suppliers found.
+                                </div>
+                            ) : (
+                                ledgerFilteredSuppliers.map(s => {
+                                    const sId = s.id || s.supplier_id;
+                                    const sName = s.name || s.supplier_name || 'Unnamed';
+                                    const sCode = s.supplier_code || `SUP-${sId}`;
+                                    const sBal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+                                    const sGstin = s.gstin || '';
+                                    const sLimit = parseFloat(s.credit_limit || 0);
+                                    const isSelected = selectedSupplier?.id === s.id || selectedSupplier?.supplier_id === s.supplier_id;
+                                    const rawSt = String(s.status || '').toUpperCase();
+                                    const isConn = rawSt === 'CONNECTED' || rawSt === 'ACCEPTED';
+
+                                    return (
+                                        <button 
+                                            key={sId}
+                                            onClick={() => setSelectedSupplier(s)}
+                                            style={{ 
+                                                width: '100%', padding: '0.85rem 1rem', borderRadius: '16px', 
+                                                border: isSelected ? '2px solid #064E3B' : '1px solid #E2E8F0',
+                                                background: isSelected ? '#F0F9F4' : 'white',
+                                                textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s',
+                                                display: 'flex', flexDirection: 'column', gap: '0.25rem'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                                                <p style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.88rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sName}</p>
+                                                <span style={{ fontSize: '0.68rem', fontWeight: '750', padding: '0.15rem 0.45rem', borderRadius: '4px', background: isConn ? '#ECFDF5' : '#F1F5F9', color: isConn ? '#059669' : '#64748B', whiteSpace: 'nowrap' }}>
+                                                    {sCode}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#64748B' }}>
+                                                <span>{sGstin ? `GST: ${sGstin}` : (s.phone || s.email || 'No GST')}</span>
+                                                <span>Limit: {formatCurrency(sLimit)}</span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.15rem' }}>
+                                                <span style={{ fontSize: '0.78rem', color: sBal > 0 ? '#EF4444' : '#15803D', fontWeight: '850' }}>
+                                                    Payable: {sBal > 0 ? formatCurrency(sBal) : (sBal < 0 ? `${formatCurrency(Math.abs(sBal))} (Adv)` : formatCurrency(0))}
+                                                </span>
+                                                {isConn && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#059669', fontWeight: '700' }}>
+                                                        ● Cliks Linked
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
 
@@ -1431,14 +1590,17 @@ const BusinessSuppliers = () => {
 
                             return (
                                 <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                                         <div>
-                                            <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B' }}>Statement of Account: {selectedSupplier.name || selectedSupplier.supplier_name}</h3>
-                                            <p style={{ color: '#64748B', fontSize: '0.85rem' }}>GSTIN: {selectedSupplier.gstin || 'N/A'} | Contact: {selectedSupplier.phone || selectedSupplier.phone_number || 'N/A'}</p>
+                                            <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B', margin: '0 0 0.25rem 0' }}>Statement of Account: {selectedSupplier.name || selectedSupplier.supplier_name}</h3>
+                                            <p style={{ color: '#64748B', fontSize: '0.85rem', margin: 0 }}>Code: {selectedSupplier.supplier_code || `SUP-${selectedSupplier.id}`} | GSTIN: {selectedSupplier.gstin || 'N/A'} | Contact: {selectedSupplier.phone || selectedSupplier.phone_number || 'N/A'}</p>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button onClick={() => handleShareLedgerWhatsApp(selectedSupplier)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', cursor: 'pointer' }}>
-                                                <Share2 size={16} /> WhatsApp Remind
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            <button onClick={() => handleTriggerAutoBalance(selectedSupplier)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '800', cursor: 'pointer' }} title="Trigger automated statement alert without human intervention">
+                                                <Zap size={16} /> ⚡ Auto-Trigger Alert
+                                            </button>
+                                            <button onClick={() => handleShareLedgerWhatsApp(selectedSupplier)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', cursor: 'pointer' }} title="Open WhatsApp manually">
+                                                <Share2 size={16} /> WhatsApp Remind (Manual)
                                             </button>
                                             <button onClick={() => handleExportStatementPDF(selectedSupplier, displayLedger)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#475569', fontWeight: '700', cursor: 'pointer' }}>
                                                 <Download size={16} /> Export Statement PDF
@@ -1548,7 +1710,19 @@ const BusinessSuppliers = () => {
                     </div>
 
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Payment Follow-up & Automated Reminders Log</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', margin: '0 0 4px 0' }}>Payment Follow-up & Automated Reminders Log</h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Automated scheduled background triggers and WhatsApp balance alerts for outstanding payables without human intervention.</p>
+                            </div>
+                            <button 
+                                onClick={handleRunAllAutoTriggers}
+                                disabled={isAutoTriggering}
+                                style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: isAutoTriggering ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)', opacity: isAutoTriggering ? 0.7 : 1 }}
+                            >
+                                <Zap size={16} /> {isAutoTriggering ? 'Dispatching Triggers...' : '⚡ Run Automated Balance Triggers (All Outstanding)'}
+                            </button>
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {suppliers.filter(s => (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0)).map((s, idx) => {
                                 const bal = parseFloat(s.outstanding_balance || s.current_balance || 0);
@@ -1568,6 +1742,14 @@ const BusinessSuppliers = () => {
                                             )}
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button 
+                                                onClick={() => handleTriggerAutoBalance(s)} 
+                                                disabled={isAutoTriggering}
+                                                style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '700', fontSize: '0.8rem', cursor: isAutoTriggering ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                                title="Trigger automated WhatsApp balance alert directly without manual prompt"
+                                            >
+                                                <Zap size={14} /> Auto-Trigger
+                                            </button>
                                             <button onClick={() => handleShareLedgerWhatsApp(s)} style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                                 <Smartphone size={14} /> Send Instant WhatsApp
                                             </button>
