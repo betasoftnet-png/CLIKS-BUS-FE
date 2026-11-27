@@ -750,6 +750,76 @@ const BusinessCRM = () => {
         document.body.removeChild(link);
     };
 
+    const handleExportCustomersCSV = () => {
+        const listToExport = sortedCustomers && sortedCustomers.length > 0 ? sortedCustomers : customers;
+        if (!listToExport || listToExport.length === 0) {
+            alert('No customer records to export.');
+            return;
+        }
+
+        const headers = [
+            'S.No',
+            'Customer Code',
+            'Customer Name',
+            'Company / Business',
+            'Phone Number',
+            'Email Address',
+            'GSTIN',
+            'Tax Type',
+            'City',
+            'Outstanding Balance (₹)',
+            'Credit Limit (₹)',
+            ...(loyaltyEnabled ? ['Loyalty Points'] : []),
+            'Status',
+            'Registered Date'
+        ];
+
+        const formatDateVal = (raw) => {
+            if (!raw) return '—';
+            try {
+                const d = new Date(raw);
+                if (isNaN(d.getTime())) return String(raw);
+                return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch {
+                return String(raw);
+            }
+        };
+
+        const rows = [headers.join(',')];
+
+        listToExport.forEach((c, idx) => {
+            const row = [
+                idx + 1, // Sequential S.No: 1, 2, 3...
+                `"${(c.customer_code || `CUST-${c.id || idx + 1}`).replace(/"/g, '""')}"`,
+                `"${(c.name || c.customer_name || '—').replace(/"/g, '""')}"`,
+                `"${(c.business_name || c.company || c.company_name || '—').replace(/"/g, '""')}"`,
+                `"${(c.phone_number || c.phone || '—').replace(/"/g, '""')}"`,
+                `"${(c.email || '—').replace(/"/g, '""')}"`,
+                `"${(c.gstin || '—').replace(/"/g, '""')}"`,
+                `"${(c.tax_type || 'Unregistered').replace(/"/g, '""')}"`,
+                `"${(c.city || '—').replace(/"/g, '""')}"`,
+                parseFloat(c.outstanding_balance || 0).toFixed(2),
+                parseFloat(c.credit_limit || 0).toFixed(2),
+                ...(loyaltyEnabled ? [parseInt(c.loyalty_points || 0, 10)] : []),
+                `"${(c.status || 'Active').replace(/"/g, '""')}"`,
+                `"${formatDateVal(c.created_at)}"`
+            ];
+            rows.push(row.join(','));
+        });
+
+        const csvContent = rows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const fileName = `Customer_Statements_${new Date().toISOString().split('T')[0]}.csv`;
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -1423,6 +1493,23 @@ const BusinessCRM = () => {
                     <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Manage customer profiles, credit limits, record payments, and export transaction statements.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button 
+                        onClick={handleExportCustomersCSV}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            padding: '0.5rem 1.1rem', borderRadius: '10px', 
+                            background: 'white', color: '#1B6B3A', border: '1px solid #BBF7D0', 
+                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#F0FDF4'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
+                        title="Download customer list with sequential numbering and balances"
+                    >
+                        <Download size={18} />
+                        Export CSV
+                    </button>
                     <button 
                         onClick={() => {
                             setIsImportModalOpen(true);

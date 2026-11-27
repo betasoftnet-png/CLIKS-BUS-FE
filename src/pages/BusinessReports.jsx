@@ -241,6 +241,22 @@ const BusinessReports = () => {
                         }
                     });
 
+                    if (transactions.length === 0 && customers.length > 0) {
+                        return customers.map((c, idx) => ({
+                            ...c,
+                            date: c.created_at || new Date().toISOString(),
+                            customer: c.name || c.customer_name || 'Customer',
+                            name: c.name || c.customer_name || 'Customer',
+                            ref_no: c.customer_code || `CUST-${c.id || idx + 1}`,
+                            type: parseFloat(c.outstanding_balance || 0) > 0 ? 'Outstanding Due' : 'Account Balance',
+                            total: parseFloat(c.total_spent || 0),
+                            paid: Math.max(0, parseFloat(c.total_spent || 0) - parseFloat(c.outstanding_balance || 0)),
+                            balance: parseFloat(c.outstanding_balance || 0),
+                            outstanding_balance: parseFloat(c.outstanding_balance || 0),
+                            status: parseFloat(c.outstanding_balance || 0) > 0 ? 'Due' : 'Clear'
+                        }));
+                    }
+
                     return transactions.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
                 }
 
@@ -1238,17 +1254,135 @@ const BusinessReports = () => {
 
         let csvContent = '';
         if (items && items.length > 0) {
-            const headers = Object.keys(items[0]).filter(k => typeof items[0][k] !== 'object' || items[0][k] === null);
-            csvContent += headers.join(',') + '\n';
-            items.forEach(row => {
-                const values = headers.map(header => {
-                    const val = row[header] !== undefined && row[header] !== null ? String(row[header]) : '';
-                    return `"${val.replace(/"/g, '""')}"`;
+            const formatDateVal = (raw) => {
+                if (!raw) return '—';
+                try {
+                    const d = new Date(raw);
+                    if (isNaN(d.getTime())) return String(raw);
+                    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                } catch {
+                    return String(raw);
+                }
+            };
+
+            const first = items[0];
+            const isCustomerList = first && (first.customer_code !== undefined || (first.email !== undefined && first.total_spent !== undefined));
+            const isStatementTx = first && first.ref_no !== undefined && (first.type !== undefined || first.total !== undefined);
+
+            if (isCustomerList) {
+                const headers = [
+                    'S.No',
+                    'Customer Code',
+                    'Customer Name',
+                    'Company / Business',
+                    'Phone Number',
+                    'Email Address',
+                    'GSTIN',
+                    'Tax Type',
+                    'City',
+                    'Outstanding Balance (₹)',
+                    'Total Spent (₹)',
+                    'Credit Limit (₹)',
+                    'Loyalty Points',
+                    'Status',
+                    'Registered Date'
+                ];
+                const rows = [headers.join(',')];
+                items.forEach((c, idx) => {
+                    const row = [
+                        idx + 1, // Sequential S.No: 1, 2, 3...
+                        `"${(c.customer_code || `CUST-${c.id || idx + 1}`).replace(/"/g, '""')}"`,
+                        `"${(c.name || c.customer_name || '—').replace(/"/g, '""')}"`,
+                        `"${(c.company || c.company_name || c.business_name || '—').replace(/"/g, '""')}"`,
+                        `"${(c.phone || c.phone_number || '—').replace(/"/g, '""')}"`,
+                        `"${(c.email || '—').replace(/"/g, '""')}"`,
+                        `"${(c.gstin || '—').replace(/"/g, '""')}"`,
+                        `"${(c.tax_type || 'Unregistered').replace(/"/g, '""')}"`,
+                        `"${(c.city || '—').replace(/"/g, '""')}"`,
+                        parseFloat(c.outstanding_balance || 0).toFixed(2),
+                        parseFloat(c.total_spent || 0).toFixed(2),
+                        parseFloat(c.credit_limit || 0).toFixed(2),
+                        parseInt(c.loyalty_points || 0, 10),
+                        `"${(c.status || 'Active').replace(/"/g, '""')}"`,
+                        `"${formatDateVal(c.created_at)}"`
+                    ];
+                    rows.push(row.join(','));
                 });
-                csvContent += values.join(',') + '\n';
-            });
+                csvContent = rows.join('\n');
+            } else if (isStatementTx) {
+                const headers = [
+                    'S.No',
+                    'Date',
+                    'Party / Customer',
+                    'Invoice / Ref No',
+                    'Transaction Type',
+                    'Billed Amount (₹)',
+                    'Paid Amount (₹)',
+                    'Balance Due (₹)',
+                    'Status'
+                ];
+                const rows = [headers.join(',')];
+                items.forEach((t, idx) => {
+                    const bal = parseFloat(t.balance !== undefined ? t.balance : (t.outstanding_balance || 0));
+                    const row = [
+                        idx + 1, // Sequential S.No: 1, 2, 3...
+                        `"${formatDateVal(t.date || t.created_at)}"`,
+                        `"${(t.customer || t.supplier || t.name || '—').replace(/"/g, '""')}"`,
+                        `"${(t.ref_no || t.invoice_number || '—').replace(/"/g, '""')}"`,
+                        `"${(t.type || 'Invoice').replace(/"/g, '""')}"`,
+                        parseFloat(t.total || t.grand_total || 0).toFixed(2),
+                        parseFloat(t.paid || t.paid_amount || 0).toFixed(2),
+                        bal.toFixed(2),
+                        `"${(t.status || (bal <= 0 ? 'Settled' : 'Due')).replace(/"/g, '""')}"`
+                    ];
+                    rows.push(row.join(','));
+                });
+                csvContent = rows.join('\n');
+            } else {
+                // Universal Clean Formatter
+                const excludedKeys = new Set([
+                    'id', 'user_id', 'tenant_id', 'updated_at', 'deleted_at', '__v',
+                    'password', 'token', 'created_by', 'updated_by'
+                ]);
+
+                const rawKeys = Object.keys(items[0]).filter(k => 
+                    !excludedKeys.has(k) && (typeof items[0][k] !== 'object' || items[0][k] === null)
+                );
+
+                const cleanHeaderName = (key) => {
+                    return key
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, l => l.toUpperCase())
+                        .replace(/Gst/g, 'GST')
+                        .replace(/Hsn/g, 'HSN')
+                        .replace(/Id\b/g, 'ID')
+                        .replace(/Ref No/g, 'Ref #')
+                        .replace(/Amt/g, 'Amount');
+                };
+
+                const headers = ['S.No', ...rawKeys.map(cleanHeaderName)];
+                const rows = [headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',')];
+
+                items.forEach((item, idx) => {
+                    const vals = [idx + 1]; // Sequential S.No: 1, 2, 3...
+                    rawKeys.forEach(k => {
+                        let v = item[k];
+                        if (v === undefined || v === null) {
+                            vals.push('""');
+                        } else if (k.toLowerCase().includes('date') || k === 'created_at') {
+                            vals.push(`"${formatDateVal(v)}"`);
+                        } else if (typeof v === 'number') {
+                            vals.push(v);
+                        } else {
+                            vals.push(`"${String(v).replace(/"/g, '""')}"`);
+                        }
+                    });
+                    rows.push(vals.join(','));
+                });
+                csvContent = rows.join('\n');
+            }
         } else {
-            csvContent = `Report,${reportTitle}\nStatus,No records found\nGenerated,${new Date().toISOString()}`;
+            csvContent = `Report,${reportTitle}\nStatus,No records found\nGenerated,${new Date().toLocaleDateString('en-IN')}`;
         }
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
