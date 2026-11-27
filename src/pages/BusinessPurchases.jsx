@@ -406,19 +406,88 @@ const BusinessPurchases = () => {
     const purchaseBills = applyFilters(allPurchases.filter(p => p.doc_type === 'BILL'));
     const purchaseReturns = applyFilters(allPurchases.filter(p => p.doc_type === 'RETURN'));
 
-    // Mutations
-    const createMutation = useMutation({
-        mutationFn: purchasesService.createPurchase,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['purchases'] });
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
-            queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
-            setIsCreateModalOpen(false);
-            setFormItems([{
+    // Warehouse query for Receive Goods dropdown
+    const warehousesQuery = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses()
+    });
+
+    const warehousesList = Array.isArray(warehousesQuery.data) && warehousesQuery.data.length > 0
+        ? warehousesQuery.data
+        : [{ id: 1, name: 'Main Godown' }, { id: 2, name: 'Shop Front' }, { id: 3, name: 'Central Warehouse' }];
+
+    // Submission lock and toast notification state
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+
+    const generateUniqueDocNumber = (docType = 'PO') => {
+        const prefix = docType === 'PO' ? (activeConfig.prefixPurchase || 'PO-') : (docType === 'RETURN' ? (activeConfig.prefixCredit || 'RET-') : 'BILL-');
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        return `${prefix}${rand}`;
+    };
+
+    // New Document Form States
+    const [formHeader, setFormHeader] = useState(() => ({
+        purchase_number: `PO-${Math.floor(1000 + Math.random() * 9000)}`,
+        purchase_type: 'GST',
+        purchase_date: new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+        supplier_id: '',
+        supplier_name: '',
+        supplier_gstin: '',
+        billing_address: '',
+        contact_number: '',
+        warehouse_id: 'Main Godown',
+        purchase_by: 'Branch Manager',
+        payment_mode: 'Credit',
+        bank_account_id: '',
+        paid_amount: 0,
+        advance_amount: 0,
+        shipping_charge: 0,
+        place_of_supply: 'Maharashtra',
+        return_reason: 'Damaged Goods' // for returns
+    }));
+
+    const [formItems, setFormItems] = useState([
+        {
+            product_id: '',
+            product_name: '',
+            sku: '',
+            batch_number: '',
+            expiry_date: '',
+            quantity: 1,
+            free_quantity: 0,
+            primary_unit: 'pcs',
+            purchase_price: 0,
+            discount: 0,
+            gst_percentage: 18
+        }
+    ]);
+
+    const resetPurchaseForm = (docType = 'PO') => {
+        const defaultWh = (warehousesList && warehousesList[0] && (warehousesList[0].name || warehousesList[0].warehouse_name)) || 'Main Godown';
+        setFormHeader({
+            purchase_number: generateUniqueDocNumber(docType),
+            purchase_type: 'GST',
+            purchase_date: new Date().toISOString().split('T')[0],
+            due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+            supplier_id: '',
+            supplier_name: '',
+            supplier_gstin: '',
+            billing_address: '',
+            contact_number: '',
+            warehouse_id: defaultWh,
+            purchase_by: 'Branch Manager',
+            payment_mode: 'Credit',
+            bank_account_id: '',
+            paid_amount: 0,
+            advance_amount: 0,
+            shipping_charge: 0,
+            place_of_supply: 'Maharashtra',
+            return_reason: 'Damaged Goods'
+        });
+        setFormItems([
+            {
                 product_id: '',
                 product_name: '',
                 sku: '',
@@ -430,8 +499,43 @@ const BusinessPurchases = () => {
                 purchase_price: 0,
                 discount: 0,
                 gst_percentage: 18
-            }]);
-            alert('Purchase document successfully registered!');
+            }
+        ]);
+    };
+
+    const handleCloseCreateModal = () => {
+        setIsCreateModalOpen(false);
+        setIsSubmitting(false);
+        resetPurchaseForm(createDocType);
+    };
+
+    // Mutations
+    const createMutation = useMutation({
+        mutationFn: purchasesService.createPurchase,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+
+            // 1. Instantly close modal
+            setIsCreateModalOpen(false);
+            setIsSubmitting(false);
+
+            // 2. Completely reset form details and generate fresh unique PO reference
+            resetPurchaseForm(createDocType);
+
+            // 3. Show non-blocking success toast
+            const docLabel = createDocType === 'PO' ? 'Purchase Order' : (createDocType === 'BILL' ? 'Purchase Bill' : 'Purchase Document');
+            setToastMessage(`${docLabel} registered successfully!`);
+            setTimeout(() => setToastMessage(''), 4000);
+        },
+        onError: (err) => {
+            setIsSubmitting(false);
+            alert(err?.response?.data?.message || err?.message || 'Failed to create purchase document.');
         }
     });
 
@@ -442,7 +546,8 @@ const BusinessPurchases = () => {
             queryClient.invalidateQueries({ queryKey: ['expensesList'] });
             queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
-            alert('Purchase successfully updated!');
+            setToastMessage('Purchase successfully updated!');
+            setTimeout(() => setToastMessage(''), 4000);
         }
     });
 
@@ -493,47 +598,6 @@ const BusinessPurchases = () => {
         }
     });
 
-    // Warehouse query for Receive Goods dropdown
-    const warehousesQuery = useQuery({
-        queryKey: ['warehouses'],
-        queryFn: () => warehouseService.getWarehouses()
-    });
-
-    const warehousesList = Array.isArray(warehousesQuery.data) && warehousesQuery.data.length > 0
-        ? warehousesQuery.data
-        : [{ id: 1, name: 'Main Godown' }, { id: 2, name: 'Shop Front' }, { id: 3, name: 'Central Warehouse' }];
-
-    // New Document Form States
-    const [formHeader, setFormHeader] = useState(() => ({
-        purchase_number: `TX-${Date.now().toString().slice(-5)}`,
-        purchase_type: 'GST',
-        purchase_date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
-        supplier_name: '',
-        supplier_gstin: '',
-        billing_address: '',
-        contact_number: '',
-        warehouse_id: 'Main Godown',
-        purchase_by: 'Branch Manager',
-        payment_mode: 'Credit',
-        bank_account_id: '',
-        paid_amount: 0,
-        advance_amount: 0,
-        shipping_charge: 0,
-        place_of_supply: 'Maharashtra',
-        return_reason: 'Damaged Goods' // for returns
-    }));
-
-    React.useEffect(() => {
-        if (isCreateModalOpen && activeConfig) {
-            const prefix = createDocType === 'PO' ? (activeConfig.prefixPurchase || 'PO-') : (createDocType === 'RETURN' ? (activeConfig.prefixCredit || 'RET-') : 'BILL-');
-            setFormHeader(prev => ({
-                ...prev,
-                purchase_number: `${prefix}${Date.now().toString().slice(-4)}`
-            }));
-        }
-    }, [isCreateModalOpen, createDocType, activeConfig]);
-
     React.useEffect(() => {
         if (warehousesList && warehousesList.length > 0) {
             setFormHeader(prev => {
@@ -545,22 +609,6 @@ const BusinessPurchases = () => {
             });
         }
     }, [warehousesList]);
-
-    const [formItems, setFormItems] = useState([
-        {
-            product_id: '',
-            product_name: '',
-            sku: '',
-            batch_number: '',
-            expiry_date: '',
-            quantity: 1,
-            free_quantity: 0,
-            primary_unit: 'pcs',
-            purchase_price: 0,
-            discount: 0,
-            gst_percentage: 18
-        }
-    ]);
 
     // 📦 Supplier-filtered products for Purchase Return
     const supplierProducts = React.useMemo(() => {
@@ -766,6 +814,8 @@ const BusinessPurchases = () => {
     const handleCreateDocument = (e) => {
         e.preventDefault();
 
+        if (isSubmitting || createMutation.isPending) return;
+
         if (createDocType === 'RETURN') {
             if (!formHeader.supplier_id && !formHeader.supplier_name) {
                 alert('Please select a supplier first.');
@@ -800,6 +850,8 @@ const BusinessPurchases = () => {
                 return;
             }
         }
+
+        setIsSubmitting(true);
 
         const isRequisition = createDocType === 'REQUISITION' || formHeader.purchase_type === 'INTERNAL' || String(formHeader.supplier_name || '').toLowerCase().includes('main showroom');
         const totals = computeDocTotals(formItems, formHeader.shipping_charge);
@@ -858,18 +910,22 @@ const BusinessPurchases = () => {
         };
 
         // Log Expense Transaction for Purchase Bill/Advance Payment (Skip for internal requisitions & unpaid/credit)
-        const paymentAmt = createDocType === 'BILL' ? docPayload.paid_amount : docPayload.advance_amount;
-        if (!isRequisition && paymentAmt > 0) {
-            paymentsStore.addTransaction({
-                type: createDocType === 'RETURN' ? 'income' : 'expense',
-                reference_type: 'purchase',
-                reference_id: formHeader.purchase_number,
-                bank_account_id: formHeader.bank_account_id || null,
-                amount: paymentAmt,
-                payment_method: formHeader.payment_mode ? formHeader.payment_mode.toLowerCase() : 'credit',
-                notes: `${createDocType} Payment for procurement ${formHeader.purchase_number}`
-            });
-            paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : []));
+        try {
+            const paymentAmt = createDocType === 'BILL' ? docPayload.paid_amount : docPayload.advance_amount;
+            if (!isRequisition && paymentAmt > 0) {
+                paymentsStore.addTransaction({
+                    type: createDocType === 'RETURN' ? 'income' : 'expense',
+                    reference_type: 'purchase',
+                    reference_id: formHeader.purchase_number,
+                    bank_account_id: formHeader.bank_account_id || null,
+                    amount: paymentAmt,
+                    payment_method: formHeader.payment_mode ? formHeader.payment_mode.toLowerCase() : 'credit',
+                    notes: `${createDocType} Payment for procurement ${formHeader.purchase_number}`
+                });
+                paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : [])).catch(() => {});
+            }
+        } catch (payErr) {
+            console.error('Failed to log payment transaction:', payErr);
         }
 
         createMutation.mutate(docPayload);
@@ -979,6 +1035,7 @@ const BusinessPurchases = () => {
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button 
                         onClick={() => { 
+                            resetPurchaseForm('REQUISITION');
                             setCreateDocType('REQUISITION'); 
                             setFormHeader(prev => ({
                                 ...prev,
@@ -998,8 +1055,8 @@ const BusinessPurchases = () => {
                     </button>
                     <button 
                         onClick={() => {
+                            resetPurchaseForm('PO');
                             setCreateDocType('PO');
-                            setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
                             setIsCreateModalOpen(true);
                         }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'white', color: '#334155', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
@@ -1013,8 +1070,8 @@ const BusinessPurchases = () => {
                                 navigate('/subscription');
                                 return;
                             }
+                            resetPurchaseForm('BILL');
                             setCreateDocType('BILL');
-                            setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
                             setIsCreateModalOpen(true);
                         }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1.15rem', borderRadius: '10px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)', transition: 'all 0.15s' }}
@@ -1749,8 +1806,8 @@ const BusinessPurchases = () => {
                         </div>
                         <button 
                             onClick={() => {
+                                resetPurchaseForm('RETURN');
                                 setCreateDocType('RETURN');
-                                setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
                                 setIsCreateModalOpen(true);
                             }}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.2)' }}
@@ -1983,7 +2040,7 @@ const BusinessPurchases = () => {
                                     }
                                 </p>
                             </div>
-                            <button onClick={() => setIsCreateModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            <button onClick={handleCloseCreateModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleCreateDocument} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -2295,7 +2352,26 @@ const BusinessPurchases = () => {
                                     {createDocType === 'PO' ? (
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Advance Payment Amount ({currency.symbol})</label>
-                                            <input type="number" value={formHeader.advance_amount} onChange={(e) => setFormHeader({ ...formHeader, advance_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                step="any"
+                                                placeholder="0"
+                                                value={formHeader.advance_amount === 0 ? '' : formHeader.advance_amount} 
+                                                onFocus={(e) => {
+                                                    if (formHeader.advance_amount === 0) e.target.select();
+                                                }}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    if (raw === '') {
+                                                        setFormHeader(prev => ({ ...prev, advance_amount: 0 }));
+                                                        return;
+                                                    }
+                                                    const num = parseFloat(raw);
+                                                    setFormHeader(prev => ({ ...prev, advance_amount: isNaN(num) || num < 0 ? 0 : num }));
+                                                }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600' }} 
+                                            />
                                             <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.4rem' }}>Entering an advance payment logs instant cash outflows dynamically.</p>
                                         </div>
                                     ) : createDocType === 'BILL' ? (
@@ -2313,16 +2389,26 @@ const BusinessPurchases = () => {
                                             <input 
                                                 type="number" 
                                                 min="0"
-                                                value={formHeader.paid_amount ?? 0} 
+                                                step="any"
+                                                placeholder="0"
+                                                value={formHeader.paid_amount === 0 ? '' : formHeader.paid_amount} 
+                                                onFocus={(e) => {
+                                                    if (formHeader.paid_amount === 0) e.target.select();
+                                                }}
                                                 onChange={(e) => {
-                                                    const val = parseFloat(e.target.value) || 0;
+                                                    const raw = e.target.value;
+                                                    if (raw === '') {
+                                                        setFormHeader(prev => ({ ...prev, paid_amount: 0, payment_mode: 'Credit' }));
+                                                        return;
+                                                    }
+                                                    const val = parseFloat(raw) || 0;
                                                     setFormHeader(prev => ({
                                                         ...prev,
                                                         paid_amount: val,
                                                         payment_mode: val > 0 ? (prev.payment_mode === 'Credit' ? 'Cash' : prev.payment_mode) : 'Credit'
                                                     }));
                                                 }} 
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600' }} 
                                             />
                                             <p style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.35rem' }}>
                                                 Set to 0 for Credit purchases to save bill as Unpaid/Pending.
@@ -2359,8 +2445,36 @@ const BusinessPurchases = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
-                                Save & Complete Purchase Document
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting || createMutation.isPending}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: (isSubmitting || createMutation.isPending) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    marginTop: '1rem', 
+                                    cursor: (isSubmitting || createMutation.isPending) ? 'not-allowed' : 'pointer', 
+                                    boxShadow: (isSubmitting || createMutation.isPending) ? 'none' : '0 10px 20px rgba(27, 107, 58, 0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.6rem',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {(isSubmitting || createMutation.isPending) ? (
+                                    <>
+                                        <RefreshCw size={20} className="animate-spin" />
+                                        <span>Saving & Processing Document...</span>
+                                    </>
+                                ) : (
+                                    <span>Save & Complete Purchase Document</span>
+                                )}
                             </button>
                         </form>
                     </div>
@@ -2894,6 +3008,29 @@ const BusinessPurchases = () => {
                 onClose={() => setIsNewProductModalOpen(false)}
                 onSuccess={handleProductCreated}
             />
+
+            {/* Non-blocking feedback toast */}
+            {toastMessage && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '24px',
+                    right: '24px',
+                    background: '#064E3B',
+                    color: 'white',
+                    padding: '0.85rem 1.5rem',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)',
+                    fontWeight: '700',
+                    fontSize: '0.9rem',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem'
+                }}>
+                    <CheckCircle2 size={18} color="#34D399" />
+                    <span>{toastMessage}</span>
+                </div>
+            )}
         </div>
     );
 };
