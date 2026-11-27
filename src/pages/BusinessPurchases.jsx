@@ -400,6 +400,41 @@ const BusinessPurchases = () => {
         queryFn: () => suppliersService.getSuppliers()
     });
 
+    const { data: networkSuppliers = [] } = useQuery({
+        queryKey: ['networkSuppliers'],
+        queryFn: () => suppliersService.getRegisteredNetworkSuppliers().catch(() => [])
+    });
+
+    const combinedSuppliers = React.useMemo(() => {
+        const list = [...(Array.isArray(suppliersList) ? suppliersList : [])];
+        const existingNames = new Set(list.map(s => (s.name || s.supplier_name || '').toLowerCase().trim()));
+        const existingEmails = new Set(list.map(s => (s.email || '').toLowerCase().trim()).filter(Boolean));
+
+        (Array.isArray(networkSuppliers) ? networkSuppliers : []).forEach(net => {
+            const netName = (net.name || net.supplier_name || '').toLowerCase().trim();
+            const netEmail = (net.email || '').toLowerCase().trim();
+            if (!existingNames.has(netName) && (!netEmail || !existingEmails.has(netEmail))) {
+                list.push(net);
+                existingNames.add(netName);
+            }
+        });
+        return list;
+    }, [suppliersList, networkSuppliers]);
+
+    const handleSendPOWhatsapp = async (po) => {
+        try {
+            const res = await purchasesService.sendWhatsapp(po.id || po.purchase_number);
+            const resData = res?.data || res;
+            if (resData?.whatsappUrl) {
+                window.open(resData.whatsappUrl, '_blank');
+            } else {
+                alert('WhatsApp notification prepared!');
+            }
+        } catch (e) {
+            alert(e?.response?.data?.message || 'Failed to dispatch WhatsApp message');
+        }
+    };
+
     const { data: allReturns = [] } = useQuery({
         queryKey: ['returns'],
         queryFn: returnsService.getReturns
@@ -529,7 +564,7 @@ const BusinessPurchases = () => {
     // Mutations
     const createMutation = useMutation({
         mutationFn: purchasesService.createPurchase,
-        onSuccess: () => {
+        onSuccess: (res) => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -538,6 +573,9 @@ const BusinessPurchases = () => {
             queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
 
+            const docData = res?.data || res || {};
+            const inv = docData.whatsapp_invite;
+
             // 1. Instantly close modal
             setIsCreateModalOpen(false);
             setIsSubmitting(false);
@@ -545,7 +583,17 @@ const BusinessPurchases = () => {
             // 2. Completely reset form details and generate fresh unique PO reference
             resetPurchaseForm(createDocType);
 
-            // 3. Show non-blocking success toast
+            // 3. Automated WhatsApp PO app install invite for unregistered supplier
+            if (inv && inv.whatsapp_url) {
+                const sendWa = window.confirm(
+                    `Purchase Order created successfully!\n\nThis supplier is not yet registered on the Cliks Business App.\n\nWould you like to send an automated WhatsApp message now to ${inv.phone || 'their mobile number'} with the download link to install the Cliks Business App and receive this PO?`
+                );
+                if (sendWa) {
+                    window.open(inv.whatsapp_url, '_blank');
+                }
+            }
+
+            // 4. Show non-blocking success toast
             const docLabel = createDocType === 'PO' ? 'Purchase Order' : (createDocType === 'BILL' ? 'Purchase Bill' : 'Purchase Document');
             setToastMessage(`${docLabel} registered successfully!`);
             setTimeout(() => setToastMessage(''), 4000);
@@ -1630,23 +1678,46 @@ const BusinessPurchases = () => {
 
                                                     if (isPending && !isConfirmed) {
                                                         return (
-                                                            <div 
-                                                                title="Supplier confirmation required before goods can be received."
-                                                                style={{ 
-                                                                    display: 'inline-flex', 
-                                                                    alignItems: 'center', 
-                                                                    gap: '0.35rem', 
-                                                                    padding: '0.42rem 0.75rem', 
-                                                                    borderRadius: '8px', 
-                                                                    background: '#FFFBEB', 
-                                                                    border: '1px solid #FEF3C7', 
-                                                                    color: '#B45309', 
-                                                                    fontSize: '0.74rem', 
-                                                                    fontWeight: '750',
-                                                                    whiteSpace: 'nowrap'
-                                                                }}
-                                                            >
-                                                                <Clock size={12} style={{ color: '#D97706' }} /> Awaiting Supplier
+                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                                <div 
+                                                                    title="Supplier confirmation required before goods can be received."
+                                                                    style={{ 
+                                                                        display: 'inline-flex', 
+                                                                        alignItems: 'center', 
+                                                                        gap: '0.35rem', 
+                                                                        padding: '0.42rem 0.75rem', 
+                                                                        borderRadius: '8px', 
+                                                                        background: '#FFFBEB', 
+                                                                        border: '1px solid #FEF3C7', 
+                                                                        color: '#B45309', 
+                                                                        fontSize: '0.74rem', 
+                                                                        fontWeight: '750',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
+                                                                    <Clock size={12} style={{ color: '#D97706' }} /> Awaiting Supplier
+                                                                </div>
+                                                                <button 
+                                                                    type="button" 
+                                                                    onClick={() => handleSendPOWhatsapp(po)} 
+                                                                    title="Send WhatsApp PO / App Install Invite" 
+                                                                    style={{ 
+                                                                        padding: '0.42rem 0.65rem', 
+                                                                        borderRadius: '8px', 
+                                                                        border: '1px solid #DCFCE7', 
+                                                                        background: '#F0FDF4', 
+                                                                        color: '#15803D', 
+                                                                        cursor: 'pointer', 
+                                                                        display: 'inline-flex', 
+                                                                        alignItems: 'center', 
+                                                                        gap: '0.3rem', 
+                                                                        fontSize: '0.74rem', 
+                                                                        fontWeight: '750',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
+                                                                    <MessageCircle size={13} style={{ color: '#16A34A' }} /> WhatsApp Invite
+                                                                </button>
                                                             </div>
                                                         );
                                                     }
@@ -2312,7 +2383,7 @@ const BusinessPurchases = () => {
                                                     });
                                                     return;
                                                 }
-                                                const supp = suppliersList.find(s => String(s.id || s.supplier_id) === String(selectedId));
+                                                const supp = combinedSuppliers.find(s => String(s.id || s.supplier_id) === String(selectedId));
                                                 if (supp) {
                                                     setFormHeader({ 
                                                         ...formHeader, 
@@ -2320,7 +2391,7 @@ const BusinessPurchases = () => {
                                                         supplier_name: supp.name || supp.supplier_name || '',
                                                         supplier_gstin: supp.gstin || supp.gst_number || '',
                                                         billing_address: supp.address || supp.billing_address || '',
-                                                        contact_number: supp.phone || supp.mobile || ''
+                                                        contact_number: supp.phone || supp.phone_number || supp.mobile || ''
                                                     });
                                                     if (createDocType === 'RETURN') {
                                                         setFormItems([{
@@ -2345,10 +2416,47 @@ const BusinessPurchases = () => {
                                             <option value="internal_main" style={{ color: '#4F46E5', fontWeight: '800' }}>
                                                 🏢 Main Showroom (Internal Stock Requisition)
                                             </option>
-                                            {suppliersList.map(s => (
-                                                <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>{s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''}</option>
-                                            ))}
+                                            {(() => {
+                                                const registered = combinedSuppliers.filter(s => s.is_cliks_registered || s.status === 'CONNECTED' || s.is_network_partner);
+                                                const unregistered = combinedSuppliers.filter(s => !(s.is_cliks_registered || s.status === 'CONNECTED' || s.is_network_partner));
+                                                return (
+                                                    <>
+                                                        {registered.length > 0 && (
+                                                            <optgroup label="✨ Cliks App Registered Suppliers">
+                                                                {registered.map(s => (
+                                                                    <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>
+                                                                        ✨ {s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''} [Cliks App]
+                                                                    </option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                        {unregistered.length > 0 && (
+                                                            <optgroup label="📋 Local Suppliers / Manual Vendors">
+                                                                {unregistered.map(s => (
+                                                                    <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>
+                                                                        {s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''} [Invite via WhatsApp]
+                                                                    </option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </select>
+                                        {(() => {
+                                            if (!formHeader.supplier_id || formHeader.supplier_id === 'internal_main') return null;
+                                            const selSup = combinedSuppliers.find(s => String(s.id || s.supplier_id) === String(formHeader.supplier_id));
+                                            const isReg = selSup?.is_cliks_registered || selSup?.status === 'CONNECTED' || selSup?.is_network_partner;
+                                            return isReg ? (
+                                                <div style={{ fontSize: '0.72rem', color: '#15803D', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600' }}>
+                                                    <CheckCircle2 size={13} color="#16A34A" /> Registered Cliks Business supplier (App Synced)
+                                                </div>
+                                            ) : (
+                                                <div style={{ fontSize: '0.72rem', color: '#B45309', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600' }}>
+                                                    <MessageCircle size={13} color="#D97706" /> Supplier not on Cliks App. Automated WhatsApp PO invite will be sent.
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GSTIN Number</label>

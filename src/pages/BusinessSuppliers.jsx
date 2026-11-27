@@ -50,6 +50,7 @@ import {
     Store,
     Receipt,
     Link,
+    Lock,
     Loader2
 } from 'lucide-react';
 import '../App.css';
@@ -514,7 +515,16 @@ const BusinessSuppliers = () => {
                 }).catch(err => console.error('Failed to sync supplier to Bit-Tool:', err));
             }
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-            alert('Supplier registered and master profile initialized!');
+            if (newSupplier.whatsapp_invite?.whatsapp_url) {
+                const sendNow = window.confirm(
+                    `Supplier registered successfully!\n\nThis supplier is not yet using the Cliks Business App.\n\nWould you like to send them a WhatsApp invitation now with the link to install the app?`
+                );
+                if (sendNow) {
+                    window.open(newSupplier.whatsapp_invite.whatsapp_url, '_blank');
+                }
+            } else {
+                alert('Supplier registered and master profile initialized!');
+            }
             setIsModalOpen(false);
         },
         onError: (err) => {
@@ -1059,9 +1069,21 @@ const BusinessSuppliers = () => {
             const matchesType = filterType === 'All' || (s.supplier_type || 'local') === filterType.toLowerCase();
             
             const rawSt = (s.status || s.supplier_status || 'active').toLowerCase();
-            const matchesStatus = supplierStatusFilter === 'All' || 
-                                 (supplierStatusFilter === 'active' && rawSt !== 'inactive') ||
-                                 (supplierStatusFilter === 'inactive' && rawSt === 'inactive');
+            const filterSt = (supplierStatusFilter || 'All').toLowerCase();
+            let matchesStatus = true;
+            if (filterSt !== 'all') {
+                if (filterSt === 'connected') {
+                    matchesStatus = rawSt === 'connected' || rawSt === 'accepted';
+                } else if (filterSt === 'pending') {
+                    matchesStatus = rawSt === 'pending';
+                } else if (filterSt === 'active') {
+                    matchesStatus = rawSt === 'active' || rawSt === 'connected' || rawSt === 'accepted';
+                } else if (filterSt === 'inactive') {
+                    matchesStatus = rawSt === 'inactive' || rawSt === 'unconnected' || rawSt === 'rejected';
+                } else {
+                    matchesStatus = rawSt === filterSt;
+                }
+            }
 
             return matchesSearch && matchesType && matchesStatus;
         });
@@ -1240,6 +1262,8 @@ const BusinessSuppliers = () => {
                                 style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}
                             >
                                 <option value="All">Status: All</option>
+                                <option value="Connected">Status: Connected</option>
+                                <option value="Pending">Status: Pending</option>
                                 <option value="active">Status: Active</option>
                                 <option value="inactive">Status: Inactive</option>
                             </select>
@@ -1732,26 +1756,61 @@ const BusinessSuppliers = () => {
                                             <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Email Address <span style={{ color: '#EF4444' }}>*</span>
+                                                    {Boolean(editingSupplier) && (
+                                                        <span style={{ marginLeft: '0.5rem', fontSize: '0.68rem', color: '#64748B', fontWeight: '700' }}>(Locked)</span>
+                                                    )}
                                                 </label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Mail size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ 
+                                                    height: '40px', 
+                                                    minHeight: '40px', 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', 
+                                                    borderRadius: '10px', 
+                                                    background: editingSupplier ? '#F1F5F9' : 'white', 
+                                                    overflow: 'hidden',
+                                                    cursor: editingSupplier ? 'not-allowed' : 'default'
+                                                }}>
+                                                    <span style={{ width: '38px', height: '100%', color: editingSupplier ? '#64748B' : '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                        {editingSupplier ? <Lock size={14} /> : <Mail size={14} />}
+                                                    </span>
                                                     <input 
                                                         required 
                                                         type="email" 
+                                                        disabled={Boolean(editingSupplier)}
+                                                        readOnly={Boolean(editingSupplier)}
                                                         value={formData.email} 
                                                         onChange={(e) => { 
+                                                            if (editingSupplier) return;
                                                             setFormData({ ...formData, email: e.target.value.trim() }); 
                                                             if (formErrors.email) setFormErrors({ ...formErrors, email: null }); 
                                                         }} 
                                                         onBlur={() => setTouchedFields(prev => ({ ...prev, email: true }))} 
-                                                        style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ 
+                                                            flex: 1, 
+                                                            minWidth: 0, 
+                                                            height: '100%', 
+                                                            padding: '0 0.75rem 0 0', 
+                                                            border: 'none', 
+                                                            outline: 'none', 
+                                                            fontSize: '0.82rem', 
+                                                            background: 'transparent',
+                                                            color: editingSupplier ? '#64748B' : '#0F172A',
+                                                            cursor: editingSupplier ? 'not-allowed' : 'text'
+                                                        }} 
                                                         placeholder="e.g. supplier@company.com" 
                                                     />
                                                 </div>
-                                                {((touchedFields.email && !formData.email?.trim()) || formErrors.email) && (
-                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>
-                                                        {formErrors.email || 'Email address is required'}
+                                                {Boolean(editingSupplier) ? (
+                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: '500' }}>
+                                                        <Lock size={11} /> Email is permanently locked to protect B2B account identity & prevent conflicts.
                                                     </span>
+                                                ) : (
+                                                    ((touchedFields.email && !formData.email?.trim()) || formErrors.email) && (
+                                                        <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>
+                                                            {formErrors.email || 'Email address is required'}
+                                                        </span>
+                                                    )
                                                 )}
                                             </div>
                                             <div className="min-w-0" style={{ minWidth: 0 }}>
