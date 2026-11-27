@@ -36,7 +36,8 @@ import {
     ShieldCheck,
     ArrowRightLeft,
     CreditCard,
-    PackageCheck
+    PackageCheck,
+    Trash2
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -304,7 +305,19 @@ const BusinessPurchases = () => {
             setSelectedDoc(null);
             alert(`✅ Goods received successfully!\n\nThe purchase order status has been updated to COMPLETED and physical stock has been added to warehouse: ${chosenWh.name || chosenWh.warehouse_name || targetWh}.`);
         } catch(err) {
-            alert('Error receiving goods: ' + (err.response?.data?.message || err.message || 'Failed to process warehouse stock receiving'));
+            const errMsg = err.response?.data?.message || err.message || '';
+            if (errMsg.toLowerCase().includes('already received')) {
+                setIsReceiveModalOpen(false);
+                setSelectedDoc(null);
+                queryClient.invalidateQueries({ queryKey: ['purchases'] });
+                queryClient.invalidateQueries({ queryKey: ['stocks'] });
+                queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+                queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+                alert(`✅ Goods have already been received and confirmed for this order into the warehouse inventory.`);
+            } else {
+                alert('Error receiving goods: ' + (errMsg || 'Failed to process warehouse stock receiving'));
+            }
         }
     };
 
@@ -742,7 +755,27 @@ const BusinessPurchases = () => {
         }]);
     };
 
+    const handleClearAllItemFields = () => {
+        setFormItems([{
+            product_id: '',
+            product_name: '',
+            sku: '',
+            batch_number: '',
+            expiry_date: '',
+            quantity: 1,
+            free_quantity: 0,
+            primary_unit: 'pcs',
+            purchase_price: 0,
+            discount: 0,
+            gst_percentage: 18
+        }]);
+    };
+
     const handleRemoveItemField = (index) => {
+        if (formItems.length <= 1) {
+            handleClearAllItemFields();
+            return;
+        }
         setFormItems(formItems.filter((_, i) => i !== index));
     };
 
@@ -2389,6 +2422,17 @@ const BusinessPurchases = () => {
                                                 <span>Create Product</span>
                                             </button>
                                         )}
+                                        {(formItems.length > 1 || formItems[0]?.product_id || formItems[0]?.product_name) && (
+                                            <button 
+                                                type="button" 
+                                                onClick={handleClearAllItemFields}
+                                                title="Clear all rows and reset"
+                                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+                                            >
+                                                <Trash2 size={13} />
+                                                <span>Clear All {formItems.length > 1 ? `(${formItems.length})` : ''}</span>
+                                            </button>
+                                        )}
                                         <button 
                                             type="button" 
                                             onClick={handleAddItemField} 
@@ -2462,9 +2506,14 @@ const BusinessPurchases = () => {
                                                 <option value={28}>28%</option>
                                             </select>
                                         </div>
-                                        {formItems.length > 1 && (
-                                            <button type="button" onClick={() => handleRemoveItemField(idx)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.75rem', borderRadius: '10px', cursor: 'pointer' }}><X size={16} /></button>
-                                        )}
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemoveItemField(idx)} 
+                                            title={formItems.length > 1 ? "Remove this item row" : "Reset row"} 
+                                            style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.75rem', borderRadius: '10px', cursor: 'pointer' }}
+                                        >
+                                            <X size={16} />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
