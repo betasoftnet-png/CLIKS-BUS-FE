@@ -2723,18 +2723,21 @@ const BusinessPurchases = () => {
                                                 min="0"
                                                 step="any"
                                                 placeholder="0"
-                                                value={formHeader.advance_amount === 0 ? '' : formHeader.advance_amount} 
+                                                value={formHeader.advance_amount === 0 || formHeader.advance_amount === '0' || !formHeader.advance_amount ? '' : formHeader.advance_amount} 
                                                 onFocus={(e) => {
-                                                    if (formHeader.advance_amount === 0) e.target.select();
+                                                    if (Number(formHeader.advance_amount || 0) === 0) e.target.select();
                                                 }}
                                                 onChange={(e) => {
-                                                    const raw = e.target.value;
+                                                    let raw = e.target.value;
                                                     if (raw === '') {
-                                                        setFormHeader(prev => ({ ...prev, advance_amount: 0 }));
+                                                        setFormHeader(prev => ({ ...prev, advance_amount: '' }));
                                                         return;
                                                     }
+                                                    if (/^0+[0-9]/.test(raw)) {
+                                                        raw = raw.replace(/^0+/, '');
+                                                    }
                                                     const num = parseFloat(raw);
-                                                    setFormHeader(prev => ({ ...prev, advance_amount: isNaN(num) || num < 0 ? 0 : num }));
+                                                    setFormHeader(prev => ({ ...prev, advance_amount: isNaN(num) || num < 0 ? '' : num }));
                                                 }} 
                                                 style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600' }} 
                                             />
@@ -2757,15 +2760,18 @@ const BusinessPurchases = () => {
                                                 min="0"
                                                 step="any"
                                                 placeholder="0"
-                                                value={formHeader.paid_amount === 0 ? '' : formHeader.paid_amount} 
+                                                value={formHeader.paid_amount === 0 || formHeader.paid_amount === '0' || !formHeader.paid_amount ? '' : formHeader.paid_amount} 
                                                 onFocus={(e) => {
-                                                    if (formHeader.paid_amount === 0) e.target.select();
+                                                    if (Number(formHeader.paid_amount || 0) === 0) e.target.select();
                                                 }}
                                                 onChange={(e) => {
-                                                    const raw = e.target.value;
+                                                    let raw = e.target.value;
                                                     if (raw === '') {
-                                                        setFormHeader(prev => ({ ...prev, paid_amount: 0, payment_mode: 'Credit' }));
+                                                        setFormHeader(prev => ({ ...prev, paid_amount: '', payment_mode: 'Credit' }));
                                                         return;
+                                                    }
+                                                    if (/^0+[0-9]/.test(raw)) {
+                                                        raw = raw.replace(/^0+/, '');
                                                     }
                                                     const val = parseFloat(raw) || 0;
                                                     setFormHeader(prev => ({

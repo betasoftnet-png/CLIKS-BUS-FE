@@ -332,11 +332,11 @@ const BusinessCRM = () => {
                 <style>
                     @page {
                         size: A4 portrait;
-                        margin: 12mm 15mm;
+                        margin: 0;
                     }
                     body {
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                        margin: 0;
+                        margin: 14mm 16mm;
                         padding: 0;
                         color: #0F172A;
                         -webkit-print-color-adjust: exact;

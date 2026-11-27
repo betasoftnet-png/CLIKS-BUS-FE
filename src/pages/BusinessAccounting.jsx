@@ -42,7 +42,7 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingService } from '../services/accountingService';
 import { billingService } from '../services/billingService';
-import { gstService, settingsService } from '../services';
+import { gstService, settingsService, crmService } from '../services';
 import * as XLSX from 'xlsx';
 import { useCurrency, useAuth } from '../context';
 import BankStatementReconciliationModal from '../components/BankStatementReconciliationModal';
@@ -372,6 +372,66 @@ const BusinessAccounting = () => {
         queryFn: () => accountingService.getPurchases(),
         refetchOnWindowFocus: false
     });
+
+    const { data: dbCustomers = [] } = useQuery({
+        queryKey: ['accountingCustomers'],
+        queryFn: () => crmService.getCustomers().catch(() => []),
+        refetchOnWindowFocus: false
+    });
+
+    // Customer recommendation / autocomplete state
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const [selectedCustomerMeta, setSelectedCustomerMeta] = useState(null);
+
+    // Custom Expense Categories
+    const [savedCustomCategories, setSavedCustomCategories] = useState(() => {
+        try {
+            const stored = localStorage.getItem('accounting_custom_expense_categories');
+            return stored ? JSON.parse(stored) : [];
+        } catch {
+            return [];
+        }
+    });
+    const [isCustomCategoryMode, setIsCustomCategoryMode] = useState(false);
+    const [customCategoryInput, setCustomCategoryInput] = useState('');
+
+    const recommendedCustomers = useMemo(() => {
+        const list = [];
+        const seen = new Set();
+
+        const rawList = Array.isArray(dbCustomers) ? dbCustomers : (dbCustomers?.data || dbCustomers?.customers || []);
+        rawList.forEach(c => {
+            const name = (c.name || c.customer_name || '').trim();
+            if (name && !seen.has(name.toLowerCase())) {
+                seen.add(name.toLowerCase());
+                list.push({
+                    name,
+                    phone: c.phone_number || c.phone || '',
+                    gstin: c.gstin || '',
+                    outstanding_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0),
+                    credit_limit: c.credit_limit || 0,
+                    city: c.city || ''
+                });
+            }
+        });
+
+        (dbInvoices || []).forEach(inv => {
+            const name = (inv.client_name || '').trim();
+            if (name && name !== 'Walk-in Customer' && !seen.has(name.toLowerCase())) {
+                seen.add(name.toLowerCase());
+                list.push({
+                    name,
+                    phone: inv.client_phone || '',
+                    gstin: inv.client_gstin || '',
+                    outstanding_balance: inv.due_amount !== undefined ? inv.due_amount : 0,
+                    credit_limit: 0,
+                    city: ''
+                });
+            }
+        });
+
+        return list;
+    }, [dbCustomers, dbInvoices]);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return 'N/A';
@@ -734,6 +794,10 @@ const BusinessAccounting = () => {
             payment_mode_from: 'Cash in Hand',
             payment_mode_to: 'HDFC Bank Account'
         });
+        setIsCustomerDropdownOpen(false);
+        setSelectedCustomerMeta(null);
+        setIsCustomCategoryMode(false);
+        setCustomCategoryInput('');
     };
 
     const handleEntryTypeChange = (newType) => {
@@ -909,11 +973,23 @@ const BusinessAccounting = () => {
             }
         }
 
+        let finalCategory = entryForm.category;
+        if (entryForm.entry_type === 'expense') {
+            if (isCustomCategoryMode && customCategoryInput.trim()) {
+                finalCategory = customCategoryInput.trim();
+                if (!savedCustomCategories.includes(finalCategory)) {
+                    const updated = [...savedCustomCategories, finalCategory];
+                    setSavedCustomCategories(updated);
+                    try { localStorage.setItem('accounting_custom_expense_categories', JSON.stringify(updated)); } catch {}
+                }
+            }
+        }
+
         recordEntryMutation.mutate({
             entry_type: entryForm.entry_type,
             date: entryForm.date,
             amount: amt,
-            category: entryForm.category,
+            category: finalCategory,
             mode: entryForm.mode,
             notes: entryForm.notes,
             customer_name: entryForm.customer_name,
@@ -1047,6 +1123,7 @@ const BusinessAccounting = () => {
     };
 
     const normalizeExpenseCategory = (category) => {
+        if (!category) return 'Miscellaneous';
         const cat = String(category || '').trim();
         const lower = cat.toLowerCase();
         
@@ -1083,7 +1160,11 @@ const BusinessAccounting = () => {
         if (lower === 'insurance') {
             return 'Insurance';
         }
-        return 'Miscellaneous';
+        if (lower === 'inventory purchase' || lower.includes('inventory')) {
+            return 'Inventory Purchase';
+        }
+        // Preserve user-defined custom categories
+        return cat;
     };
 
     const pAndLIncomeGroups = {
@@ -1108,6 +1189,12 @@ const BusinessAccounting = () => {
         'Miscellaneous': 0
     };
 
+    (savedCustomCategories || []).forEach(c => {
+        if (c && !pAndLExpenseGroups[c]) {
+            pAndLExpenseGroups[c] = 0;
+        }
+    });
+
     dbLedger.forEach(item => {
         const type = getAccountType(item.category, item.status, item.mode, item.entry_type);
         if (type === 'Revenue') {
@@ -1123,6 +1210,16 @@ const BusinessAccounting = () => {
         } else if (type === 'Expense') {
             const groupName = normalizeExpenseCategory(item.category);
             pAndLExpenseGroups[groupName] = (pAndLExpenseGroups[groupName] || 0) + (parseFloat(item.amount) || 0);
+        }
+    });
+
+    // Also include any POS billing invoices from dbInvoices that haven't been captured into dbLedger yet
+    const posInvoices = (dbInvoices || []).filter(inv => inv.invoice_type === 'POS' || inv.source === 'pos');
+    posInvoices.forEach(inv => {
+        const alreadyInLedger = dbLedger.some(l => l.invoice_number === inv.invoice_number || l.reference_number === inv.invoice_number);
+        if (!alreadyInLedger) {
+            const amt = parseFloat(inv.total_amount || inv.amount) || 0;
+            pAndLIncomeGroups['Sales Revenue'] = (pAndLIncomeGroups['Sales Revenue'] || 0) + amt;
         }
     });
 
@@ -3117,9 +3214,65 @@ const BusinessAccounting = () => {
                                 {/* 1. Income / Sales */}
                                 {entryForm.entry_type === 'income' && (
                                     <>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name</label>
-                                            <input required type="text" placeholder="Customer Name" value={entryForm.customer_name} onChange={(e) => setEntryForm({ ...entryForm, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Customer Name</label>
+                                                {recommendedCustomers.length > 0 && (
+                                                    <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '700' }}>
+                                                        {recommendedCustomers.length} registered customers available
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <input 
+                                                required 
+                                                type="text" 
+                                                placeholder="Search or enter customer name..." 
+                                                value={entryForm.customer_name} 
+                                                onFocus={() => setIsCustomerDropdownOpen(true)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setEntryForm({ ...entryForm, customer_name: val });
+                                                    setIsCustomerDropdownOpen(true);
+                                                    const match = recommendedCustomers.find(c => c.name.toLowerCase() === val.toLowerCase());
+                                                    setSelectedCustomerMeta(match || null);
+                                                }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} 
+                                            />
+                                            {isCustomerDropdownOpen && (
+                                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60, background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)', maxHeight: '210px', overflowY: 'auto', marginTop: '4px' }}>
+                                                    {recommendedCustomers
+                                                        .filter(c => !entryForm.customer_name || c.name.toLowerCase().includes(entryForm.customer_name.toLowerCase()) || (c.phone && c.phone.includes(entryForm.customer_name)))
+                                                        .slice(0, 10)
+                                                        .map(cust => (
+                                                            <div 
+                                                                key={cust.name} 
+                                                                onClick={() => {
+                                                                    setEntryForm(prev => ({ ...prev, customer_name: cust.name }));
+                                                                    setSelectedCustomerMeta(cust);
+                                                                    setIsCustomerDropdownOpen(false);
+                                                                }}
+                                                                style={{ padding: '0.65rem 0.9rem', cursor: 'pointer', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                                                onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                                            >
+                                                                <div>
+                                                                    <div style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{cust.name}</div>
+                                                                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{cust.phone ? `Phone: ${cust.phone}` : ''}{cust.city ? ` • ${cust.city}` : ''}</div>
+                                                                </div>
+                                                                {parseFloat(cust.outstanding_balance || 0) > 0 && (
+                                                                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626', background: '#FEE2E2', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                                                                        Due: {formatCurrency(cust.outstanding_balance)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    {recommendedCustomers.filter(c => !entryForm.customer_name || c.name.toLowerCase().includes(entryForm.customer_name.toLowerCase())).length === 0 && (
+                                                        <div style={{ padding: '0.75rem', fontSize: '0.78rem', color: '#64748B', textAlign: 'center' }}>
+                                                            Use custom customer "{entryForm.customer_name || 'Walk-in'}"
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
@@ -3171,15 +3324,91 @@ const BusinessAccounting = () => {
                                 {entryForm.entry_type === 'credit_sale' && (
                                     <>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name</label>
-                                                <input required type="text" placeholder="Customer Name" value={entryForm.customer_name} onChange={(e) => setEntryForm({ ...entryForm, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            <div style={{ position: 'relative' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Customer Name</label>
+                                                    {recommendedCustomers.length > 0 && (
+                                                        <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '700' }}>
+                                                            {recommendedCustomers.length} registered customers
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <input 
+                                                    required 
+                                                    type="text" 
+                                                    placeholder="Search customer..." 
+                                                    value={entryForm.customer_name} 
+                                                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setEntryForm({ ...entryForm, customer_name: val });
+                                                        setIsCustomerDropdownOpen(true);
+                                                        const match = recommendedCustomers.find(c => c.name.toLowerCase() === val.toLowerCase());
+                                                        setSelectedCustomerMeta(match || null);
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} 
+                                                />
+                                                {isCustomerDropdownOpen && (
+                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60, background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)', maxHeight: '210px', overflowY: 'auto', marginTop: '4px' }}>
+                                                        {recommendedCustomers
+                                                            .filter(c => !entryForm.customer_name || c.name.toLowerCase().includes(entryForm.customer_name.toLowerCase()) || (c.phone && c.phone.includes(entryForm.customer_name)))
+                                                            .slice(0, 10)
+                                                            .map(cust => (
+                                                                <div 
+                                                                    key={cust.name} 
+                                                                    onClick={() => {
+                                                                        setEntryForm(prev => ({ ...prev, customer_name: cust.name }));
+                                                                        setSelectedCustomerMeta(cust);
+                                                                        setIsCustomerDropdownOpen(false);
+                                                                    }}
+                                                                    style={{ padding: '0.65rem 0.9rem', cursor: 'pointer', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                                                >
+                                                                    <div>
+                                                                        <div style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{cust.name}</div>
+                                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{cust.phone ? `Phone: ${cust.phone}` : ''}{cust.city ? ` • ${cust.city}` : ''}</div>
+                                                                    </div>
+                                                                    {parseFloat(cust.outstanding_balance || 0) > 0 && (
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626', background: '#FEE2E2', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                                                                            Due: {formatCurrency(cust.outstanding_balance)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        {recommendedCustomers.filter(c => !entryForm.customer_name || c.name.toLowerCase().includes(entryForm.customer_name.toLowerCase())).length === 0 && (
+                                                            <div style={{ padding: '0.75rem', fontSize: '0.78rem', color: '#64748B', textAlign: 'center' }}>
+                                                                Use customer "{entryForm.customer_name}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Number (Auto)</label>
                                                 <input disabled type="text" value={entryForm.invoice_number} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B', fontWeight: '600' }} />
                                             </div>
                                         </div>
+
+                                        {/* Customer Credit Standing Card */}
+                                        {selectedCustomerMeta && (
+                                            <div style={{ background: '#F0FDF4', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #BBF7D0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#166534' }}>{selectedCustomerMeta.name} (Credit Profile)</div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#15803D' }}>
+                                                        {selectedCustomerMeta.phone ? `Phone: ${selectedCustomerMeta.phone}` : ''}
+                                                        {selectedCustomerMeta.gstin ? ` • GSTIN: ${selectedCustomerMeta.gstin}` : ' • Unregistered'}
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700' }}>Current Dues:</div>
+                                                    <div style={{ fontSize: '0.88rem', fontWeight: '900', color: parseFloat(selectedCustomerMeta.outstanding_balance || 0) > 0 ? '#DC2626' : '#16A34A' }}>
+                                                        {formatCurrency(selectedCustomerMeta.outstanding_balance || 0)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Sales Category</label>
@@ -3244,21 +3473,65 @@ const BusinessAccounting = () => {
                                     </>
                                 )}
 
-                                {/* 4. Expense */}
+                                {/* 4. Expense with Custom Category Support */}
                                 {entryForm.entry_type === 'expense' && (
                                     <>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Category</label>
-                                                <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                                    <option value="Rent & Utilities">Rent & Utilities</option>
-                                                    <option value="Marketing">Marketing</option>
-                                                    <option value="Salary / Payroll">Salary / Payroll</option>
-                                                    <option value="Office Expenses">Office Expenses</option>
-                                                    <option value="Inventory Purchase">Inventory Purchase</option>
-                                                    <option value="Travel & Meals">Travel & Meals</option>
-                                                    <option value="Other Expenses">Other Expenses</option>
-                                                </select>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Expense Category</label>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => {
+                                                            setIsCustomCategoryMode(!isCustomCategoryMode);
+                                                            if (!isCustomCategoryMode) setCustomCategoryInput('');
+                                                        }} 
+                                                        style={{ fontSize: '0.7rem', color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}
+                                                    >
+                                                        {isCustomCategoryMode ? '← Pick Standard' : '+ Add Custom'}
+                                                    </button>
+                                                </div>
+                                                {isCustomCategoryMode ? (
+                                                    <input 
+                                                        required 
+                                                        type="text" 
+                                                        placeholder="e.g. Generator Fuel, Machine Repair..." 
+                                                        value={customCategoryInput} 
+                                                        onChange={(e) => setCustomCategoryInput(e.target.value)} 
+                                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #7C3AED', outline: 'none', fontWeight: '600' }} 
+                                                    />
+                                                ) : (
+                                                    <select 
+                                                        value={entryForm.category} 
+                                                        onChange={(e) => {
+                                                            if (e.target.value === '__CUSTOM_NEW__') {
+                                                                setIsCustomCategoryMode(true);
+                                                                setCustomCategoryInput('');
+                                                            } else {
+                                                                setEntryForm({ ...entryForm, category: e.target.value });
+                                                            }
+                                                        }} 
+                                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}
+                                                    >
+                                                        <optgroup label="Standard Categories">
+                                                            <option value="Rent & Utilities">Rent & Utilities</option>
+                                                            <option value="Marketing">Marketing</option>
+                                                            <option value="Salary / Payroll">Salary / Payroll</option>
+                                                            <option value="Office Expenses">Office Expenses</option>
+                                                            <option value="Inventory Purchase">Inventory Purchase</option>
+                                                            <option value="Travel & Meals">Travel & Meals</option>
+                                                            <option value="Other Expenses">Other Expenses</option>
+                                                        </optgroup>
+                                                        {savedCustomCategories.length > 0 && (
+                                                            <optgroup label="Saved Custom Categories">
+                                                                {savedCustomCategories.map(cat => (
+                                                                    <option key={cat} value={cat}>{cat}</option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                        <option value="__CUSTOM_NEW__">+ Enter New Custom Category...</option>
+                                                    </select>
+                                                )}
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
@@ -4342,7 +4615,8 @@ const BusinessAccounting = () => {
                         paymentMode: inv.payment_mode || 'Cash',
                         taxableAmount: taxable,
                         gst: gst,
-                        total: total
+                        total: total,
+                        rawTotal: inv.total_amount !== undefined && inv.total_amount !== null ? String(inv.total_amount) : String(total)
                     };
                 });
 
@@ -4359,8 +4633,40 @@ const BusinessAccounting = () => {
                 // Sort by date descending
                 const sortedRows = [...filteredRows].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                // Stats
-                const totalRevenue = sortedRows.reduce((sum, r) => sum + r.total, 0);
+                // High-precision summation for Gross Revenue History using BigInt cents
+                let totalRevenueCents = 0n;
+                sortedRows.forEach(r => {
+                    const rawStr = String(r.rawTotal !== undefined ? r.rawTotal : (r.total || 0)).trim();
+                    const parts = rawStr.split('.');
+                    const intPart = parts[0].replace(/[^\d-]/g, '') || '0';
+                    let fracPart = (parts[1] || '').replace(/[^\d]/g, '').slice(0, 2);
+                    while (fracPart.length < 2) fracPart += '0';
+                    try {
+                        const isNeg = intPart.startsWith('-');
+                        const cleanInt = intPart.replace('-', '');
+                        const cents = BigInt(cleanInt) * 100n + BigInt(fracPart);
+                        totalRevenueCents += isNeg ? -cents : cents;
+                    } catch {
+                        totalRevenueCents += BigInt(Math.round((r.total || 0) * 100));
+                    }
+                });
+
+                const formatHighPrecisionCents = (cents, sym = currency?.symbol || '₹') => {
+                    const isNeg = cents < 0n;
+                    const abs = isNeg ? -cents : cents;
+                    const intPart = (abs / 100n).toString();
+                    const decPart = (abs % 100n).toString().padStart(2, '0');
+                    let formattedInt = intPart;
+                    if (intPart.length > 3) {
+                        const last3 = intPart.slice(-3);
+                        const rest = intPart.slice(0, -3);
+                        formattedInt = `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}`;
+                    }
+                    const decSuffix = decPart !== '00' ? `.${decPart}` : '';
+                    return `${isNeg ? '-' : ''}${sym}${formattedInt}${decSuffix}`;
+                };
+
+                const totalRevenueFormatted = formatHighPrecisionCents(totalRevenueCents);
                 const numInvoices = sortedRows.length;
 
                 // Pagination
@@ -4390,7 +4696,8 @@ const BusinessAccounting = () => {
                             <head>
                                 <title>Gross Revenue History</title>
                                 <style>
-                                    body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                    @page { margin: 0; }
+                                    body { font-family: system-ui, sans-serif; padding: 1.5cm; color: #1E293B; }
                                     h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
                                     p { margin: 0.3rem 0; font-size: 0.9rem; color: #475569; }
                                     table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
@@ -4400,7 +4707,7 @@ const BusinessAccounting = () => {
                             </head>
                             <body>
                                 <h1>Gross Revenue History</h1>
-                                <p><strong>Total Revenue:</strong> ${formatCurrency(totalRevenue)}</p>
+                                <p><strong>Total Revenue:</strong> ${totalRevenueFormatted}</p>
                                 <p><strong>Total Invoices:</strong> ${numInvoices}</p>
                                 <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
                                 <table>
@@ -4470,7 +4777,7 @@ const BusinessAccounting = () => {
                                     <input type="date" value={historyEndDate} onChange={(e) => { setHistoryEndDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>Total: <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalRevenue)}</span></div>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>Total: <span style={{ color: '#0F172A', fontWeight: '900' }}>{totalRevenueFormatted}</span></div>
                                     <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Count: <span style={{ color: '#0F172A', fontWeight: '900' }}>{numInvoices} Invoices</span></div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
