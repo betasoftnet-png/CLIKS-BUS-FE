@@ -80,7 +80,7 @@ const BusinessPeople = () => {
     const [relationshipFilter, setRelationshipFilter] = useState('All');
 
     // Forms input states
-    const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
+    const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '', initial_exposure: '', exposure_type: 'receivable' });
     const [txForm, setTxForm] = useState({ person_id: '', type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
     const [reminderForm, setReminderForm] = useState({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
 
@@ -562,9 +562,10 @@ const BusinessPeople = () => {
                     })
                 }).catch(err => console.error('Failed to sync network contact to Bit-Tool:', err));
             }
-            queryClient.invalidateQueries(['people-list']);
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
+            queryClient.invalidateQueries({ queryKey: ['people-transactions-all'] });
             setIsContactModalOpen(false);
-            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
+            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '', initial_exposure: '', exposure_type: 'receivable' });
             setContactEmailError('');
             setContactPhoneError('');
             alert('Contact added and invitation request sent.');
@@ -600,11 +601,12 @@ const BusinessPeople = () => {
                     })
                 }).catch(err => console.error('Failed to update network contact in Bit-Tool:', err));
             }
-            queryClient.invalidateQueries(['people-list']);
-            queryClient.invalidateQueries(['person-detail', variables.id]);
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
+            queryClient.invalidateQueries({ queryKey: ['person-detail', variables.id] });
+            queryClient.invalidateQueries({ queryKey: ['people-transactions-all'] });
             setIsContactModalOpen(false);
             setEditingContactId(null);
-            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
+            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '', initial_exposure: '', exposure_type: 'receivable' });
             setContactEmailError('');
             setContactPhoneError('');
             alert('Contact profile updated.');
@@ -623,8 +625,24 @@ const BusinessPeople = () => {
 
     const deleteContactMutation = useMutation({
         mutationFn: (id) => peopleService.deletePerson(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['people-list']);
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['people-list'] });
+            queryClient.setQueriesData({ queryKey: ['people-list'] }, (old) => {
+                if (!old) return [];
+                const list = Array.isArray(old) ? old : (old?.data || []);
+                const filtered = list.filter(p => String(p.id) !== String(id));
+                return Array.isArray(old) ? filtered : { ...old, data: filtered };
+            });
+        },
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueriesData({ queryKey: ['people-list'] }, (old) => {
+                if (!old) return [];
+                const list = Array.isArray(old) ? old : (old?.data || []);
+                const filtered = list.filter(p => String(p.id) !== String(deletedId));
+                return Array.isArray(old) ? filtered : { ...old, data: filtered };
+            });
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
+            queryClient.invalidateQueries({ queryKey: ['people-transactions-all'] });
             alert('Contact deleted successfully.');
         }
     });
@@ -675,11 +693,11 @@ const BusinessPeople = () => {
                 return Array.isArray(old) ? nextList : { ...old, data: nextList };
             });
 
-            queryClient.invalidateQueries(['people-transactions-all']);
-            queryClient.invalidateQueries(['people-list']);
+            queryClient.invalidateQueries({ queryKey: ['people-transactions-all'] });
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
             if (variables.person_id) {
-                queryClient.invalidateQueries(['person-transactions', variables.person_id]);
-                queryClient.invalidateQueries(['person-detail', variables.person_id]);
+                queryClient.invalidateQueries({ queryKey: ['person-transactions', variables.person_id] });
+                queryClient.invalidateQueries({ queryKey: ['person-detail', variables.person_id] });
             }
             setIsTxModalOpen(false);
             setIsInlineTxOpen(false);
@@ -692,11 +710,11 @@ const BusinessPeople = () => {
     const updateTxMutation = useMutation({
         mutationFn: (data) => peopleService.updateTransaction(data.person_id, data.id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries(['people-transactions-all']);
-            queryClient.invalidateQueries(['people-list']);
+            queryClient.invalidateQueries({ queryKey: ['people-transactions-all'] });
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
             if (variables.person_id) {
-                queryClient.invalidateQueries(['person-transactions', variables.person_id]);
-                queryClient.invalidateQueries(['person-detail', variables.person_id]);
+                queryClient.invalidateQueries({ queryKey: ['person-transactions', variables.person_id] });
+                queryClient.invalidateQueries({ queryKey: ['person-detail', variables.person_id] });
             }
             setIsInlineTxOpen(false);
             setEditingTxId(null);
@@ -708,8 +726,8 @@ const BusinessPeople = () => {
     const deleteTxMutation = useMutation({
         mutationFn: (txn) => peopleService.deleteTransaction(txn.person_id, txn.id),
         onSuccess: () => {
-            queryClient.invalidateQueries(['people-transactions-all']);
-            queryClient.invalidateQueries(['people-list']);
+            queryClient.invalidateQueries({ queryKey: ['people-transactions-all'] });
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
             alert('Transaction removed.');
         }
     });
@@ -1172,7 +1190,13 @@ const BusinessPeople = () => {
                         <ArrowLeftRight size={16} /> Log Transaction
                     </button>
                     <button 
-                        onClick={() => setIsContactModalOpen(true)}
+                        onClick={() => {
+                            setEditingContactId(null);
+                            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '', initial_exposure: '', exposure_type: 'receivable' });
+                            setContactEmailError('');
+                            setContactPhoneError('');
+                            setIsContactModalOpen(true);
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}
                     >
                         <Plus size={16} /> Add People Contact
@@ -1472,16 +1496,19 @@ const BusinessPeople = () => {
                                         <FolderKanban size={18} />
                                     </div>
                                     <div style={{ minWidth: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                             <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {req.group_name}
                                             </p>
                                             <span style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', background: '#EEF2FF', color: '#4338CA', fontSize: '0.65rem', fontWeight: '800', textTransform: 'capitalize' }}>
                                                 {req.group_type || 'Group'}
                                             </span>
+                                            <span style={{ padding: '0.1rem 0.45rem', borderRadius: '4px', background: '#F1F5F9', color: '#475569', fontSize: '0.65rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                <Users size={10} /> {req.member_count || 1} {req.member_count === 1 ? 'member' : 'members'}
+                                            </span>
                                         </div>
                                         <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>
-                                            Invited by {req.inviter_business_name || req.inviter_username || req.inviter_email}
+                                            Invited by {req.inviter_business_name || req.inviter_username || req.inviter_email} • {req.member_count || 1} current {req.member_count === 1 ? 'member' : 'members'} in group
                                         </p>
                                     </div>
                                 </div>
@@ -1949,6 +1976,7 @@ const BusinessPeople = () => {
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     setEditingContactId(p.id);
+                                                                    const netBal = parseFloat(p.net_balance || 0);
                                                                     setContactForm({
                                                                         name: p.name || '',
                                                                         role_type: p.role_type || 'friend',
@@ -1956,7 +1984,9 @@ const BusinessPeople = () => {
                                                                         email: p.email || '',
                                                                         company: p.company || '',
                                                                         relationship: p.relationship || '',
-                                                                        contact_info: p.contact_info || JSON.stringify({ status: 'active', loyalty_points: 0 })
+                                                                        contact_info: p.contact_info || JSON.stringify({ status: 'active', loyalty_points: 0 }),
+                                                                        initial_exposure: Math.abs(netBal) > 0 ? String(Math.abs(netBal)) : '',
+                                                                        exposure_type: netBal < 0 ? 'payable' : 'receivable'
                                                                     });
                                                                     setIsContactModalOpen(true);
                                                                     setActiveMenuId(null);
@@ -2284,6 +2314,9 @@ const BusinessPeople = () => {
                                                                 Invited by: <strong>{req.inviter_business_name || req.inviter_username || 'Admin'}</strong> ({req.inviter_email})
                                                             </p>
                                                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                                                <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#F1F5F9', color: '#1E293B', fontSize: '0.7rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                    <Users size={12} /> {req.member_count || 1} {req.member_count === 1 ? 'Group Member' : 'Group Members'}
+                                                                </span>
                                                                 <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#F1F5F9', color: '#334155', fontSize: '0.7rem', fontWeight: '800' }}>
                                                                     Role: {req.invited_role?.toUpperCase()}
                                                                 </span>
@@ -2570,7 +2603,7 @@ const BusinessPeople = () => {
                         <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{editingContactId ? 'Edit Contact Profile' : 'Enroll New Contact'}</h3>
-                                <button onClick={() => { setIsContactModalOpen(false); setEditingContactId(null); setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' }); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                                <button onClick={() => { setIsContactModalOpen(false); setEditingContactId(null); setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '', initial_exposure: '', exposure_type: 'receivable' }); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
                             <form onSubmit={handleSaveContact} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
@@ -2698,6 +2731,43 @@ const BusinessPeople = () => {
                                                 {contactEmailError}
                                             </span>
                                         )}
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                            Opening Net Exposure / Cost (₹)
+                                        </label>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: '700', color: '#64748B' }}>₹</span>
+                                            <input 
+                                                placeholder="0.00" 
+                                                type="text" 
+                                                value={contactForm.initial_exposure || ''} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                    setContactForm({ ...contactForm, initial_exposure: val });
+                                                }} 
+                                                style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 1.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                            />
+                                        </div>
+                                        <span style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '0.25rem', display: 'block' }}>
+                                            Initial ledger balance or pending exposure
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                            Exposure Type
+                                        </label>
+                                        <select 
+                                            value={contactForm.exposure_type || 'receivable'} 
+                                            onChange={(e) => setContactForm({ ...contactForm, exposure_type: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
+                                        >
+                                            <option value="receivable">Receivable (To Receive)</option>
+                                            <option value="payable">Payable (To Pay)</option>
+                                        </select>
                                     </div>
                                 </div>
 
@@ -4026,6 +4096,35 @@ const BusinessPeople = () => {
                                         </span>
                                     </div>
 
+                                    {/* Contact Quick Picker from Enrolled People */}
+                                    <div style={{ marginBottom: '0.65rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.3rem' }}>
+                                            Select Enrolled Contact to Invite ({people.filter(p => p.email).length} Contacts Available)
+                                        </label>
+                                        <select 
+                                            value=""
+                                            onChange={(e) => {
+                                                const selectedPerson = people.find(p => String(p.id) === String(e.target.value));
+                                                if (selectedPerson) {
+                                                    setTempMemberInput({
+                                                        name: selectedPerson.name || '',
+                                                        email: selectedPerson.email || '',
+                                                        role: tempMemberInput.role || 'member'
+                                                    });
+                                                    setTempMemberEmailError('');
+                                                }
+                                            }}
+                                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1.5px solid #CBD5E1', background: 'white', fontSize: '0.8rem', fontWeight: '600' }}
+                                        >
+                                            <option value="">-- Choose from your contacts list to auto-fill --</option>
+                                            {people.filter(p => p.email).map(p => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.name} ({p.email}) — {p.role_type || p.relationship || 'Contact'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
                                     {/* Partner Input Row */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
                                         <input 
@@ -4063,6 +4162,11 @@ const BusinessPeople = () => {
                                                 }
                                                 if (!bnxRegex.test(email)) {
                                                     setTempMemberEmailError('Only @bnxmail.com allowed');
+                                                    return;
+                                                }
+                                                const isEnrolled = people.some(p => p.email && p.email.trim().toLowerCase() === email);
+                                                if (!isEnrolled) {
+                                                    setTempMemberEmailError('Please select a contact from your enrolled contacts list.');
                                                     return;
                                                 }
                                                 if (newGroupForm.members.some(m => m.email === email)) {
@@ -4663,12 +4767,45 @@ const BusinessPeople = () => {
                                     setInviteMemberEmailError('Only official @bnxmail.com domain addresses are accepted');
                                     return;
                                 }
+                                const isEnrolled = people.some(p => p.email && p.email.trim().toLowerCase() === email);
+                                if (!isEnrolled) {
+                                    setInviteMemberEmailError('Please select a contact from your enrolled contacts list.');
+                                    return;
+                                }
                                 inviteMemberMutation.mutate({
                                     name: (inviteMemberForm.name || email.split('@')[0]).trim(),
                                     email,
                                     role: inviteMemberForm.role
                                 });
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>
+                                        Select Enrolled Contact to Invite ({people.filter(p => p.email).length} Available)
+                                    </label>
+                                    <select 
+                                        value=""
+                                        onChange={(e) => {
+                                            const selectedPerson = people.find(p => String(p.id) === String(e.target.value));
+                                            if (selectedPerson) {
+                                                setInviteMemberForm({
+                                                    name: selectedPerson.name || '',
+                                                    email: selectedPerson.email || '',
+                                                    role: inviteMemberForm.role
+                                                });
+                                                setInviteMemberEmailError('');
+                                            }
+                                        }}
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1.5px solid #CBD5E1', background: 'white', fontSize: '0.85rem', fontWeight: '600' }}
+                                    >
+                                        <option value="">-- Choose from your contacts list to auto-fill --</option>
+                                        {people.filter(p => p.email).map(p => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.name} ({p.email}) — {p.role_type || p.relationship || 'Contact'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Partner Name</label>
                                     <input 
