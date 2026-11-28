@@ -422,8 +422,8 @@ const BusinessSuppliers = () => {
                 <title>${pdfDocTitle}</title>
                 <style>
                     @page {
-                        size: A4 portrait;
-                        margin: 12mm 15mm;
+                        size: auto;
+                        margin: 10mm 12mm;
                     }
                     @media print {
                         body {
@@ -432,16 +432,17 @@ const BusinessSuppliers = () => {
                             print-color-adjust: exact;
                         }
                     }
-                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 30px; color: #0F172A; }
-                    .header { border-bottom: 2px solid #064E3B; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-                    .title { font-size: 24px; font-weight: bold; color: #064E3B; margin: 0 0 5px 0; }
-                    .subtitle { font-size: 14px; color: #64748B; margin: 0; }
-                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #F8FAFC; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 13px; border: 1px solid #E2E8F0; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th { background: #064E3B; color: white; padding: 12px 10px; text-align: left; font-size: 13px; font-weight: 600; }
-                    td { padding: 10px; font-size: 13px; }
+                    *, *::before, *::after { box-sizing: border-box; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 20px; color: #0F172A; }
+                    .header { border-bottom: 2px solid #064E3B; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+                    .title { font-size: 22px; font-weight: bold; color: #064E3B; margin: 0 0 4px 0; }
+                    .subtitle { font-size: 13px; color: #64748B; margin: 0; }
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #F8FAFC; padding: 14px; border-radius: 8px; margin-bottom: 20px; font-size: 12.5px; border: 1px solid #E2E8F0; word-break: break-word; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: auto; word-break: break-word; }
+                    th { background: #064E3B; color: white; padding: 10px 8px; text-align: left; font-size: 12.5px; font-weight: 600; }
+                    td { padding: 9px 8px; font-size: 12.5px; border-bottom: 1px solid #E2E8F0; }
                     tfoot td { font-weight: bold; background: #F1F5F9; border-top: 2px solid #064E3B; }
-                    .footer { margin-top: 40px; font-size: 11px; color: #94A3B8; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 15px; }
+                    .footer { margin-top: 30px; font-size: 11px; color: #94A3B8; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 12px; }
                 </style>
             </head>
             <body>

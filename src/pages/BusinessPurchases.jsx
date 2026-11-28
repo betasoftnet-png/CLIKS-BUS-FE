@@ -453,7 +453,19 @@ const BusinessPurchases = () => {
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    const purchaseOrders = applyFilters(allPurchases.filter(p => p.doc_type === 'PO' && !p.is_incoming_po));
+    // Deduplicate purchase orders by unique ID / purchase_number to prevent duplicate rows in the UI
+    const rawPOs = allPurchases.filter(p => p.doc_type === 'PO' && !p.is_incoming_po);
+    const seenPONums = new Set();
+    const uniquePOs = [];
+    for (const po of rawPOs) {
+        const poKey = po.id || po.purchase_number || po.purchase_id;
+        if (!seenPONums.has(poKey)) {
+            seenPONums.add(poKey);
+            uniquePOs.push(po);
+        }
+    }
+
+    const purchaseOrders = applyFilters(uniquePOs);
     const incomingOrders = applyFilters(allPurchases.filter(p => p.is_incoming_po));
     const purchaseBills = applyFilters(allPurchases.filter(p => p.doc_type === 'BILL' && !p.is_incoming_po));
     const purchaseReturns = applyFilters(allPurchases.filter(p => p.doc_type === 'RETURN'));
@@ -1370,8 +1382,8 @@ const BusinessPurchases = () => {
                                 { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '14%', minWidth: '150px' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredPOs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((po) => (
-                                    <tr key={po.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                {filteredPOs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((po, poIdx) => (
+                                    <tr key={po.id || po.purchase_number || po.purchase_id || poIdx} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td className="align-top" style={{ width: '18%', minWidth: '170px', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.purchase_number}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '3px' }}>Date: {po.purchase_date} | Due: {po.due_date}</span>
@@ -1752,6 +1764,48 @@ const BusinessPurchases = () => {
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredPOs.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: 'white' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                                    <ShoppingCart size={24} />
+                                                </div>
+                                                <p style={{ margin: 0, fontWeight: '750', fontSize: '0.95rem', color: '#334155' }}>No Outward Purchase Orders</p>
+                                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B', maxWidth: '400px' }}>
+                                                    {incomingOrders.length > 0 ? (
+                                                        <span>You have <strong>{incomingOrders.length} incoming purchase order(s)</strong> received from buyers.</span>
+                                                    ) : (
+                                                        <span>No purchase orders match your search or filter criteria. Click "+ New PO" above to draft a purchase order.</span>
+                                                    )}
+                                                </p>
+                                                {incomingOrders.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setActiveTab('incoming-orders')}
+                                                        style={{
+                                                            marginTop: '0.5rem',
+                                                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            padding: '0.5rem 1.1rem',
+                                                            borderRadius: '9px',
+                                                            fontWeight: 800,
+                                                            fontSize: '0.82rem',
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            boxShadow: '0 4px 10px rgba(5, 150, 105, 0.2)'
+                                                        }}
+                                                    >
+                                                        <PackageOpen size={16} /> Open Incoming Orders ({incomingOrders.length}) →
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -1974,6 +2028,21 @@ const BusinessPurchases = () => {
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredBills.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: 'white' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                                    <FileText size={24} />
+                                                </div>
+                                                <p style={{ margin: 0, fontWeight: '750', fontSize: '0.95rem', color: '#334155' }}>No Purchase Bills</p>
+                                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B', maxWidth: '400px' }}>
+                                                    No inward vendor bills match your search criteria. Click "+ New Purchase Bill" above to record a bill.
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

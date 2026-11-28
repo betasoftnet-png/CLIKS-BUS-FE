@@ -18,9 +18,27 @@ export const expensesService = {
     deleteBudget: (id) => apiClient.delete(`/expenses/budgets/${id}`).then(res => res.data.data || res.data),
     getClaims: () => apiClient.get('/expenses/reimbursements').then(res => res.data.data || res.data),
     lodgeClaim: (data) => apiClient.post('/finance/claims', data).catch(() => apiClient.post('/expenses/reimburse', data)).then(res => res.data.data || res.data),
-    approveClaim: (id) => apiClient.post(`/expenses/${id}/approve`, {}).catch(() => apiClient.post(`/reimbursements/${id}/approve`, {})).then(res => res?.data?.data || res?.data || res),
-    rejectClaim: (id, data) => apiClient.post(`/expenses/${id}/reject`, data || {}).catch(() => apiClient.post(`/reimbursements/${id}/reject`, data || {})).then(res => res?.data?.data || res?.data || res),
-    payClaim: (id, data) => apiClient.post(`/expenses/${id}/pay`, data || {}).catch(() => apiClient.post(`/reimbursements/${id}/pay`, data || {})).then(res => res?.data?.data || res?.data || res),
+    approveClaim: (id) => {
+        const cleanId = String(id).replace(/^CLM-\d+-/i, '').replace(/^CLM-/i, '').replace(/^0+/, '') || id;
+        return apiClient.post(`/expenses/${cleanId}/approve`, {})
+            .catch(() => apiClient.post(`/reimbursements/${cleanId}/approve`, {}))
+            .catch(() => apiClient.post(`/hr/reimbursements/${cleanId}/approve`, {}))
+            .then(res => res?.data?.data || res?.data || res);
+    },
+    rejectClaim: (id, data) => {
+        const cleanId = String(id).replace(/^CLM-\d+-/i, '').replace(/^CLM-/i, '').replace(/^0+/, '') || id;
+        return apiClient.post(`/expenses/${cleanId}/reject`, data || {})
+            .catch(() => apiClient.post(`/reimbursements/${cleanId}/reject`, data || {}))
+            .catch(() => apiClient.post(`/hr/reimbursements/${cleanId}/reject`, data || {}))
+            .then(res => res?.data?.data || res?.data || res);
+    },
+    payClaim: (id, data) => {
+        const cleanId = String(id).replace(/^CLM-\d+-/i, '').replace(/^CLM-/i, '').replace(/^0+/, '') || id;
+        return apiClient.post(`/expenses/${cleanId}/pay`, data || {})
+            .catch(() => apiClient.post(`/reimbursements/${cleanId}/pay`, data || {}))
+            .catch(() => apiClient.post(`/hr/reimbursements/${cleanId}/pay`, data || {}))
+            .then(res => res?.data?.data || res?.data || res);
+    },
     deleteClaim: (id) => apiClient.delete(`/expenses/${id}`).then(res => res.data.data || res.data),
     getRecurrings: () => apiClient.get('/expenses/recurring').then(res => res.data.data || res.data),
     createRecurring: (data) => apiClient.post('/expenses/recurring', data).then(res => res.data.data || res.data),

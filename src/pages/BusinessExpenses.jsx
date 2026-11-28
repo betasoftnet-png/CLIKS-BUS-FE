@@ -101,6 +101,7 @@ const BusinessExpenses = ({ defaultTab }) => {
     };
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [payingClaimId, setPayingClaimId] = useState(null);
+    const [previewDocument, setPreviewDocument] = useState(null);
     const [paymentDetails, setPaymentDetails] = useState({
         paymentMode: 'Cash in Hand',
         paymentDate: new Date().toISOString().split('T')[0]
@@ -375,19 +376,19 @@ const BusinessExpenses = ({ defaultTab }) => {
             const previousClaims = queryClient.getQueryData(['claimsList']);
             queryClient.setQueryData(['claimsList'], (old) => {
                 if (!Array.isArray(old)) return old;
-                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Approved' } : item);
+                return old.map(item => (String(item.id) === String(id) || String(item.claim_id) === String(id)) ? { ...item, reimbursement_status: 'Approved' } : item);
             });
             return { previousClaims };
         },
         onSuccess: async (_data, id) => {
             queryClient.setQueryData(['claimsList'], (old) => {
                 if (!Array.isArray(old)) return old;
-                return old.map(item => String(item.id) === String(id) ? { ...item, reimbursement_status: 'Approved' } : item);
+                return old.map(item => (String(item.id) === String(id) || String(item.claim_id) === String(id)) ? { ...item, reimbursement_status: 'Approved' } : item);
             });
             await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
             await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
             refetchClaims();
-            alert('Claim approved successfully!');
+            alert('Claim approved/re-approved successfully!');
         },
         onError: (err, _id, context) => {
             if (context?.previousClaims) {
@@ -1007,9 +1008,16 @@ const BusinessExpenses = ({ defaultTab }) => {
     const getFileUrl = (path) => {
         if (!path) return '';
         if (path.startsWith('http://') || path.startsWith('https://')) return path;
-        const apiBase = config.api.baseUrl || window.location.origin;
-        const hostBase = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
-        return `${hostBase}${path}`;
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const apiBase = isLocalhost ? 'http://localhost:3000' : origin;
+        const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+        // Ensure static upload assets route through /api/v1/uploads so reverse proxies route to Express backend
+        if (cleanPath.startsWith('/uploads/')) {
+            return `${apiBase}/api/v1${cleanPath}`;
+        }
+        return `${apiBase}${cleanPath}`;
     };
 
     const handleFileChange = (e) => {
@@ -1537,14 +1545,22 @@ const BusinessExpenses = ({ defaultTab }) => {
                                             <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem', margin: 0 }}>{ex.category_name}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>{ex.subcategory}</span>
                                             {ex.proof_file_path && (
-                                                <a 
-                                                    href={getFileUrl(ex.proof_file_path)} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#7C3AED', fontWeight: '750', fontSize: '0.7rem', textDecoration: 'none', marginTop: '2px' }}
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setPreviewDocument({
+                                                        url: getFileUrl(ex.proof_file_path),
+                                                        fallbackUrl: ex.proof_file_path.startsWith('/') ? ex.proof_file_path : `/${ex.proof_file_path}`,
+                                                        name: ex.proof_file_name || ex.expense_number || 'Attached Bill',
+                                                        type: 'image',
+                                                        claimId: ex.expense_number,
+                                                        employee: ex.payee_name,
+                                                        amount: ex.expense_amount
+                                                    })}
+                                                    style={{ border: 'none', background: 'transparent', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#7C3AED', fontWeight: '750', fontSize: '0.7rem', cursor: 'pointer', marginTop: '2px', textAlign: 'left' }}
+                                                    title="View attached bill"
                                                 >
                                                     📎 View Attached Bill
-                                                </a>
+                                                </button>
                                             )}
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{ex.payee_name}</td>
@@ -1981,14 +1997,22 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                                                         <span>{cl.receipt || (!cl.proof_file_path && 'No documents attached')}</span>
                                                         {cl.proof_file_path && (
-                                                            <a 
-                                                                href={getFileUrl(cl.proof_file_path)} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer" 
-                                                                style={{ color: '#7C3AED', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setPreviewDocument({
+                                                                    url: getFileUrl(cl.proof_file_path),
+                                                                    fallbackUrl: cl.proof_file_path.startsWith('/') ? cl.proof_file_path : `/${cl.proof_file_path}`,
+                                                                    name: cl.proof_file_name || cl.receipt || 'Expense Receipt',
+                                                                    type: cl.proof_file_type,
+                                                                    claimId: cl.display_claim_id,
+                                                                    employee: cl.employee_name,
+                                                                    amount: cl.claim_amount
+                                                                })}
+                                                                style={{ border: 'none', background: 'transparent', padding: 0, color: '#7C3AED', fontWeight: '750', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', textAlign: 'left' }}
+                                                                title="View attached receipt document"
                                                             >
-                                                                📎 View Document
-                                                            </a>
+                                                                📎 View File
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -2077,12 +2101,27 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                                 </span>
                                                                 <button 
                                                                     type="button"
-                                                                    onClick={() => approveClaimMutation.mutate(cl.claim_id)}
+                                                                    onClick={() => {
+                                                                        const targetId = cl.claim_id || cl.id;
+                                                                        approveClaimMutation.mutate(targetId);
+                                                                    }}
                                                                     disabled={approveClaimMutation.isPending}
-                                                                    style={{ border: 'none', background: '#E6F4EA', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', color: '#137333' }}
+                                                                    style={{ 
+                                                                        border: 'none', 
+                                                                        background: '#E6F4EA', 
+                                                                        padding: '5px 12px', 
+                                                                        borderRadius: '6px', 
+                                                                        cursor: approveClaimMutation.isPending ? 'not-allowed' : 'pointer', 
+                                                                        fontSize: '0.72rem', 
+                                                                        fontWeight: '800', 
+                                                                        color: '#137333',
+                                                                        opacity: approveClaimMutation.isPending ? 0.7 : 1,
+                                                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                                        transition: 'all 0.2s'
+                                                                    }}
                                                                     title="Re-approve this claim"
                                                                 >
-                                                                    Re-approve
+                                                                    {approveClaimMutation.isPending ? 'Re-approving...' : 'Re-approve'}
                                                                 </button>
                                                             </>
                                                         )}
@@ -2705,20 +2744,130 @@ const BusinessExpenses = ({ defaultTab }) => {
             {isClaimModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem', overflowY: 'auto' }}>
                     <div className="max-h-[90vh] flex flex-col" style={{ background: 'white', width: '100%', maxWidth: '440px', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                        <div className="shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid #F1F5F9' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Lodge Staff Claim</h3>
+                        <div className="shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '1.25rem 1.75rem', borderBottom: '1px solid #F1F5F9' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Staff Reimbursement Claim</h3>
+                                <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748B', fontWeight: '600' }}>
+                                    Submit out-of-pocket business expenses paid by staff to be reviewed and reimbursed.
+                                </p>
+                            </div>
                             <button type="button" onClick={closeClaimModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleCreateClaim} className="flex flex-col flex-1 min-h-0" style={{ margin: 0 }}>
                             <div className="flex-1 overflow-y-auto pr-1" style={{ padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Profile Name</label>
-                                    <input required type="text" value={newClaim.employee_name} onChange={(e) => setNewClaim({ ...newClaim, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Karan Mehra (Inventory)" />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Employee Profile Name *</label>
+                                        {dbEmployees.length > 0 && (
+                                            <span style={{ fontSize: '0.7rem', color: '#7C3AED', fontWeight: '750' }}>
+                                                {dbEmployees.length} Staff Available
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            required 
+                                            type="text" 
+                                            list="employee-names-list"
+                                            value={newClaim.employee_name} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setNewClaim(prev => ({ ...prev, employee_name: val }));
+                                            }}
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }} 
+                                            placeholder="Select or type employee name..." 
+                                        />
+                                        <datalist id="employee-names-list">
+                                            {dbEmployees.map((emp, i) => {
+                                                const empName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Employee';
+                                                const roleOrDept = emp.department || emp.role || emp.designation || '';
+                                                const code = emp.employee_code || (emp.id ? `CLK-00${emp.id}` : '');
+                                                const label = `${empName} ${roleOrDept ? `(${roleOrDept})` : ''} ${code ? `[${code}]` : ''}`.trim();
+                                                return <option key={emp.id || emp.employee_id || i} value={empName}>{label}</option>;
+                                            })}
+                                        </datalist>
+                                    </div>
+                                    {/* Quick Employee Selection Pills */}
+                                    {dbEmployees.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.45rem' }}>
+                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700', alignSelf: 'center' }}>Staff:</span>
+                                            {dbEmployees.slice(0, 5).map((emp, i) => {
+                                                const empName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Employee';
+                                                const isSelected = newClaim.employee_name === empName;
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        onClick={() => setNewClaim(prev => ({ ...prev, employee_name: empName }))}
+                                                        style={{
+                                                            background: isSelected ? '#7C3AED' : '#F1F5F9',
+                                                            color: isSelected ? '#FFFFFF' : '#475569',
+                                                            border: 'none',
+                                                            borderRadius: '6px',
+                                                            padding: '2px 8px',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: '700',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {empName}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Out-of-pocket Description</label>
-                                    <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        Out-of-pocket Description / Expense Purpose *
+                                    </label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={newClaim.travel_expense} 
+                                        onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }} 
+                                        placeholder="e.g. Client visit taxi fare, team refreshments, emergency stationary" 
+                                    />
+                                    {/* Sample Description Preset Chips */}
+                                    <div style={{ marginTop: '0.5rem' }}>
+                                        <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '750', color: '#94A3B8', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                                            Common Sample Descriptions (Click to fill):
+                                        </span>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                            {[
+                                                { label: '🚗 Travel & Taxi Fare', text: 'Client visit cab / travel reimbursement' },
+                                                { label: '☕ Client Lunch & Refreshment', text: 'Client meeting refreshments & snacks' },
+                                                { label: '📦 Courier & Dispatches', text: 'Courier dispatch & shipping charges' },
+                                                { label: '🏨 Hotel & Stay', text: 'Outstation client visit hotel accommodation' },
+                                                { label: '📎 Office Supplies', text: 'Office stationery and emergency supplies' },
+                                                { label: '⛽ Fuel / Petrol Allowance', text: 'Local travel fuel and mileage allowance' },
+                                                { label: '🔧 Emergency Repairs', text: 'Equipment maintenance and emergency repairs' }
+                                            ].map((sample, i) => (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    onClick={() => setNewClaim(prev => ({ ...prev, travel_expense: sample.text }))}
+                                                    style={{
+                                                        background: '#F8FAFC',
+                                                        border: '1px solid #E2E8F0',
+                                                        borderRadius: '6px',
+                                                        padding: '3px 8px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: '700',
+                                                        color: '#475569',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s'
+                                                    }}
+                                                    onMouseEnter={(e) => { e.target.style.background = '#EDE9FE'; e.target.style.color = '#6D28D9'; }}
+                                                    onMouseLeave={(e) => { e.target.style.background = '#F8FAFC'; e.target.style.color = '#475569'; }}
+                                                >
+                                                    {sample.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
@@ -2903,10 +3052,78 @@ const BusinessExpenses = ({ defaultTab }) => {
 
                             <div className="shrink-0 border-t bg-gray-50/80 p-4">
                                 <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                    {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
+                                    {lodgeClaimMutation.isPending ? 'Submitting Claim...' : 'Submit Reimbursement Claim'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* In-App Document Preview Modal */}
+            {previewDocument && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', borderRadius: '16px', maxWidth: '650px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>
+                                    Receipt Document Preview
+                                </h3>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
+                                    {previewDocument.claimId} • {previewDocument.employee} • {formatCurrency(previewDocument.amount || 0)}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setPreviewDocument(null)} 
+                                style={{ border: 'none', background: '#E2E8F0', padding: '0.45rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        
+                        <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', minHeight: '300px' }}>
+                            {previewDocument.url && (previewDocument.url.match(/\.(png|jpe?g|webp|gif|bmp|svg)($|\?)/i) || previewDocument.type?.includes('image') || previewDocument.name?.match(/\.(png|jpe?g|webp|gif|bmp|svg)$/i)) ? (
+                                <img 
+                                    src={previewDocument.url} 
+                                    alt={previewDocument.name} 
+                                    onError={(e) => {
+                                        if (previewDocument.fallbackUrl && e.target.src !== previewDocument.fallbackUrl) {
+                                            e.target.src = previewDocument.fallbackUrl;
+                                        }
+                                    }}
+                                    style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                                />
+                            ) : (
+                                <iframe 
+                                    src={previewDocument.url} 
+                                    title="Document" 
+                                    style={{ width: '100%', height: '60vh', border: 'none', borderRadius: '8px', background: 'white' }} 
+                                />
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderTop: '1px solid #E2E8F0', background: '#FFFFFF' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '750', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                                {previewDocument.name}
+                            </span>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <a 
+                                    href={previewDocument.url} 
+                                    download={previewDocument.name}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ textDecoration: 'none', padding: '0.5rem 1rem', background: '#7C3AED', color: 'white', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer' }}
+                                >
+                                    Download / Open
+                                </a>
+                                <button 
+                                    onClick={() => setPreviewDocument(null)} 
+                                    style={{ border: '1px solid #CBD5E1', background: '#FFFFFF', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '750', color: '#475569', cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
