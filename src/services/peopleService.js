@@ -12,7 +12,7 @@ export const peopleService = {
 
     // Connection Requests Workflow
     getIncomingRequests: async () => await apiClient.get('/people/requests/incoming').then(res => res.data.data || res.data),
-    respondToRequest: async (requestId, action) => await apiClient.patch(`/people/requests/${requestId}/respond`, { action }).then(res => res.data.data || res.data),
+    respondToRequest: async (requestId, action, role_type) => await apiClient.patch(`/people/requests/${requestId}/respond`, { action, role_type }).then(res => res.data.data || res.data),
 
     // Financial Groups Workflow
     getGroups: async () => await apiClient.get('/people/groups').then(res => res.data.data || res.data),

@@ -76,6 +76,9 @@ const BusinessPeople = () => {
         setColFilters({});
     }, [activeTab]);
 
+    // Relationship filter state (All, Suppliers, Customers, Relatives, Friends, Colleagues, Business, Others)
+    const [relationshipFilter, setRelationshipFilter] = useState('All');
+
     // Forms input states
     const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
     const [txForm, setTxForm] = useState({ person_id: '', type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
@@ -215,7 +218,7 @@ const BusinessPeople = () => {
     });
 
     const respondRequestMutation = useMutation({
-        mutationFn: ({ id, action }) => peopleService.respondToRequest(id, action),
+        mutationFn: ({ id, action, role_type }) => peopleService.respondToRequest(id, action, role_type),
         onSuccess: (res, variables) => {
             queryClient.invalidateQueries({ queryKey: ['people-incoming-requests'] });
             queryClient.invalidateQueries({ queryKey: ['people-list'] });
@@ -1092,16 +1095,47 @@ const BusinessPeople = () => {
         return Array.from(groups);
     }, [people]);
 
+    // Live counts for relationship filter pills
+    const roleCounts = useMemo(() => {
+        const counts = { All: people.length, Suppliers: 0, Customers: 0, Relatives: 0, Friends: 0, Colleagues: 0, Business: 0, Others: 0 };
+        people.forEach(p => {
+            const r = (p.role_type || p.relationship || '').toLowerCase().trim();
+            if (r === 'supplier') counts.Suppliers++;
+            else if (r === 'customer') counts.Customers++;
+            else if (['relative', 'family'].includes(r)) counts.Relatives++;
+            else if (r === 'friend') counts.Friends++;
+            else if (r === 'colleague') counts.Colleagues++;
+            else if (r === 'business') counts.Business++;
+            else counts.Others++;
+        });
+        return counts;
+    }, [people]);
+
     const filteredPeople = useMemo(() => {
         return people.filter(p => {
             const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                  (p.company || '').toLowerCase().includes(searchTerm.toLowerCase());
+                                  (p.company || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  (p.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  (p.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesGroup = groupFilter === 'All' || p.relationship === groupFilter;
             const meta = getContactMeta(p.contact_info);
             const matchesStatus = statusFilter === 'All' || meta.status === statusFilter;
-            return matchesSearch && matchesGroup && matchesStatus;
+
+            let matchesRelationship = true;
+            if (relationshipFilter !== 'All') {
+                const r = (p.role_type || p.relationship || '').toLowerCase().trim();
+                if (relationshipFilter === 'Suppliers') matchesRelationship = r === 'supplier';
+                else if (relationshipFilter === 'Customers') matchesRelationship = r === 'customer';
+                else if (relationshipFilter === 'Relatives') matchesRelationship = ['relative', 'family'].includes(r);
+                else if (relationshipFilter === 'Friends') matchesRelationship = r === 'friend';
+                else if (relationshipFilter === 'Colleagues') matchesRelationship = r === 'colleague';
+                else if (relationshipFilter === 'Business') matchesRelationship = r === 'business';
+                else if (relationshipFilter === 'Others') matchesRelationship = !['supplier', 'customer', 'relative', 'family', 'friend', 'colleague', 'business'].includes(r);
+            }
+
+            return matchesSearch && matchesGroup && matchesStatus && matchesRelationship;
         });
-    }, [people, searchTerm, groupFilter, statusFilter]);
+    }, [people, searchTerm, groupFilter, statusFilter, relationshipFilter]);
 
     const filteredTx = useMemo(() => {
         return transactions
@@ -1118,9 +1152,9 @@ const BusinessPeople = () => {
     }, [transactions, searchTerm]);
 
     return (
-        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 1.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
@@ -1339,7 +1373,7 @@ const BusinessPeople = () => {
                             Review All ({((incomingRequests?.length || 0) + (groupIncomingRequests?.length || 0))})
                         </button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.85rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '0.85rem' }}>
                         {/* Direct Contacts requests */}
                         {incomingRequests.slice(0, 2).map(req => (
                             <div key={`contact-${req.id}`} style={{
@@ -1350,25 +1384,34 @@ const BusinessPeople = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                gap: '0.75rem',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                gap: '1rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                flexWrap: 'wrap'
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#004aad', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: '1 1 200px' }}>
+                                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#004aad', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.9rem', flexShrink: 0 }}>
                                         {(req.requester_username || req.requester_business_name || 'U').charAt(0).toUpperCase()}
                                     </div>
-                                    <div style={{ minWidth: 0 }}>
-                                        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {req.requester_username || req.requester_business_name || 'Network Contact'}
-                                        </p>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <Mail size={11} /> {req.requester_email}
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>
+                                                {req.requester_username || req.requester_business_name || 'Network Contact'}
+                                            </p>
+                                            {req.role_type && (
+                                                <span style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', background: '#FEF3C7', color: '#B45309', fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                                                    {req.role_type}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', wordBreak: 'break-all' }} title={req.requester_email}>
+                                            <Mail size={11} style={{ flexShrink: 0, color: '#004aad' }} /> 
+                                            <span style={{ fontWeight: '600', color: '#334155' }}>{req.requester_email}</span>
                                         </p>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, whiteSpace: 'nowrap' }}>
                                     <button
-                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept' })}
+                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept', role_type: req.role_type })}
                                         disabled={respondRequestMutation.isPending}
                                         style={{
                                             display: 'inline-flex',
@@ -1377,11 +1420,12 @@ const BusinessPeople = () => {
                                             border: 'none',
                                             background: '#10B981',
                                             color: '#FFFFFF',
-                                            padding: '0.45rem 0.75rem',
+                                            padding: '0.45rem 0.85rem',
                                             borderRadius: '8px',
                                             fontSize: '0.75rem',
                                             fontWeight: '750',
-                                            cursor: 'pointer'
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
                                         }}
                                     >
                                         <Check size={13} /> Accept
@@ -1396,11 +1440,12 @@ const BusinessPeople = () => {
                                             border: '1px solid #E2E8F0',
                                             background: '#FFFFFF',
                                             color: '#EF4444',
-                                            padding: '0.45rem 0.65rem',
+                                            padding: '0.45rem 0.75rem',
                                             borderRadius: '8px',
                                             fontSize: '0.75rem',
                                             fontWeight: '700',
-                                            cursor: 'pointer'
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
                                         }}
                                     >
                                         <X size={13} /> Decline
@@ -1523,7 +1568,7 @@ const BusinessPeople = () => {
                     ))}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {activeTab === 'groups' && (
                         <button 
                             onClick={() => setIsCreateGroupModalOpen(true)}
@@ -1533,11 +1578,28 @@ const BusinessPeople = () => {
                         </button>
                     )}
 
+                    {activeTab === 'contacts' && (
+                        <select 
+                            value={relationshipFilter} 
+                            onChange={(e) => setRelationshipFilter(e.target.value)}
+                            style={{ padding: '0.5rem 0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.82rem', fontWeight: '750', color: '#064E3B', outline: 'none', cursor: 'pointer' }}
+                        >
+                            <option value="All">All Relationships ({roleCounts.All})</option>
+                            <option value="Suppliers">Suppliers ({roleCounts.Suppliers})</option>
+                            <option value="Customers">Customers ({roleCounts.Customers})</option>
+                            <option value="Relatives">Relatives / Family ({roleCounts.Relatives})</option>
+                            <option value="Friends">Friends ({roleCounts.Friends})</option>
+                            <option value="Colleagues">Colleagues ({roleCounts.Colleagues})</option>
+                            <option value="Business">Business Partners ({roleCounts.Business})</option>
+                            {roleCounts.Others > 0 && <option value="Others">Others ({roleCounts.Others})</option>}
+                        </select>
+                    )}
+
                     {activeTab === 'contacts' && activeConfig.partyGroup && (
                         <select 
                             value={groupFilter} 
                             onChange={(e) => setGroupFilter(e.target.value)}
-                            style={{ padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700', color: '#475569', outline: 'none', cursor: 'pointer' }}
+                            style={{ padding: '0.5rem 0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.82rem', fontWeight: '700', color: '#475569', outline: 'none', cursor: 'pointer' }}
                         >
                             <option value="All">All Groups</option>
                             {uniqueGroups.map(g => (
@@ -1550,7 +1612,7 @@ const BusinessPeople = () => {
                         <select 
                             value={statusFilter} 
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            style={{ padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700', color: '#475569', outline: 'none', cursor: 'pointer' }}
+                            style={{ padding: '0.5rem 0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.82rem', fontWeight: '700', color: '#475569', outline: 'none', cursor: 'pointer' }}
                         >
                             <option value="All">All Statuses</option>
                             <option value="active">Active</option>
@@ -1606,25 +1668,78 @@ const BusinessPeople = () => {
                 </div>
             </div>
 
+            {/* Quick Relationship Filter Pills for Contacts */}
+            {activeTab === 'contacts' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem', overflowX: 'auto', paddingBottom: '0.2rem', scrollbarWidth: 'none', flexShrink: 0 }}>
+                    {[
+                        { id: 'All', label: 'All Contacts', count: roleCounts.All },
+                        { id: 'Suppliers', label: 'Suppliers', count: roleCounts.Suppliers },
+                        { id: 'Customers', label: 'Customers', count: roleCounts.Customers },
+                        { id: 'Relatives', label: 'Relatives', count: roleCounts.Relatives },
+                        { id: 'Friends', label: 'Friends', count: roleCounts.Friends },
+                        { id: 'Colleagues', label: 'Colleagues', count: roleCounts.Colleagues },
+                        { id: 'Business', label: 'Business', count: roleCounts.Business },
+                        ...(roleCounts.Others > 0 ? [{ id: 'Others', label: 'Others', count: roleCounts.Others }] : [])
+                    ].map(filter => {
+                        const isSelected = relationshipFilter === filter.id;
+                        return (
+                            <button
+                                key={filter.id}
+                                type="button"
+                                onClick={() => setRelationshipFilter(filter.id)}
+                                style={{
+                                    padding: '0.35rem 0.85rem',
+                                    borderRadius: '999px',
+                                    border: isSelected ? '1px solid #1B6B3A' : '1px solid #E2E8F0',
+                                    background: isSelected ? '#1B6B3A' : '#FFFFFF',
+                                    color: isSelected ? '#FFFFFF' : '#475569',
+                                    fontSize: '0.78rem',
+                                    fontWeight: '750',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    whiteSpace: 'nowrap',
+                                    boxShadow: isSelected ? '0 2px 6px rgba(27, 107, 58, 0.2)' : 'none',
+                                    transition: 'all 0.15s'
+                                }}
+                            >
+                                <span>{filter.label}</span>
+                                <span style={{
+                                    padding: '0.1rem 0.45rem',
+                                    borderRadius: '999px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: '800',
+                                    background: isSelected ? 'rgba(255,255,255,0.25)' : '#F1F5F9',
+                                    color: isSelected ? '#FFFFFF' : '#64748B'
+                                }}>
+                                    {filter.count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Main Dynamic Content */}
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                     {/* TAB 1: Contacts List */}
                     {activeTab === 'contacts' && (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }} className="w-full table-fixed">
+                        <table style={{ width: '100%', minWidth: '940px', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead 
                                 columns={[
-                                    { key: 'name', label: 'Profile Contact', placeholder: 'Name...' },
-                                    { key: 'role_type', label: 'Classification', placeholder: 'Role...' },
-                                    ...(activeConfig.partyGroup ? [{ key: 'relationship', label: 'Group', placeholder: 'Group...' }] : []),
-                                    ...(activeConfig.partyStatus ? [{ key: 'status', label: 'Status', placeholder: 'Status...' }] : []),
-                                    { key: 'company', label: 'Company / Link', placeholder: 'Company...' },
-                                    { key: 'phone_email', label: 'Phone / Email', placeholder: 'Contact...' },
-                                    { key: 'net_balance', label: 'Net Exposure', placeholder: 'Exposure...', align: 'right' },
-                                    { key: '_actions', label: '', noFilter: true }
+                                    { key: 'name', label: 'Profile Contact', placeholder: 'Name...', width: '240px' },
+                                    { key: 'role_type', label: 'Classification', placeholder: 'Role...', width: '130px' },
+                                    ...(activeConfig.partyGroup ? [{ key: 'relationship', label: 'Group', placeholder: 'Group...', width: '120px' }] : []),
+                                    ...(activeConfig.partyStatus ? [{ key: 'status', label: 'Status', placeholder: 'Status...', width: '110px' }] : []),
+                                    { key: 'company', label: 'Company / Link', placeholder: 'Company...', width: '140px' },
+                                    { key: 'phone_email', label: 'Phone / Email', placeholder: 'Contact...', width: '190px' },
+                                    { key: 'net_balance', label: 'Net Exposure', placeholder: 'Exposure...', align: 'right', width: '130px' },
+                                    { key: '_actions', label: '', noFilter: true, width: '60px' }
                                 ]} 
                                 onFilterChange={setColFilters} 
-                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem 1rem' }}
+                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}
                             />
                             <tbody>
                                 {isPeopleLoading ? (
@@ -1674,9 +1789,9 @@ const BusinessPeople = () => {
                                                 onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
                                                 onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
                                             >
-                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <div style={{ position: 'relative' }}>
+                                            <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', whiteSpace: 'nowrap' }}>
+                                                    <div style={{ position: 'relative', flexShrink: 0 }}>
                                                         {renderAvatar(p.name, 40)}
                                                         {isPinned && (
                                                             <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#004aad', color: 'white', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -1684,21 +1799,21 @@ const BusinessPeople = () => {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                                            <p className="text-sm font-black text-gray-900" style={{ fontWeight: '900', color: '#111827', fontSize: '0.875rem', margin: 0 }}>{p.name}</p>
+                                                    <div style={{ whiteSpace: 'nowrap' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                                            <p className="text-sm font-black text-gray-900" style={{ fontWeight: '900', color: '#111827', fontSize: '0.875rem', margin: 0, whiteSpace: 'nowrap' }}>{p.name}</p>
                                                             {p.status === 'pending' && (
-                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800' }}>
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
                                                                     <Clock size={10} /> Pending Request
                                                                 </span>
                                                             )}
                                                             {p.status === 'accepted' && (
-                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#ECFDF5', color: '#047857', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800' }}>
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#ECFDF5', color: '#047857', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
                                                                     <Check size={10} /> Connected
                                                                 </span>
                                                             )}
                                                             {p.status === 'rejected' && (
-                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEE2E2', color: '#DC2626', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800' }}>
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEE2E2', color: '#DC2626', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
                                                                     <X size={10} /> Declined
                                                                 </span>
                                                             )}
@@ -1706,7 +1821,7 @@ const BusinessPeople = () => {
                                                         {activeConfig.payReminder && netBal !== 0 && (
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); handleSendWhatsAppReminder(p, netBal); }}
-                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', border: 'none', background: '#ECFDF5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '750', marginTop: '4px', cursor: 'pointer' }}
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', border: 'none', background: '#ECFDF5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '750', marginTop: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                                             >
                                                                 <MessageSquare size={11} /> Send Reminder
                                                             </button>
@@ -1714,35 +1829,62 @@ const BusinessPeople = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
-                                                <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.75rem', borderRadius: '0.75rem', background: '#EFF6FF', color: '#1E40AF', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase' }}>{p.role_type}</span>
+                                            <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                                                {(() => {
+                                                    const role = (p.role_type || '').toLowerCase();
+                                                    let bg = '#EFF6FF', col = '#1E40AF';
+                                                    if (role === 'supplier') { bg = '#ECFDF5'; col = '#047857'; }
+                                                    else if (role === 'customer') { bg = '#F0FDF4'; col = '#15803D'; }
+                                                    else if (['relative', 'family'].includes(role)) { bg = '#FEF3C7'; col = '#B45309'; }
+                                                    else if (role === 'colleague') { bg = '#F3E8FF'; col = '#7E22CE'; }
+                                                    else if (role === 'friend') { bg = '#E0F2FE'; col = '#0369A1'; }
+                                                    else if (role === 'business') { bg = '#EEF2FF'; col = '#4338CA'; }
+                                                    return (
+                                                        <span 
+                                                            style={{ 
+                                                                padding: '0.25rem 0.65rem', 
+                                                                borderRadius: '8px', 
+                                                                background: bg, 
+                                                                color: col, 
+                                                                fontWeight: '850', 
+                                                                fontSize: '0.72rem', 
+                                                                textTransform: 'uppercase', 
+                                                                whiteSpace: 'nowrap', 
+                                                                display: 'inline-block',
+                                                                letterSpacing: '0.02em'
+                                                            }}
+                                                        >
+                                                            {p.role_type}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             {activeConfig.partyGroup && (
-                                                <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
+                                                <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                                                     {p.relationship ? (
-                                                        <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.75rem', borderRadius: '0.75rem', background: '#FEF3C7', color: '#D97706', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase' }}>{p.relationship}</span>
+                                                        <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.65rem', borderRadius: '8px', background: '#FEF3C7', color: '#D97706', fontWeight: '850', fontSize: '0.72rem', textTransform: 'uppercase', whiteSpace: 'nowrap', display: 'inline-block' }}>{p.relationship}</span>
                                                     ) : (
                                                         <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>None</span>
                                                     )}
                                                 </td>
                                             )}
                                             {activeConfig.partyStatus && (
-                                                <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
-                                                    <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.75rem', borderRadius: '0.75rem', background: meta.status === 'active' ? '#ECFDF5' : '#FEE2E2', color: meta.status === 'active' ? '#047857' : '#EF4444', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                                                <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                                                    <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.65rem', borderRadius: '8px', background: meta.status === 'active' ? '#ECFDF5' : '#FEE2E2', color: meta.status === 'active' ? '#047857' : '#EF4444', fontWeight: '850', fontSize: '0.72rem', textTransform: 'uppercase', whiteSpace: 'nowrap', display: 'inline-block' }}>
                                                         {meta.status}
                                                     </span>
                                                 </td>
                                             )}
-                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', color: '#64748B', fontWeight: '600' }}>{p.company || 'Individual'}</td>
-                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', color: '#475569' }}>
-                                                <div style={{ fontSize: '0.85rem', fontWeight: '650' }}>{p.phone || 'N/A'}</div>
-                                                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{p.email || ''}</div>
+                                            <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', color: '#64748B', fontWeight: '600', whiteSpace: 'nowrap' }}>{p.company || 'Individual'}</td>
+                                            <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', color: '#475569', whiteSpace: 'nowrap' }}>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '650', whiteSpace: 'nowrap' }}>{p.phone || 'N/A'}</div>
+                                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', whiteSpace: 'nowrap' }}>{p.email || ''}</div>
                                             </td>
-                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', textAlign: 'right' }}>
-                                                <span className="text-sm font-black text-emerald-700" style={{ fontWeight: '900', fontSize: '0.875rem', color: netBal >= 0 ? '#047857' : '#EF4444' }}>
+                                            <td className="py-4 px-4" style={{ padding: '0.85rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                <span className="text-sm font-black text-emerald-700" style={{ fontWeight: '900', fontSize: '0.875rem', color: netBal >= 0 ? '#047857' : '#EF4444', whiteSpace: 'nowrap', display: 'inline-block' }}>
                                                     {formatCurr(p.net_balance)}
                                                 </span>
-                                                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>{netBal >= 0 ? 'RECEIVABLE' : 'PAYABLE'}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700', whiteSpace: 'nowrap' }}>{netBal >= 0 ? 'RECEIVABLE' : 'PAYABLE'}</div>
                                             </td>
                                             <td className="py-4 px-4" style={{ padding: '1rem 1rem', textAlign: 'right', position: 'relative' }}>
                                                 <div style={{ display: 'inline-block', position: 'relative' }}>
@@ -2244,8 +2386,8 @@ const BusinessPeople = () => {
                                                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
                                                             {req.requester_username || req.requester_business_name || 'Network Member'}
                                                         </h4>
-                                                        <p style={{ margin: '0.2rem 0', fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                            <Mail size={12} /> {req.requester_email}
+                                                        <p style={{ margin: '0.2rem 0', fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '5px', wordBreak: 'break-all', fontWeight: '600' }} title={req.requester_email}>
+                                                            <Mail size={12} style={{ flexShrink: 0, color: '#004aad' }} /> {req.requester_email}
                                                         </p>
                                                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                                                             <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
@@ -2260,7 +2402,7 @@ const BusinessPeople = () => {
 
                                                 <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
                                                     <button
-                                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept' })}
+                                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept', role_type: req.role_type })}
                                                         disabled={respondRequestMutation.isPending}
                                                         style={{
                                                             flex: 1,
@@ -2439,20 +2581,23 @@ const BusinessPeople = () => {
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Network Role</label>
                                         <select 
-                                            value={['friend', 'family', 'colleague', 'business'].includes(contactForm.role_type) ? contactForm.role_type : 'others'} 
+                                            value={['supplier', 'customer', 'relative', 'friend', 'family', 'colleague', 'business'].includes(contactForm.role_type) ? contactForm.role_type : 'others'} 
                                             onChange={(e) => {
                                                 const val = e.target.value;
                                                 setContactForm({ ...contactForm, role_type: val === 'others' ? '' : val });
                                             }} 
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
                                         >
+                                            <option value="supplier">Supplier</option>
+                                            <option value="customer">Customer</option>
+                                            <option value="relative">Relative</option>
                                             <option value="friend">Friend</option>
                                             <option value="family">Family</option>
                                             <option value="colleague">Colleague</option>
                                             <option value="business">Business Partner</option>
                                             <option value="others">Others (Custom)</option>
                                         </select>
-                                        {!['friend', 'family', 'colleague', 'business'].includes(contactForm.role_type) && (
+                                        {!['supplier', 'customer', 'relative', 'friend', 'family', 'colleague', 'business'].includes(contactForm.role_type) && (
                                             <input 
                                                 placeholder="Specify custom role..." 
                                                 type="text" 
