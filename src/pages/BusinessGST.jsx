@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gstService, billingService, crmService, inventoryService, complianceService, profileService } from '../services';
+import { gstService, billingService, crmService, inventoryService, complianceService, profileService, suppliersService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency, useLanguage } from '../context';
 import { 
@@ -156,6 +156,16 @@ const BusinessGST = () => {
             : (Array.isArray(dbCustomersResponse?.data) 
                 ? dbCustomersResponse.data 
                 : []));
+
+    const { data: dbSuppliersResponse = [] } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => suppliersService.getSuppliers()
+    });
+    const suppliers = Array.isArray(dbSuppliersResponse) 
+        ? dbSuppliersResponse 
+        : (Array.isArray(dbSuppliersResponse?.data) 
+            ? dbSuppliersResponse.data 
+            : []);
 
     // Queries
     const { data: dbInvoices = [] } = useQuery({
@@ -514,34 +524,98 @@ const BusinessGST = () => {
         state_code: defaultSender.state_code
     };
 
-    // fallbacks mapping
-    const invoices = (Array.isArray(dbInvoices) ? dbInvoices : [])
+    // Merge and deduplicate sales invoices (billing/POS) and GST invoices for complete GSTR-1 returns
+    const combinedRawInvoices = (() => {
+        const rawSalesList = Array.isArray(dbSalesInvoices) 
+            ? dbSalesInvoices 
+            : (Array.isArray(dbSalesInvoices?.data) 
+                ? dbSalesInvoices.data 
+                : (Array.isArray(dbSalesInvoices?.invoices) 
+                    ? dbSalesInvoices.invoices 
+                    : []));
+
+        const rawGstList = Array.isArray(dbInvoices) 
+            ? dbInvoices 
+            : (Array.isArray(dbInvoices?.data) 
+                ? dbInvoices.data 
+                : (Array.isArray(dbInvoices?.results?.invoices) 
+                    ? dbInvoices.results.invoices 
+                    : []));
+
+        const invoiceMap = new Map();
+
+        // 1. Add all sales invoices from billing & POS
+        rawSalesList.forEach(item => {
+            if (!item) return;
+            const num = String(item.invoice_number || item.document_number || `INV-${item.id}`).trim();
+            if (num) {
+                invoiceMap.set(num, { ...item });
+            }
+        });
+
+        // 2. Add or merge GST compliance invoices (overlaying IRN, AckNo, SignedQRCode if generated)
+        rawGstList.forEach(item => {
+            if (!item) return;
+            const num = String(item.invoice_number || item.document_number || `INV-${item.id}`).trim();
+            if (num) {
+                const existing = invoiceMap.get(num) || {};
+                invoiceMap.set(num, { ...existing, ...item });
+            }
+        });
+
+        return Array.from(invoiceMap.values());
+    })();
+
+    const invoices = combinedRawInvoices
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
         .map(item => {
-            const taxable = parseFloat(item.taxable_value || item.taxable_amount) || 0;
-            const totalTax = parseFloat(item.total_tax || item.gst_amount || (taxable * 0.18)) || 0;
+            const rawTaxable = parseFloat(item.taxable_value || item.taxable_amount || item.amount || item.subtotal || 0);
+            const rawTotal = parseFloat(item.total_amount || item.total_invoice || item.total || 0);
+            const rawTax = parseFloat(item.total_tax || item.gst_amount || item.tax_amount || 0);
+            const gstPct = parseFloat(item.gst_percentage || item.gst_rate || item.tax_rate) || 18;
+
+            let taxable = rawTaxable;
+            let totalTax = rawTax;
+
+            if (taxable <= 0 && rawTotal > 0) {
+                if (totalTax > 0) {
+                    taxable = rawTotal - totalTax;
+                } else {
+                    taxable = rawTotal;
+                }
+            } else if (taxable <= 0 && totalTax > 0) {
+                taxable = Math.round((totalTax / (gstPct / 100)) * 100) / 100;
+            }
+
+            if (totalTax <= 0 && taxable > 0) {
+                if (item.tax_amount !== undefined && item.tax_amount !== null && parseFloat(item.tax_amount) === 0) {
+                    totalTax = 0;
+                } else {
+                    totalTax = Math.round((taxable * (gstPct / 100)) * 100) / 100;
+                }
+            }
+
             let cgst = parseFloat(item.cgst_amount || item.cgst) || 0;
             let sgst = parseFloat(item.sgst_amount || item.sgst) || 0;
             let igst = parseFloat(item.igst_amount || item.igst) || 0;
 
-            // If breakdown wasn't explicitly saved, auto-calculate based on Place of Supply vs Business Registered State
+            // Determine Place of Supply vs Sender State
+            const myStateCode = String(gstProfile.state_code || defaultSender.state_code || (gstProfile.gstin ? gstProfile.gstin.slice(0, 2) : '') || '05').trim().padStart(2, '0');
+            const myStateName = String(gstProfile.place_of_business || defaultSender.state || '').toLowerCase().trim();
+
+            const buyerGstin = String(item.customer_gstin || item.client_gstin || '').trim();
+            const pos = String(item.place_of_supply || item.customer_state || item.billing_address || item.shipping_address || '').trim();
+            
+            const buyerGstinCode = (buyerGstin.length >= 2 && /^\d{2}/.test(buyerGstin)) ? buyerGstin.slice(0, 2) : '';
+            const posMatch = pos.match(/^\s*(\d{2})/);
+            const posCode = posMatch ? posMatch[1] : '';
+            const customerCode = buyerGstinCode || posCode;
+
+            const isInterState = customerCode 
+                ? (customerCode !== myStateCode) 
+                : (myStateName && pos ? !pos.toLowerCase().includes(myStateName) : false);
+
             if (cgst === 0 && sgst === 0 && igst === 0 && totalTax > 0) {
-                const myStateCode = String(gstProfile.state_code || defaultSender.state_code || (gstProfile.gstin ? gstProfile.gstin.slice(0, 2) : '') || '05').trim().padStart(2, '0');
-                const myStateName = String(gstProfile.place_of_business || defaultSender.state || '').toLowerCase().trim();
-
-                const buyerGstin = String(item.customer_gstin || '').trim();
-                const pos = String(item.place_of_supply || item.customer_state || '').trim();
-                
-                // Extract 2-digit state code from buyer GSTIN or place of supply (e.g. "09-Uttar Pradesh" -> "09")
-                const buyerGstinCode = (buyerGstin.length >= 2 && /^\d{2}/.test(buyerGstin)) ? buyerGstin.slice(0, 2) : '';
-                const posMatch = pos.match(/^\s*(\d{2})/);
-                const posCode = posMatch ? posMatch[1] : '';
-                const customerCode = buyerGstinCode || posCode;
-
-                const isInterState = customerCode 
-                    ? (customerCode !== myStateCode) 
-                    : (myStateName && pos ? !pos.toLowerCase().includes(myStateName) : false);
-
                 if (isInterState) {
                     igst = totalTax;
                     cgst = 0;
@@ -553,15 +627,27 @@ const BusinessGST = () => {
                 }
             }
 
+            // Determine type: B2B, B2C, or Export
+            let invoiceType = item.invoice_type || item.type || '';
+            if (!['B2B', 'B2C', 'Export'].includes(invoiceType)) {
+                if (item.export_under_lut === 'true' || item.is_export) {
+                    invoiceType = 'Export';
+                } else if (buyerGstin && buyerGstin !== 'URD-CONSUMER' && buyerGstin !== 'URD-UNREGISTERED' && buyerGstin.length >= 10) {
+                    invoiceType = 'B2B';
+                } else {
+                    invoiceType = 'B2C';
+                }
+            }
+
             return {
                 id: item.id,
-                invoice_number: item.invoice_number || 'N/A',
-                type: item.invoice_type || 'B2B',
-                invoice_type: item.invoice_type || 'B2B',
-                date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-                place_of_supply: item.place_of_supply || 'N/A',
+                invoice_number: item.invoice_number || item.document_number || 'N/A',
+                type: invoiceType,
+                invoice_type: invoiceType,
+                date: item.date || (item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+                place_of_supply: pos || (isInterState ? 'Inter-State' : `${myStateCode}-${gstProfile.place_of_business || 'Local'}`),
                 taxable_value: taxable,
-                gst_percentage: parseFloat(item.gst_percentage) || 18,
+                gst_percentage: gstPct,
                 cgst_amount: cgst,
                 sgst_amount: sgst,
                 cgst_sgst: cgst > 0 ? `${formatCurrency(cgst)} + ${formatCurrency(sgst)}` : '—',
@@ -570,28 +656,28 @@ const BusinessGST = () => {
                 total_tax: totalTax,
                 total_gst: totalTax,
                 reverse_charge: item.reverse_charge || 'No',
-                irn: item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || item.irn_number || '',
-                irn_number: item.irn_number || item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || '',
-                govt_irn: item.govt_irn || item.irn || item.irn_number || '',
-                irn_hash: item.irn_hash || item.irn || item.irn_number || '',
-                irnNo: item.irnNo || item.irn || item.irn_number || '',
-                ack_irn: item.ack_irn || item.irn || item.irn_number || '',
+                irn: item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || item.irn_number || item.Irn || '',
+                irn_number: item.irn_number || item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || item.Irn || '',
+                govt_irn: item.govt_irn || item.irn || item.irn_number || item.Irn || '',
+                irn_hash: item.irn_hash || item.irn || item.irn_number || item.Irn || '',
+                irnNo: item.irnNo || item.irn || item.irn_number || item.Irn || '',
+                ack_irn: item.ack_irn || item.irn || item.irn_number || item.Irn || '',
                 qrCodeUrl: item.qrCodeUrl || item.qr_code_url || item.QRCodeUrl || '',
                 SignedQRCode: item.SignedQRCode || item.signed_qr_code || '',
                 signed_qr_code: item.signed_qr_code || item.SignedQRCode || '',
-                qr_status: item.qr_status || 'Pending',
-                status: 'READY',
+                qr_status: item.qr_status || (item.Irn ? 'Generated' : 'Pending'),
+                status: item.status || 'READY',
                 export_under_lut: item.export_under_lut || 'false',
                 lut_document_path: item.lut_document_path || '',
                 lut_file_name: item.lut_file_name || '',
                 lut_uploaded_at: item.lut_uploaded_at || '',
                 lut_uploaded_by: item.lut_uploaded_by || '',
-                customer_name: item.customer_name || item.client_name || 'N/A',
-                customer_gstin: item.customer_gstin || 'N/A',
-                customer_state: item.customer_state || item.place_of_supply || 'N/A',
-                sender_name: item.sender_name || 'N/A',
-                sender_gstin: item.sender_gstin || 'N/A',
-                sender_state: item.sender_state || 'N/A'
+                customer_name: item.customer_name || item.client_name || 'Walk-in Customer',
+                customer_gstin: buyerGstin || 'URD-CONSUMER',
+                customer_state: item.customer_state || pos || 'N/A',
+                sender_name: item.sender_name || defaultSender.legal_name || 'N/A',
+                sender_gstin: item.sender_gstin || defaultSender.gstin || 'N/A',
+                sender_state: item.sender_state || defaultSender.state || 'N/A'
             };
         });
 
@@ -1374,28 +1460,101 @@ const BusinessGST = () => {
                                             </td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.82rem' }}>{formatCurrency(rec.total_tax)}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#059669', fontSize: '0.85rem' }}>{formatCurrency(rec.eligible_itc)}</td>
-                                            <td style={{ padding: '0.6rem 1rem' }}>
-                                                <span style={{
-                                                    padding: '0.2rem 0.4rem', borderRadius: '6px',
-                                                    background: rec.invoice_match_status === 'Verified' ? '#DCFCE7' : (rec.invoice_match_status === 'Rejected' ? '#FEE2E2' : '#F1F5F9'),
-                                                    color: rec.invoice_match_status === 'Verified' ? '#15803D' : (rec.invoice_match_status === 'Rejected' ? '#B91C1C' : '#64748B'),
-                                                    fontWeight: '850', fontSize: '0.72rem'
-                                                }}>{rec.invoice_match_status.toUpperCase()}</span>
+                                            <td style={{ padding: '0.6rem 1rem', whiteSpace: 'nowrap' }}>
+                                                {(() => {
+                                                    const isVerifiedStatus = ['verified', 'matched'].includes(String(rec.invoice_match_status || '').toLowerCase());
+                                                    const isRejectedStatus = String(rec.invoice_match_status || '').toLowerCase() === 'rejected';
+                                                    return (
+                                                        <span style={{
+                                                            display: 'inline-block',
+                                                            whiteSpace: 'nowrap',
+                                                            padding: '0.2rem 0.5rem',
+                                                            borderRadius: '6px',
+                                                            background: isVerifiedStatus ? '#DCFCE7' : (isRejectedStatus ? '#FEE2E2' : '#F1F5F9'),
+                                                            color: isVerifiedStatus ? '#15803D' : (isRejectedStatus ? '#B91C1C' : '#64748B'),
+                                                            fontWeight: '850',
+                                                            fontSize: '0.72rem'
+                                                        }}>
+                                                            {rec.invoice_match_status.toUpperCase()}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
-                                            <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                                                    <button 
-                                                        onClick={() => { setSelectedReconcile(rec); setIsReconcileModalOpen(true); }}
-                                                        style={{ border: 'none', background: '#F1F5F9', color: '#1D4ED8', padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
-                                                    >Verify</button>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(rec.id); }}
-                                                        style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
-                                                        title="Delete Record"
-                                                    >
-                                                        <Trash2 size={15} />
-                                                    </button>
+                                            <td style={{ padding: '0.6rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                                                    {['verified', 'matched'].includes(String(rec.invoice_match_status || '').toLowerCase()) ? (
+                                                        <button 
+                                                            type="button"
+                                                            disabled
+                                                            style={{
+                                                                border: 'none',
+                                                                background: '#DCFCE7',
+                                                                color: '#15803D',
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.72rem',
+                                                                cursor: 'not-allowed',
+                                                                fontWeight: '800',
+                                                                whiteSpace: 'nowrap',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                opacity: 0.95
+                                                            }}
+                                                            title="Invoice has already been verified and reconciled against GSTR-2B"
+                                                        >
+                                                            ✓ Verified
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => { setSelectedReconcile(rec); setIsReconcileModalOpen(true); }}
+                                                            style={{
+                                                                border: 'none',
+                                                                background: '#EEF2FF',
+                                                                color: '#1D4ED8',
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.72rem',
+                                                                cursor: 'pointer',
+                                                                fontWeight: '800',
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                        >
+                                                            Verify
+                                                        </button>
+                                                    )}
+                                                    {confirmingDeleteId === rec.id ? (
+                                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    deleteInvoiceMutation.mutate(rec.id);
+                                                                    setConfirmingDeleteId(null);
+                                                                }}
+                                                                style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                            >
+                                                                Confirm
+                                                            </button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }}
+                                                                style={{ border: 'none', background: '#E2E8F0', color: '#475569', padding: '0.25rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button 
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(rec.id); }}
+                                                            style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem', display: 'inline-flex', alignItems: 'center' }}
+                                                            title="Delete Record"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1580,6 +1739,7 @@ const BusinessGST = () => {
             {/* Verify Vendor Invoice Modal (New) */}
             <VerifyVendorInvoiceModal
                 isOpen={isReconcileModalOpen && !selectedReconcile}
+                suppliers={suppliers}
                 onClose={() => {
                     setIsReconcileModalOpen(false);
                     setSelectedReconcile(null);

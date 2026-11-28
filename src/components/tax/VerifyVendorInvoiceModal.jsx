@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function VerifyVendorInvoiceModal({
   isOpen,
   onClose,
   onSettleReconciliation,
-  defaultGstin = '27AAAAA1111A1Z1',
-  defaultVendor = 'Acme Hardwares',
+  suppliers = [],
+  defaultGstin = '',
+  defaultVendor = '',
 }) {
-  const [gstin] = useState(defaultGstin);
-  const [vendorName] = useState(defaultVendor);
+  const [gstin, setGstin] = useState(defaultGstin);
+  const [vendorName, setVendorName] = useState(defaultVendor);
   const [invoiceAmount, setInvoiceAmount] = useState('');
   const [gstRate, setGstRate] = useState('18% GST');
   const [matchStatus, setMatchStatus] = useState('PENDING');
   const [amountError, setAmountError] = useState('');
+  const [vendorError, setVendorError] = useState('');
+
+  // Update or reset fields when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setGstin(defaultGstin || '');
+      setVendorName(defaultVendor || '');
+      setInvoiceAmount('');
+      setAmountError('');
+      setVendorError('');
+    }
+  }, [isOpen, defaultGstin, defaultVendor]);
 
   if (!isOpen) return null;
 
@@ -49,8 +62,25 @@ export default function VerifyVendorInvoiceModal({
     }
   };
 
+  const handleSupplierSelect = (e) => {
+    const selId = e.target.value;
+    if (!selId) return;
+    const found = suppliers.find(s => String(s.id) === String(selId));
+    if (found) {
+      setVendorName(found.supplier_name || found.name || found.business_name || '');
+      setGstin(found.gstin || found.gstin_id || found.tax_id || found.gst_number || '');
+      setVendorError('');
+    }
+  };
+
   const handleSettleReconciliation = (e) => {
     e.preventDefault();
+
+    if (!vendorName || !vendorName.trim()) {
+      setVendorError('Please enter or select a vendor name.');
+      return;
+    }
+    setVendorError('');
 
     if (String(invoiceAmount).includes('.')) {
       setAmountError('Float / decimal amounts (e.g. 0.01) are not allowed.');
@@ -64,8 +94,8 @@ export default function VerifyVendorInvoiceModal({
     }
 
     const payload = {
-      vendor_gstin: gstin,
-      vendor_name: vendorName,
+      vendor_gstin: gstin.trim() || 'URD-UNREGISTERED',
+      vendor_name: vendorName.trim(),
       invoice_amount: parsedInt,
       gst_rate: gstRate,
       reconciliation_status: matchStatus,
@@ -101,6 +131,31 @@ export default function VerifyVendorInvoiceModal({
         </div>
 
         <form onSubmit={handleSettleReconciliation} className="space-y-3.5">
+          {/* Supplier Selector Dropdown */}
+          {suppliers && suppliers.length > 0 && (
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                Choose Registered Supplier
+              </label>
+              <select
+                onChange={handleSupplierSelect}
+                defaultValue=""
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-blue-600"
+              >
+                <option value="">-- Select from Registered Suppliers --</option>
+                {suppliers.map(s => {
+                  const sName = s.supplier_name || s.name || s.business_name || `Supplier #${s.id}`;
+                  const sGst = s.gstin || s.gstin_id || s.tax_id || s.gst_number || '';
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {sName} {sGst ? `(${sGst})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
           {/* Vendor GSTIN & Vendor Name */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -110,22 +165,34 @@ export default function VerifyVendorInvoiceModal({
               <input
                 type="text"
                 value={gstin}
-                readOnly
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none"
+                onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                placeholder="e.g. 27AAAAA1111A1Z1"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-blue-600 uppercase"
               />
             </div>
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
-                Vendor Name
+                Vendor Name *
               </label>
               <input
                 type="text"
                 value={vendorName}
-                readOnly
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 focus:outline-none"
+                onChange={(e) => {
+                  setVendorName(e.target.value);
+                  if (e.target.value.trim()) setVendorError('');
+                }}
+                placeholder="e.g. Acme Corp"
+                required
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-blue-600"
               />
             </div>
           </div>
+          {vendorError && (
+            <p className="text-[11px] font-bold text-red-500 flex items-center gap-1">
+              <span>⚠️</span>
+              <span>{vendorError}</span>
+            </p>
+          )}
 
           {/* INVOICE TOTAL AMOUNT (NO FLOATS PERMITTED) */}
           <div>

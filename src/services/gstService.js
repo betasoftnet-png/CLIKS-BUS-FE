@@ -5,7 +5,7 @@
  */
 export const gstService = {
     getSettings: () => apiClient.get('/gst/settings').then(res => res.data.data || res.data),
-    getInvoices: () => apiClient.get('/compliance/invoices').then(res => res.data?.data || res.data?.results?.invoices || res.data || []).catch(() => apiClient.get('/gst/invoices').then(res => res.data?.data || res.data || [])),
+    getInvoices: () => apiClient.get('/gst/invoices').then(res => res.data?.data || res.data?.results?.invoices || res.data || []).catch(() => apiClient.get('/compliance/invoices').then(res => res.data?.data || res.data?.results?.invoices || res.data || [])),
     generateInvoice: (data) => apiClient.post('/compliance/generate-einvoice', data).catch((err) => {
         if (err.response?.status >= 400 && (err.response?.data?.errorMessage || err.response?.data?.message)) {
             throw err;
