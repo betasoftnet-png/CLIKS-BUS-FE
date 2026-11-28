@@ -239,12 +239,12 @@ const BusinessExpenses = ({ defaultTab }) => {
     const queryClient = useQueryClient();
 
     // Queries
-    const { data: dbExpenses = [] } = useQuery({
+    const { data: dbExpenses = [], refetch: refetchExpenses } = useQuery({
         queryKey: ['expensesList'],
         queryFn: () => expensesService.getExpenses()
     });
 
-    const { data: dbBudgets = [] } = useQuery({
+    const { data: dbBudgets = [], refetch: refetchBudgets } = useQuery({
         queryKey: ['budgetsList'],
         queryFn: () => expensesService.getBudgets()
     });
@@ -254,7 +254,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         queryFn: () => expensesService.getClaims()
     });
 
-    const { data: dbRecurrings = [] } = useQuery({
+    const { data: dbRecurrings = [], refetch: refetchRecurrings } = useQuery({
         queryKey: ['recurringsList'],
         queryFn: () => expensesService.getRecurrings()
     });
@@ -270,6 +270,8 @@ const BusinessExpenses = ({ defaultTab }) => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['expensesList'] });
             queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            if (refetchExpenses) refetchExpenses();
+            if (refetchBudgets) refetchBudgets();
             setIsExpenseModalOpen(false);
             alert('Operational Business Expense successfully tracked and allocated!');
         }
@@ -279,6 +281,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         mutationFn: (data) => expensesService.createBudget(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            if (refetchBudgets) refetchBudgets();
             setIsBudgetModalOpen(false);
             alert('New Departmental Budget target successfully allocated!');
         }
@@ -288,6 +291,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         mutationFn: ({ id, data }) => expensesService.updateBudget(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            if (refetchBudgets) refetchBudgets();
             setIsBudgetModalOpen(false);
             setEditingBudget(null);
             alert('Budget limit updated successfully!');
@@ -296,9 +300,29 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const deleteBudgetMutation = useMutation({
         mutationFn: (id) => expensesService.deleteBudget(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['budgetsList'] });
+            const previousBudgets = queryClient.getQueryData(['budgetsList']);
+            queryClient.setQueryData(['budgetsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(item => String(item.id) !== String(id));
+            });
+            return { previousBudgets };
+        },
+        onSuccess: async (_data, id) => {
+            queryClient.setQueryData(['budgetsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(item => String(item.id) !== String(id));
+            });
+            await queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            if (refetchBudgets) refetchBudgets();
             alert('Budget target deleted successfully!');
+        },
+        onError: (err, _id, context) => {
+            if (context?.previousBudgets) {
+                queryClient.setQueryData(['budgetsList'], context.previousBudgets);
+            }
+            alert('Failed to delete budget: ' + (err?.response?.data?.message || err?.message || 'Error occurred'));
         }
     });
 
@@ -467,12 +491,29 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const deleteClaimMutation = useMutation({
         mutationFn: (id) => expensesService.deleteClaim(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
-            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['claimsList'] });
+            const previousClaims = queryClient.getQueryData(['claimsList']);
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(item => String(item.id) !== String(id) && String(item.claim_id) !== String(id));
+            });
+            return { previousClaims };
+        },
+        onSuccess: async (_data, id) => {
+            queryClient.setQueryData(['claimsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(item => String(item.id) !== String(id) && String(item.claim_id) !== String(id));
+            });
+            await queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            await queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            if (refetchClaims) refetchClaims();
             alert('Claim deleted successfully!');
         },
-        onError: (err) => {
+        onError: (err, _id, context) => {
+            if (context?.previousClaims) {
+                queryClient.setQueryData(['claimsList'], context.previousClaims);
+            }
             console.error('Delete claim error:', err);
             alert(`Failed to delete claim: ${err.message || 'Error occurred'}`);
         }
@@ -482,6 +523,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         mutationFn: (data) => expensesService.createRecurring(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+            if (refetchRecurrings) refetchRecurrings();
             setIsRecurringModalOpen(false);
             alert('Recurring subscription automation successfully created!');
         }
@@ -491,6 +533,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         mutationFn: ({ id, data }) => expensesService.updateRecurring(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+            if (refetchRecurrings) refetchRecurrings();
             setIsRecurringModalOpen(false);
             setEditingRecurring(null);
             alert('Recurring subscription automation successfully updated!');
@@ -499,9 +542,30 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const deleteRecurringMutation = useMutation({
         mutationFn: (id) => expensesService.deleteRecurring(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['recurringsList'] });
+            const previousRecurrings = queryClient.getQueryData(['recurringsList']);
+            queryClient.setQueryData(['recurringsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(item => String(item.id) !== String(id));
+            });
+            return { previousRecurrings };
+        },
+        onSuccess: async (_data, id) => {
+            queryClient.setQueryData(['recurringsList'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(item => String(item.id) !== String(id));
+            });
+            await queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+            if (refetchRecurrings) refetchRecurrings();
             alert('Recurring subscription automation successfully deleted!');
+        },
+        onError: (err, _id, context) => {
+            if (context?.previousRecurrings) {
+                queryClient.setQueryData(['recurringsList'], context.previousRecurrings);
+            }
+            console.error('Delete recurring error:', err);
+            alert(`Failed to delete subscription: ${err.message || 'Error occurred'}`);
         }
     });
 
@@ -802,6 +866,28 @@ const BusinessExpenses = ({ defaultTab }) => {
     const [manualEmpId, setManualEmpId] = useState('');
     const [manualEmpName, setManualEmpName] = useState('');
     const [manualEmpSalary, setManualEmpSalary] = useState('');
+    const [memberQuotaInput, setMemberQuotaInput] = useState('');
+
+    const handleUpdateMemberQuota = (empId, val) => {
+        setNewBudgetMembers(prev => prev.map(m => {
+            if (m.employee_id === empId) {
+                const parsed = val === '' ? '' : Math.max(0, parseFloat(val) || 0);
+                return { ...m, quota: parsed, allocated_budget: parsed };
+            }
+            return m;
+        }));
+    };
+
+    const handleAutoDistributeEqually = () => {
+        const totalBudget = parseFloat(newBudget.budget_limit) || 0;
+        if (newBudgetMembers.length === 0 || totalBudget <= 0) return;
+        const equalShare = Math.floor(totalBudget / newBudgetMembers.length);
+        setNewBudgetMembers(prev => prev.map(m => ({
+            ...m,
+            quota: equalShare,
+            allocated_budget: equalShare
+        })));
+    };
 
     const [newClaim, setNewClaim] = useState({
         employee_name: '',
@@ -943,6 +1029,36 @@ const BusinessExpenses = ({ defaultTab }) => {
                 parsedMembers = [];
             }
             
+            const effectiveLimit = parseFloat(selectedBudgetForSpend.effective_limit) || parseFloat(selectedBudgetForSpend.budget_limit) || 0;
+            const defaultShare = parsedMembers.length > 0 ? Math.floor(effectiveLimit / parsedMembers.length) : 0;
+
+            // Strict quota enforcement: Employee cannot go beyond assigned quota
+            if (recordSpendingForm.employee_id) {
+                const targetMember = parsedMembers.find(m => String(m.employee_id) === String(recordSpendingForm.employee_id));
+                if (targetMember) {
+                    const mQuota = (targetMember.quota !== undefined && targetMember.quota !== null && targetMember.quota !== '')
+                        ? parseFloat(targetMember.quota)
+                        : ((targetMember.allocated_budget !== undefined && targetMember.allocated_budget !== null && targetMember.allocated_budget !== '')
+                            ? parseFloat(targetMember.allocated_budget)
+                            : defaultShare);
+                    const mSpent = Math.max(0, Math.abs(parseFloat(targetMember.spent) || 0));
+                    const mRem = mQuota - mSpent;
+                    if (spentAmt > mRem) {
+                        setSpendingAmountError(`Limit Exceeded: ${targetMember.name} has only ${formatCurrency(mRem)} remaining out of their ${formatCurrency(mQuota)} assigned quota. Employees cannot spend beyond their limit.`);
+                        return;
+                    }
+                }
+            }
+
+            // Department limit enforcement
+            const deptRemaining = selectedBudgetForSpend.remaining_amount !== undefined 
+                ? selectedBudgetForSpend.remaining_amount 
+                : (effectiveLimit - (parseFloat(selectedBudgetForSpend.spent_amount) || 0));
+            if (spentAmt > deptRemaining) {
+                setSpendingAmountError(`Department Limit Exceeded: Total department available limit is only ${formatCurrency(deptRemaining)}.`);
+                return;
+            }
+
             const updatedMembers = parsedMembers.map(m => {
                 if (recordSpendingForm.employee_id && String(m.employee_id) === String(recordSpendingForm.employee_id)) {
                     return {
@@ -1027,10 +1143,22 @@ const BusinessExpenses = ({ defaultTab }) => {
             }
         }
 
-        const sanitizedMembers = newBudgetMembers.map(m => ({
-            ...m,
-            spent: Math.max(0, Math.abs(Number(m.spent) || 0))
-        }));
+        const totalBudgetVal = parseInt(rawBudget, 10);
+        const defaultShare = newBudgetMembers.length > 0 ? Math.floor(totalBudgetVal / newBudgetMembers.length) : 0;
+
+        const sanitizedMembers = newBudgetMembers.map(m => {
+            const memberQuota = (m.quota !== undefined && m.quota !== null && m.quota !== '')
+                ? Math.max(0, parseFloat(m.quota) || 0)
+                : ((m.allocated_budget !== undefined && m.allocated_budget !== null && m.allocated_budget !== '')
+                    ? Math.max(0, parseFloat(m.allocated_budget) || 0)
+                    : defaultShare);
+            return {
+                ...m,
+                quota: memberQuota,
+                allocated_budget: memberQuota,
+                spent: Math.max(0, Math.abs(Number(m.spent) || 0))
+            };
+        });
 
         const budgetData = {
             ...newBudget,
@@ -1059,12 +1187,22 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
-        // Newly added members start with 0 spent. Their quota is calculated equally from the total department budget.
+        const totalBudget = parseFloat(newBudget.budget_limit) || 0;
+        const currentAllocated = newBudgetMembers.reduce((sum, m) => sum + (parseFloat(m.quota) || 0), 0);
+        const unallocatedRem = Math.max(0, totalBudget - currentAllocated);
+        const defaultShare = newBudgetMembers.length === 0 ? totalBudget : (unallocatedRem > 0 ? unallocatedRem : Math.floor(totalBudget / (newBudgetMembers.length + 1)));
+
+        const assignedQuota = (memberQuotaInput !== '' && !isNaN(parseFloat(memberQuotaInput)))
+            ? Math.max(0, parseFloat(memberQuotaInput) || 0)
+            : defaultShare;
+
         setNewBudgetMembers([
             ...newBudgetMembers,
             {
                 employee_id: empId,
                 name: empName,
+                quota: assignedQuota,
+                allocated_budget: assignedQuota,
                 spent: 0
             }
         ]);
@@ -1073,6 +1211,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         setSelectedEmployeeId('');
         setManualEmpId('');
         setManualEmpName('');
+        setMemberQuotaInput('');
         setShowAddMemberForm(false);
     };
 
@@ -1977,7 +2116,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Actual Spent</th>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Remaining Balance</th>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center', whiteSpace: 'nowrap', minWidth: '240px' }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -2036,79 +2175,88 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                         {isExceeded ? `EXCEEDED (-${formatCurrency(Math.abs(remaining))})` : (isOverWarning ? 'WARNING OVER LIMIT' : 'OPTIMAL')}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '0.6rem 0.8rem', display: 'flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center' }}>
-                                                    <button 
-                                                        onClick={() => {
-                                                             setRecordSpendingForm({
-                                                                 category_name: bg.category_name,
-                                                                 amount: '',
-                                                                 description: '',
-                                                                 date: new Date().toISOString().split('T')[0],
-                                                                 payment_mode: 'UPI',
-                                                                 employee_id: '',
-                                                                 employee_name: '',
-                                                                 file_name: '',
-                                                                 file_type: '',
-                                                                 file_data: '',
-                                                                 file_preview_url: ''
-                                                             });
-                                                             setSelectedBudgetForSpend(bg);
-                                                             setIsRecordSpendingModalOpen(true);
-                                                        }}
-                                                        style={{ 
-                                                            border: 'none', 
-                                                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
-                                                            padding: '5px 11px', 
-                                                            borderRadius: '8px', 
-                                                            cursor: 'pointer', 
-                                                            fontSize: '0.74rem', 
-                                                            fontWeight: '800', 
-                                                            color: 'white', 
-                                                            display: 'inline-flex', 
-                                                            alignItems: 'center', 
-                                                            gap: '4px', 
-                                                            whiteSpace: 'nowrap',
-                                                            boxShadow: '0 2px 4px rgba(5, 150, 105, 0.25)' 
-                                                        }}
-                                                        title="Record an expense for this department"
-                                                    >
-                                                        <Plus size={12} strokeWidth={3} /> Record Expense
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setEditingBudget(bg);
-                                                            setNewBudget({
-                                                                category_name: bg.category_name,
-                                                                budget_limit: String(bg.budget_limit),
-                                                                budget_month: bg.budget_month || currentMonthStr,
-                                                                carry_forward: bg.carry_forward !== false,
-                                                                spent_amount: bg.spent_amount
-                                                            });
-                                                            let members = [];
-                                                            try {
-                                                                members = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
-                                                            } catch (e) {
-                                                                members = [];
-                                                            }
-                                                            setNewBudgetMembers(members);
-                                                            setShowAddMemberForm(false);
-                                                            setBudgetError('');
-                                                            setIsBudgetModalOpen(true);
-                                                        }}
-                                                        style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', padding: '5px 9px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '750', color: '#0369A1' }}
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            if (confirm(`Are you sure you want to delete the budget for ${bg.category_name} (${bg.budget_month})?`)) {
-                                                                deleteBudgetMutation.mutate(bg.id);
-                                                            }
-                                                        }}
-                                                        style={{ border: '1px solid #FECDD3', background: '#FFF1F2', padding: '5px 9px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '750', color: '#BE123C' }}
-                                                    >
-                                                        Delete
-                                                    </button>
+                                                <td style={{ padding: '0.6rem 0.8rem', textAlign: 'center', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                                                    <div style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                                        <button 
+                                                            onClick={() => {
+                                                                setRecordSpendingForm({
+                                                                    category_name: bg.category_name,
+                                                                    amount: '',
+                                                                    description: '',
+                                                                    date: new Date().toISOString().split('T')[0],
+                                                                    payment_mode: 'UPI',
+                                                                    employee_id: '',
+                                                                    employee_name: '',
+                                                                    file_name: '',
+                                                                    file_type: '',
+                                                                    file_data: '',
+                                                                    file_preview_url: ''
+                                                                });
+                                                                setSelectedBudgetForSpend(bg);
+                                                                setIsRecordSpendingModalOpen(true);
+                                                            }}
+                                                            style={{ 
+                                                                border: 'none', 
+                                                                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                                                padding: '5px 11px', 
+                                                                borderRadius: '8px', 
+                                                                cursor: 'pointer', 
+                                                                fontSize: '0.74rem', 
+                                                                fontWeight: '800', 
+                                                                color: 'white', 
+                                                                display: 'inline-flex', 
+                                                                alignItems: 'center', 
+                                                                gap: '4px', 
+                                                                whiteSpace: 'nowrap',
+                                                                flexShrink: 0,
+                                                                boxShadow: '0 2px 4px rgba(5, 150, 105, 0.25)' 
+                                                            }}
+                                                            title="Record an expense for this department"
+                                                        >
+                                                            <Plus size={12} strokeWidth={3} /> Record Expense
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                setEditingBudget(bg);
+                                                                setNewBudget({
+                                                                    category_name: bg.category_name,
+                                                                    budget_limit: String(bg.budget_limit),
+                                                                    budget_month: bg.budget_month || currentMonthStr,
+                                                                    carry_forward: bg.carry_forward !== false,
+                                                                    spent_amount: bg.spent_amount
+                                                                });
+                                                                let members = [];
+                                                                try {
+                                                                    members = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
+                                                                } catch (e) {
+                                                                    members = [];
+                                                                }
+                                                                setNewBudgetMembers(members.map(m => ({
+                                                                    ...m,
+                                                                    quota: m.quota !== undefined ? m.quota : (m.allocated_budget !== undefined ? m.allocated_budget : ''),
+                                                                    allocated_budget: m.allocated_budget !== undefined ? m.allocated_budget : (m.quota !== undefined ? m.quota : ''),
+                                                                    spent: m.spent || 0
+                                                                })));
+                                                                setMemberQuotaInput('');
+                                                                setShowAddMemberForm(false);
+                                                                setBudgetError('');
+                                                                setIsBudgetModalOpen(true);
+                                                            }}
+                                                            style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '750', color: '#0369A1', whiteSpace: 'nowrap', flexShrink: 0 }}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (confirm(`Are you sure you want to delete the budget for ${bg.category_name} (${bg.budget_month})?`)) {
+                                                                    deleteBudgetMutation.mutate(bg.id);
+                                                                }
+                                                            }}
+                                                            style={{ border: '1px solid #FECDD3', background: '#FFF1F2', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '750', color: '#BE123C', whiteSpace: 'nowrap', flexShrink: 0 }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -2853,16 +3001,19 @@ const BusinessExpenses = ({ defaultTab }) => {
                                             </div>
                                         )}
 
-                                        {(() => {
-                                            const totalBudget = parseInt(newBudget.budget_limit, 10);
-                                            const nextCount = newBudgetMembers.length + 1;
-                                            const nextShare = (!isNaN(totalBudget) && totalBudget > 0) ? Math.floor(totalBudget / nextCount) : 0;
-                                            return nextShare > 0 ? (
-                                                <div style={{ background: '#FAF5FF', border: '1px solid #E9D5FF', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.72rem', color: '#6B21A8' }}>
-                                                    💡 <strong>Equal Budget Share:</strong> Adding this member divides the {formatCurrency(totalBudget)} budget equally into <strong>{formatCurrency(nextShare)}</strong> per member ({nextCount} total).
-                                                </div>
-                                            ) : null;
-                                        })()}
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
+                                                Individual Budget Quota ({currency.symbol}) <span style={{ fontWeight: 'normal', color: '#94A3B8' }}>(Optional - e.g. 10000, 5000)</span>
+                                            </label>
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                placeholder="Custom member limit (leave empty to divide unallocated equally)" 
+                                                value={memberQuotaInput} 
+                                                onChange={(e) => setMemberQuotaInput(e.target.value)} 
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
 
                                         <button 
                                             type="button" 
@@ -2875,80 +3026,120 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 )}
 
                                 {/* Members List Table */}
-                                {newBudgetMembers.length > 0 ? (() => {
-                                    const totalBudget = parseInt(newBudget.budget_limit, 10);
-                                    const budgetPerMember = (!isNaN(totalBudget) && totalBudget > 0)
-                                        ? Math.floor(totalBudget / newBudgetMembers.length)
-                                        : 0;
-
-                                    return (
-                                        <div style={{ overflowX: 'auto', marginBottom: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '0.5rem 0.75rem', borderBottom: '1px solid #E2E8F0', fontSize: '0.74rem' }}>
-                                                <span style={{ color: '#475569', fontWeight: '800' }}>Equal Share Allocation:</span>
-                                                <span style={{ color: '#7C3AED', fontWeight: '850' }}>{formatCurrency(budgetPerMember)} / member ({newBudgetMembers.length} {newBudgetMembers.length === 1 ? 'member' : 'members'})</span>
-                                            </div>
-                                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
-                                                <thead>
-                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Employee ID</th>
-                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Name</th>
-                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Equal Quota</th>
-                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Actual Spent</th>
-                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B', textAlign: 'center' }}>Remove</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {newBudgetMembers.map(m => {
-                                                        const sanitizedSpent = Math.max(0, Math.abs(Number(m.spent) || 0));
-                                                        return (
-                                                            <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                                <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
-                                                                <td style={{ padding: '0.4rem 0.6rem', fontWeight: '600' }}>{m.name}</td>
-                                                                <td style={{ padding: '0.4rem 0.6rem', color: '#7C3AED', fontWeight: '800' }}>
-                                                                    {formatCurrency(budgetPerMember)}
-                                                                </td>
-                                                                <td style={{ padding: '0.4rem 0.6rem', color: sanitizedSpent > 0 ? '#EF4444' : '#64748B', fontWeight: '700' }}>
-                                                                    {formatCurrency(sanitizedSpent)}
-                                                                </td>
-                                                                <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
-                                                                    <button 
-                                                                        type="button" 
-                                                                        onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
-                                                                        style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer' }}
-                                                                    >
-                                                                        Delete
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    );
-                                })() : (
+                                {newBudgetMembers.length > 0 ? (
+                                    <div style={{ overflowX: 'auto', marginBottom: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Employee ID</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Name</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Assigned Quota ({currency.symbol})</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Actual Spent</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B', textAlign: 'center' }}>Remove</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {newBudgetMembers.map(m => {
+                                                    const sanitizedSpent = Math.max(0, Math.abs(Number(m.spent) || 0));
+                                                    return (
+                                                        <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
+                                                            <td style={{ padding: '0.4rem 0.6rem', fontWeight: '600' }}>{m.name}</td>
+                                                            <td style={{ padding: '0.4rem 0.6rem' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '700', fontSize: '0.75rem' }}>{currency.symbol}</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        value={m.quota !== undefined ? m.quota : ''}
+                                                                        onChange={(e) => handleUpdateMemberQuota(m.employee_id, e.target.value)}
+                                                                        style={{
+                                                                            width: '105px',
+                                                                            padding: '0.25rem 0.45rem',
+                                                                            borderRadius: '6px',
+                                                                            border: '1px solid #CBD5E1',
+                                                                            fontWeight: '800',
+                                                                            color: '#7C3AED',
+                                                                            fontSize: '0.8rem',
+                                                                            outline: 'none'
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ padding: '0.4rem 0.6rem', color: sanitizedSpent > 0 ? '#EF4444' : '#64748B', fontWeight: '700' }}>
+                                                                {formatCurrency(sanitizedSpent)}
+                                                            </td>
+                                                            <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
+                                                                <button 
+                                                                    type="button" 
+                                                                    onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
+                                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer', fontSize: '0.75rem' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
                                     <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', marginBottom: '0.75rem' }}>No team members assigned yet.</div>
                                 )}
-                                {/* Auto Budget Distribution Section */}
+
+                                {/* Auto Budget Distribution & Allocation Summary Section */}
                                 {(() => {
-                                    const totalBudget = parseInt(newBudget.budget_limit, 10);
-                                    const budgetPerMember = (newBudgetMembers.length > 0 && !isNaN(totalBudget) && totalBudget > 0)
-                                        ? Math.floor(totalBudget / newBudgetMembers.length)
-                                        : 0;
+                                    const totalBudget = parseFloat(newBudget.budget_limit) || 0;
+                                    const totalAllocated = newBudgetMembers.reduce((sum, m) => sum + (parseFloat(m.quota) || 0), 0);
+                                    const unallocated = totalBudget - totalAllocated;
+                                    const isOverAllocated = unallocated < 0;
+
                                     if (newBudgetMembers.length > 0) {
                                         return (
-                                            <div style={{ background: '#F5F3FF', padding: '0.8rem', borderRadius: '10px', border: '1px solid #DDD6FE', marginBottom: '0.5rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', textTransform: 'uppercase' }}>Employee Budget Share</span>
-                                                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#5B21B6' }}>{formatCurrency(budgetPerMember)} / member</span>
+                                            <div style={{ background: isOverAllocated ? '#FEF2F2' : '#F5F3FF', padding: '0.75rem 1rem', borderRadius: '10px', border: `1px solid ${isOverAllocated ? '#FECACA' : '#DDD6FE'}`, marginBottom: '0.75rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.45rem' }}>
+                                                    <span style={{ fontSize: '0.74rem', fontWeight: '800', color: isOverAllocated ? '#B91C1C' : '#6D28D9', textTransform: 'uppercase' }}>
+                                                        Quota Allocation Breakdown
+                                                    </span>
+                                                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleAutoDistributeEqually}
+                                                            style={{ border: '1px solid #DDD6FE', background: 'white', color: '#7C3AED', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer' }}
+                                                            title="Divide monthly budget equally across all team members"
+                                                        >
+                                                            ⚡ Split Equally
+                                                        </button>
+                                                        {isOverAllocated && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setNewBudget(prev => ({ ...prev, budget_limit: String(totalAllocated) }))}
+                                                                style={{ border: 'none', background: '#DC2626', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer' }}
+                                                                title="Adjust monthly budget to match total member allocations"
+                                                            >
+                                                                Match Dept Budget ({formatCurrency(totalAllocated)})
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', background: 'white', padding: '0.5rem', borderRadius: '6px', border: '1px solid #EDE9FE', maxHeight: '120px', overflowY: 'auto' }}>
-                                                    {newBudgetMembers.map(m => (
-                                                        <div key={m.employee_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#475569' }}>
-                                                            <span>{m.name} <span style={{ color: '#94A3B8', fontSize: '0.68rem' }}>({m.employee_id})</span></span>
-                                                            <span style={{ fontWeight: '700', color: '#7C3AED' }}>{formatCurrency(budgetPerMember)}</span>
-                                                        </div>
-                                                    ))}
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: 'white', padding: '0.6rem', borderRadius: '8px', border: '1px solid #EDE9FE', fontSize: '0.75rem' }}>
+                                                    <div>
+                                                        <span style={{ display: 'block', color: '#64748B', fontSize: '0.65rem', fontWeight: '750', textTransform: 'uppercase' }}>Dept Budget</span>
+                                                        <strong style={{ color: '#0F172A' }}>{formatCurrency(totalBudget)}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ display: 'block', color: '#64748B', fontSize: '0.65rem', fontWeight: '750', textTransform: 'uppercase' }}>Allocated to Staff</span>
+                                                        <strong style={{ color: '#7C3AED' }}>{formatCurrency(totalAllocated)}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ display: 'block', color: isOverAllocated ? '#DC2626' : '#059669', fontSize: '0.65rem', fontWeight: '750', textTransform: 'uppercase' }}>
+                                                            {isOverAllocated ? 'Exceeded Budget' : 'Unallocated Balance'}
+                                                        </span>
+                                                        <strong style={{ color: isOverAllocated ? '#DC2626' : '#059669' }}>
+                                                            {isOverAllocated ? formatCurrency(Math.abs(unallocated)) : formatCurrency(unallocated)}
+                                                        </strong>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -2976,7 +3167,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                     parsedMembers = [];
                 }
                 const effectiveLimit = parseFloat(viewingTeamDetails.effective_limit) || parseFloat(viewingTeamDetails.budget_limit) || 0;
-                const budgetPerMember = (parsedMembers.length > 0 && effectiveLimit > 0)
+                const defaultShare = (parsedMembers.length > 0 && effectiveLimit > 0)
                     ? Math.floor(effectiveLimit / parsedMembers.length)
                     : 0;
 
@@ -3021,8 +3212,13 @@ const BusinessExpenses = ({ defaultTab }) => {
                                     {parsedMembers.length > 0 ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             {parsedMembers.map(m => {
+                                                const memberQuota = (m.quota !== undefined && m.quota !== null && m.quota !== '')
+                                                    ? parseFloat(m.quota)
+                                                    : ((m.allocated_budget !== undefined && m.allocated_budget !== null && m.allocated_budget !== '')
+                                                        ? parseFloat(m.allocated_budget)
+                                                        : defaultShare);
                                                 const mSpent = Math.max(0, Math.abs(parseFloat(m.spent) || 0));
-                                                const mRemaining = budgetPerMember - mSpent;
+                                                const mRemaining = memberQuota - mSpent;
                                                 return (
                                                     <div key={m.employee_id} style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.8rem 1rem' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.3rem' }}>
@@ -3031,8 +3227,8 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                         </div>
                                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', fontSize: '0.78rem' }}>
                                                             <div>
-                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Quota Share</span>
-                                                                <span style={{ fontWeight: '700' }}>{formatCurrency(budgetPerMember)}</span>
+                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Quota Assigned</span>
+                                                                <span style={{ fontWeight: '700', color: '#7C3AED' }}>{formatCurrency(memberQuota)}</span>
                                                             </div>
                                                             <div>
                                                                 <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Spent</span>
@@ -3056,9 +3252,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                             })}
                                         </div>
                                     ) : (
-                                        <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', padding: '1rem', background: '#F8FAFC', borderRadius: '10px' }}>
-                                            No team members registered yet. You can add members by clicking "Edit" on this department budget.
-                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic' }}>No specific team members configured under this department.</div>
                                     )}
                                 </div>
                             </div>
@@ -3066,7 +3260,6 @@ const BusinessExpenses = ({ defaultTab }) => {
                     </div>
                 );
             })()}
-
             {/* Lodge Staff Claim Modal */}
             {isClaimModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem', overflowY: 'auto' }}>
@@ -3689,100 +3882,143 @@ const BusinessExpenses = ({ defaultTab }) => {
                             </div>
 
                             {/* Row 2: Team Member & Amount */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '0.75rem' }}>
-                                {(() => {
-                                    let currentBudgetMembers = [];
-                                    if (selectedBudgetForSpend) {
-                                        try {
-                                            currentBudgetMembers = typeof selectedBudgetForSpend.team_members === 'string'
-                                                ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
-                                                : (selectedBudgetForSpend.team_members || []);
-                                        } catch (e) {
-                                            currentBudgetMembers = [];
-                                        }
+                            {(() => {
+                                let currentBudgetMembers = [];
+                                if (selectedBudgetForSpend) {
+                                    try {
+                                        currentBudgetMembers = typeof selectedBudgetForSpend.team_members === 'string'
+                                            ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
+                                            : (selectedBudgetForSpend.team_members || []);
+                                    } catch (e) {
+                                        currentBudgetMembers = [];
                                     }
-                                    if (currentBudgetMembers.length > 0) {
-                                        const effectiveLimit = parseFloat(selectedBudgetForSpend.effective_limit) || parseFloat(selectedBudgetForSpend.budget_limit) || 0;
-                                        const quotaPerMember = Math.floor(effectiveLimit / currentBudgetMembers.length);
+                                }
+                                const effectiveLimit = parseFloat(selectedBudgetForSpend?.effective_limit) || parseFloat(selectedBudgetForSpend?.budget_limit) || 0;
+                                const defaultShare = currentBudgetMembers.length > 0 ? Math.floor(effectiveLimit / currentBudgetMembers.length) : 0;
 
-                                        return (
+                                const selectedMember = currentBudgetMembers.find(m => String(m.employee_id) === String(recordSpendingForm.employee_id));
+                                const memberQuota = selectedMember 
+                                    ? ((selectedMember.quota !== undefined && selectedMember.quota !== null && selectedMember.quota !== '') 
+                                        ? parseFloat(selectedMember.quota) 
+                                        : ((selectedMember.allocated_budget !== undefined && selectedMember.allocated_budget !== null && selectedMember.allocated_budget !== '') 
+                                            ? parseFloat(selectedMember.allocated_budget) 
+                                            : defaultShare)) 
+                                    : null;
+                                const memberSpent = selectedMember ? Math.max(0, Math.abs(parseFloat(selectedMember.spent) || 0)) : 0;
+                                const memberRem = memberQuota !== null ? Math.max(0, memberQuota - memberSpent) : null;
+                                const rawInputAmt = parseInt(recordSpendingForm.amount || 0, 10);
+                                const isExceedingMemberLimit = selectedMember && memberRem !== null && (rawInputAmt > memberRem || memberRem <= 0);
+
+                                return (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '0.75rem' }}>
+                                            {currentBudgetMembers.length > 0 ? (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Select Team Member *</label>
+                                                    <select 
+                                                        required 
+                                                        value={recordSpendingForm.employee_id || ''} 
+                                                        onChange={(e) => {
+                                                            const selectedId = e.target.value;
+                                                            const member = currentBudgetMembers.find(m => String(m.employee_id) === String(selectedId));
+                                                            setRecordSpendingForm(prev => ({ 
+                                                                ...prev, 
+                                                                employee_id: selectedId,
+                                                                employee_name: member ? member.name : '' 
+                                                            }));
+                                                            setSpendingAmountError('');
+                                                        }} 
+                                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                    >
+                                                        <option value="">-- Choose Member --</option>
+                                                        {currentBudgetMembers.map(m => {
+                                                            const mQuota = (m.quota !== undefined && m.quota !== null && m.quota !== '')
+                                                                ? parseFloat(m.quota)
+                                                                : ((m.allocated_budget !== undefined && m.allocated_budget !== null && m.allocated_budget !== '')
+                                                                    ? parseFloat(m.allocated_budget)
+                                                                    : defaultShare);
+                                                            const mSpent = Math.max(0, Math.abs(parseFloat(m.spent) || 0));
+                                                            const mRemaining = mQuota - mSpent;
+                                                            const isExhausted = mRemaining <= 0;
+                                                            return (
+                                                                <option 
+                                                                    key={m.employee_id} 
+                                                                    value={m.employee_id}
+                                                                    disabled={isExhausted}
+                                                                    style={{ color: isExhausted ? '#94A3B8' : '#0F172A' }}
+                                                                >
+                                                                    {m.name} (Quota: {formatCurrency(mQuota)} | Rem: {isExhausted ? '₹0 - Limit Exhausted' : formatCurrency(mRemaining)})
+                                                                </option>
+                                                            );
+                                                        })}
+                                                    </select>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Staff / Employee Name *</label>
+                                                    <input 
+                                                        required
+                                                        type="text" 
+                                                        placeholder="e.g. Arun Kumar"
+                                                        value={recordSpendingForm.employee_name || ''}
+                                                        onChange={(e) => setRecordSpendingForm(prev => ({ ...prev, employee_name: e.target.value, employee_id: `MAN-${Date.now().toString().slice(-4)}` }))}
+                                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }} 
+                                                    />
+                                                </div>
+                                            )}
+
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Select Team Member *</label>
-                                                <select 
-                                                    required 
-                                                    value={recordSpendingForm.employee_id || ''} 
-                                                    onChange={(e) => {
-                                                        const selectedId = e.target.value;
-                                                        const member = currentBudgetMembers.find(m => String(m.employee_id) === String(selectedId));
-                                                        setRecordSpendingForm(prev => ({ 
-                                                            ...prev, 
-                                                            employee_id: selectedId,
-                                                            employee_name: member ? member.name : '' 
-                                                        }));
-                                                    }} 
-                                                    style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }}
-                                                >
-                                                    <option value="">-- Choose Member --</option>
-                                                    {currentBudgetMembers.map(m => {
-                                                        const mSpent = Math.max(0, Math.abs(parseFloat(m.spent) || 0));
-                                                        const mRemaining = quotaPerMember - mSpent;
-                                                        return (
-                                                            <option key={m.employee_id} value={m.employee_id}>
-                                                                {m.name} (Quota: {formatCurrency(quotaPerMember)} | Rem: {formatCurrency(mRemaining)})
-                                                            </option>
-                                                        );
-                                                    })}
-                                                </select>
-                                            </div>
-                                        );
-                                    } else {
-                                        return (
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Staff / Employee Name *</label>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>
+                                                    Amount Spent ({currency.symbol}) *
+                                                    {selectedMember && memberRem !== null && (
+                                                        <span style={{ fontSize: '0.68rem', color: isExceedingMemberLimit ? '#DC2626' : '#059669', marginLeft: '6px', fontWeight: '800' }}>
+                                                            (Max: {formatCurrency(memberRem)})
+                                                        </span>
+                                                    )}
+                                                </label>
                                                 <input 
-                                                    required
-                                                    type="text" 
-                                                    placeholder="e.g. Arun Kumar"
-                                                    value={recordSpendingForm.employee_name || ''}
-                                                    onChange={(e) => setRecordSpendingForm(prev => ({ ...prev, employee_name: e.target.value, employee_id: `MAN-${Date.now().toString().slice(-4)}` }))}
-                                                    style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }} 
+                                                    required 
+                                                    type="number" 
+                                                    min="1"
+                                                    max={selectedMember && memberRem !== null ? Math.max(1, memberRem) : undefined}
+                                                    step="1"
+                                                    placeholder={selectedMember && memberRem !== null ? `Max: ${memberRem}` : 'e.g. 1500'} 
+                                                    onKeyDown={handleSpendingKeyDown}
+                                                    value={recordSpendingForm.amount} 
+                                                    onChange={handleSpendingAmountChange} 
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.7rem 0.8rem', 
+                                                        borderRadius: '10px', 
+                                                        border: (spendingAmountError || isExceedingMemberLimit) ? '1px solid #F87171' : '1px solid #CBD5E1', 
+                                                        background: (spendingAmountError || isExceedingMemberLimit) ? '#FEF2F2' : 'white',
+                                                        outline: 'none', 
+                                                        fontWeight: '800', 
+                                                        fontSize: '0.95rem',
+                                                        color: '#0F172A',
+                                                        boxSizing: 'border-box' 
+                                                    }} 
                                                 />
+                                                {spendingAmountError && (
+                                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', fontWeight: '700', color: '#EF4444' }}>
+                                                        ⚠️ {spendingAmountError}
+                                                    </p>
+                                                )}
                                             </div>
-                                        );
-                                    }
-                                })()}
+                                        </div>
 
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Amount Spent ({currency.symbol}) *</label>
-                                    <input 
-                                        required 
-                                        type="number" 
-                                        min="1"
-                                        step="1"
-                                        placeholder="e.g. 1500" 
-                                        onKeyDown={handleSpendingKeyDown}
-                                        value={recordSpendingForm.amount} 
-                                        onChange={handleSpendingAmountChange} 
-                                        style={{ 
-                                            width: '100%', 
-                                            padding: '0.7rem 0.8rem', 
-                                            borderRadius: '10px', 
-                                            border: spendingAmountError ? '1px solid #F87171' : '1px solid #CBD5E1', 
-                                            background: spendingAmountError ? '#FEF2F2' : 'white',
-                                            outline: 'none', 
-                                            fontWeight: '800', 
-                                            fontSize: '0.95rem',
-                                            color: '#0F172A',
-                                            boxSizing: 'border-box' 
-                                        }} 
-                                    />
-                                    {spendingAmountError && (
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', fontWeight: '700', color: '#EF4444' }}>
-                                            ⚠️ {spendingAmountError}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
+                                        {/* Member Limit Alert Message */}
+                                        {selectedMember && isExceedingMemberLimit && (
+                                            <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '0.55rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#B91C1C', fontSize: '0.74rem', fontWeight: '750' }}>
+                                                <span>⚠️</span>
+                                                <span>
+                                                    <strong>Limit Exceeded:</strong> {selectedMember.name} has only <strong>{formatCurrency(memberRem)}</strong> remaining of their <strong>{formatCurrency(memberQuota)}</strong> assigned quota. Employees cannot spend beyond their limit.
+                                                </span>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
 
                             {/* Row 3: Payment Mode & Description */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -3894,29 +4130,60 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 >
                                     ← Return Back
                                 </button>
-                                <button 
-                                    type="submit" 
-                                    disabled={Boolean(spendingAmountError) || !recordSpendingForm.amount || recordDepartmentSpendingMutation.isPending} 
-                                    style={{ 
-                                        flex: 1, 
-                                        padding: '0.85rem', 
-                                        borderRadius: '14px', 
-                                        background: (Boolean(spendingAmountError) || !recordSpendingForm.amount || recordDepartmentSpendingMutation.isPending) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
-                                        color: 'white', 
-                                        border: 'none', 
-                                        fontWeight: '800', 
-                                        fontSize: '0.95rem', 
-                                        cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount || recordDepartmentSpendingMutation.isPending) ? 'not-allowed' : 'pointer', 
-                                        boxShadow: '0 8px 16px rgba(5, 150, 105, 0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem'
-                                    }}
-                                >
-                                    <CheckCircle2 size={18} />
-                                    {recordDepartmentSpendingMutation.isPending ? 'Recording & Allocating...' : 'Confirm & Record Expense'}
-                                </button>
+                                {(() => {
+                                    let currentBudgetMembers = [];
+                                    if (selectedBudgetForSpend) {
+                                        try {
+                                            currentBudgetMembers = typeof selectedBudgetForSpend.team_members === 'string'
+                                                ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
+                                                : (selectedBudgetForSpend.team_members || []);
+                                        } catch (e) {
+                                            currentBudgetMembers = [];
+                                        }
+                                    }
+                                    const effectiveLimit = parseFloat(selectedBudgetForSpend?.effective_limit) || parseFloat(selectedBudgetForSpend?.budget_limit) || 0;
+                                    const defaultShare = currentBudgetMembers.length > 0 ? Math.floor(effectiveLimit / currentBudgetMembers.length) : 0;
+                                    const selectedMember = currentBudgetMembers.find(m => String(m.employee_id) === String(recordSpendingForm.employee_id));
+                                    const memberQuota = selectedMember 
+                                        ? ((selectedMember.quota !== undefined && selectedMember.quota !== null && selectedMember.quota !== '') 
+                                            ? parseFloat(selectedMember.quota) 
+                                            : ((selectedMember.allocated_budget !== undefined && selectedMember.allocated_budget !== null && selectedMember.allocated_budget !== '') 
+                                                ? parseFloat(selectedMember.allocated_budget) 
+                                                : defaultShare)) 
+                                        : null;
+                                    const memberSpent = selectedMember ? Math.max(0, Math.abs(parseFloat(selectedMember.spent) || 0)) : 0;
+                                    const memberRem = memberQuota !== null ? Math.max(0, memberQuota - memberSpent) : null;
+                                    const rawInputAmt = parseInt(recordSpendingForm.amount || 0, 10);
+                                    const isExceedingMemberLimit = selectedMember && memberRem !== null && (rawInputAmt > memberRem || memberRem <= 0);
+
+                                    const isBtnDisabled = Boolean(spendingAmountError) || !recordSpendingForm.amount || isExceedingMemberLimit || (selectedMember && memberRem <= 0) || recordDepartmentSpendingMutation.isPending;
+
+                                    return (
+                                        <button 
+                                            type="submit" 
+                                            disabled={isBtnDisabled} 
+                                            style={{ 
+                                                flex: 1, 
+                                                padding: '0.85rem', 
+                                                borderRadius: '14px', 
+                                                background: isBtnDisabled ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                                color: 'white', 
+                                                border: 'none', 
+                                                fontWeight: '800', 
+                                                fontSize: '0.95rem', 
+                                                cursor: isBtnDisabled ? 'not-allowed' : 'pointer', 
+                                                boxShadow: isBtnDisabled ? 'none' : '0 8px 16px rgba(5, 150, 105, 0.2)',
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                gap: '0.5rem'
+                                            }}
+                                        >
+                                            <CheckCircle2 size={18} />
+                                            {recordDepartmentSpendingMutation.isPending ? 'Recording & Allocating...' : 'Confirm & Record Expense'}
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </form>
                     </div>
