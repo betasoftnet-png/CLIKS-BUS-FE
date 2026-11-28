@@ -44,6 +44,7 @@ export const expensesService = {
     createRecurring: (data) => apiClient.post('/expenses/recurring', data).then(res => res.data.data || res.data),
     updateRecurring: (id, data) => apiClient.put(`/expenses/recurring/${id}`, data).then(res => res.data.data || res.data),
     deleteRecurring: (id) => apiClient.delete(`/expenses/recurring/${id}`).then(res => res.data.data || res.data),
+    sendRecurringReminder: (id, data) => apiClient.post(`/expenses/recurring/${id}/send-reminder`, data || {}).then(res => res.data.data || res.data),
     getCategoryReport: (params) => apiClient.get('/expenses/reports/category', { params: toParams(params) }).then(res => res.data.data || res.data)
 };
 

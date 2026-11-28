@@ -21,7 +21,10 @@ import {
     Tag,
     Trash,
     ChevronDown,
-    Filter
+    Filter,
+    Mail,
+    MessageCircle,
+    Receipt
 } from 'lucide-react';
 import '../App.css';
 
@@ -647,11 +650,71 @@ const BusinessExpenses = ({ defaultTab }) => {
         };
     });
 
-    // Merge default categories with custom categories created under budgets & existing expenses
+    // User-defined custom company categories stored locally & merged seamlessly
+    const [customCategories, setCustomCategories] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('cliks_custom_expense_categories') || '[]');
+        } catch (e) {
+            return [];
+        }
+    });
+    const [isAddingCustomCategory, setIsAddingCustomCategory] = useState(false);
+    const [customCategoryInput, setCustomCategoryInput] = useState('');
+
+    const handleSaveCustomCategory = (nameToSave) => {
+        const catName = String(nameToSave || customCategoryInput || '').trim();
+        if (!catName) return;
+        if (!customCategories.includes(catName)) {
+            const updated = [...customCategories, catName];
+            setCustomCategories(updated);
+            try {
+                localStorage.setItem('cliks_custom_expense_categories', JSON.stringify(updated));
+            } catch (e) {}
+        }
+        setNewExpense(prev => ({ ...prev, category_name: catName }));
+        setIsAddingCustomCategory(false);
+        setCustomCategoryInput('');
+    };
+
+    const handleSendRecurringReminder = async (rec, channel = 'whatsapp') => {
+        try {
+            const res = await expensesService.sendRecurringReminder(rec.id, { channel });
+            if (channel === 'whatsapp' || channel === 'both') {
+                if (res?.whatsapp_url) {
+                    window.open(res?.whatsapp_url, '_blank');
+                }
+            }
+            alert(`✅ ${res?.is_overdue ? 'Overdue alert' : 'Reminder'} dispatched via ${channel.toUpperCase()} for "${rec.subscription_name}" (${formatCurrency(rec.amount)})!`);
+        } catch (err) {
+            alert('Error sending reminder: ' + (err?.response?.data?.message || err?.message || 'Failed'));
+        }
+    };
+
+    const handleSendBatchOverdueReminders = async (channel = 'whatsapp') => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const overdueList = recurrings.filter(r => r.next_due_date && r.next_due_date < todayStr && r.recurring_status === 'Active');
+        if (overdueList.length === 0) {
+            alert('No recurring expenses are currently overdue.');
+            return;
+        }
+        let sentCount = 0;
+        for (const item of overdueList) {
+            try {
+                const res = await expensesService.sendRecurringReminder(item.id, { channel });
+                if (channel === 'whatsapp' && sentCount === 0 && res?.whatsapp_url) {
+                    window.open(res.whatsapp_url, '_blank');
+                }
+                sentCount++;
+            } catch (e) {}
+        }
+        alert(`✅ Dispatched ${channel.toUpperCase()} overdue alerts for ${sentCount} exceeded recurring expense(s)!`);
+    };
+
+    // Merge default categories with custom categories created under budgets, existing expenses & company custom list
     const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General', 'Staff Welfare & Reimbursement', 'Inventory Purchases'];
     const budgetCategories = budgets.map(b => b.category_name).filter(name => name !== 'Uncategorized');
     const expenseCategories = expenses.map(e => e.category_name).filter(Boolean);
-    const categoryOptions = Array.from(new Set([...defaultCategories, ...budgetCategories, ...expenseCategories]));
+    const categoryOptions = Array.from(new Set([...defaultCategories, ...budgetCategories, ...expenseCategories, ...customCategories]));
 
     const claims = dbClaims.map(item => {
         const datePart = (item.date || (item.created_at || '').split('T')[0] || '').replace(/-/g, '');
@@ -807,6 +870,13 @@ const BusinessExpenses = ({ defaultTab }) => {
             alert('Please enter a valid expense amount greater than 0');
             return;
         }
+
+        let categoryToUse = newExpense.category_name;
+        if (isAddingCustomCategory && customCategoryInput.trim()) {
+            categoryToUse = customCategoryInput.trim();
+            handleSaveCustomCategory(categoryToUse);
+        }
+
         const gst = parseFloat(newExpense.gst_percentage) || 0;
         
         let subtotal = rawAmt;
@@ -835,6 +905,7 @@ const BusinessExpenses = ({ defaultTab }) => {
 
         const payload = {
             ...newExpense,
+            category_name: categoryToUse,
             amount: total,
             expense_amount: total,
             subtotal: subtotal,
@@ -1618,114 +1689,235 @@ const BusinessExpenses = ({ defaultTab }) => {
             )}
 
             {/* Tab 2: Recurrings automatic entries */}
-            {activeTab === 'recurring' && (
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Active Recurring bills & Subscriptions</h3>
-                        <button onClick={() => {
-                            setEditingRecurring(null);
-                            setNewRecurring({
-                                subscription_name: '',
-                                payee_name: '',
-                                category_name: 'Rent',
-                                expense_amount: '',
-                                recurring_type: 'Monthly',
-                                next_due_date: new Date().toISOString().split('T')[0],
-                                auto_create: 'Active',
-                                recurring_status: 'Active'
-                            });
-                            setRecurringAmountError('');
-                            setIsRecurringModalOpen(true);
-                        }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#3B82F6', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Subscription</button>
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>ID / Name</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Vendor</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Name</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Frequency</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Next Due Date</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Auto-Post</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Recurring Cost</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recurrings.map((rec) => (
-                                    <tr key={rec.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <p style={{ fontWeight: '750', fontSize: '0.82rem', margin: 0 }}>REC-{rec.id}</p>
-                                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{rec.subscription_name}</span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', fontSize: '0.8rem', color: '#475569' }}>{rec.payee_name}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.8rem', color: '#1E293B' }}>{rec.category_name}</td>
-                                        <td style={{ padding: '0.6rem 1rem', textTransform: 'capitalize', fontSize: '0.8rem', color: '#475569' }}>{rec.recurring_type}</td>
-                                        <td style={{ padding: '0.6rem 1rem', color: '#BE185D', fontWeight: '700', fontSize: '0.8rem' }}>{rec.next_due_date}</td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: rec.recurring_status === 'Active' ? '#E6F4EA' : '#FCE8E6', color: rec.recurring_status === 'Active' ? '#137333' : '#C5221F', fontWeight: '800', fontSize: '0.72rem' }}>
-                                                {rec.recurring_status.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: rec.auto_create === 'Active' ? '#E8F0FE' : '#F1F5F9', color: rec.auto_create === 'Active' ? '#1A73E8' : '#475569', fontWeight: '800', fontSize: '0.72rem' }}>
-                                                {rec.auto_create.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.85rem' }}>{formatCurrency(rec.amount)}</td>
-                                        <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center' }}>
-                                            <button 
-                                                onClick={() => {
-                                                    const newStatus = rec.recurring_status === 'Active' ? 'Paused' : 'Active';
-                                                    updateRecurringMutation.mutate({
-                                                        id: rec.id,
-                                                        data: { ...rec, expense_amount: rec.amount, recurring_status: newStatus }
-                                                    });
-                                                }}
-                                                style={{ border: 'none', background: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#475569' }}
-                                            >
-                                                {rec.recurring_status === 'Active' ? 'Pause' : 'Resume'}
-                                            </button>
-                                            <button 
-                                                onClick={() => {
-                                                    setEditingRecurring(rec);
-                                                    setNewRecurring({
-                                                        subscription_name: rec.subscription_name,
-                                                        payee_name: rec.payee_name,
-                                                        category_name: rec.category_name,
-                                                        expense_amount: rec.amount,
-                                                        recurring_type: rec.recurring_type,
-                                                        next_due_date: rec.next_due_date,
-                                                        auto_create: rec.auto_create,
-                                                        recurring_status: rec.recurring_status
-                                                    });
-                                                    setRecurringAmountError('');
-                                                    setIsRecurringModalOpen(true);
-                                                }}
-                                                style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => {
-                                                    if (confirm("Are you sure you want to delete this subscription?")) {
-                                                        deleteRecurringMutation.mutate(rec.id);
-                                                    }
-                                                }}
-                                                style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
+            {activeTab === 'recurring' && (() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const overdueRecurrings = recurrings.filter(r => r.next_due_date && r.next_due_date < todayStr && r.recurring_status === 'Active');
+
+                return (
+                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        {/* Overdue Notification Alert Banner */}
+                        {overdueRecurrings.length > 0 && (
+                            <div style={{
+                                marginBottom: '1.25rem',
+                                padding: '0.9rem 1.25rem',
+                                borderRadius: '12px',
+                                background: 'linear-gradient(90deg, #FEF2F2 0%, #FFF1F2 100%)',
+                                border: '1px solid #FECACA',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: '0.75rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', fontSize: '1.1rem' }}>
+                                        ⚠️
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#991B1B' }}>
+                                            {overdueRecurrings.length} Recurring Bill{overdueRecurrings.length > 1 ? 's' : ''} Exceeded Due Date
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#B91C1C', marginTop: '2px' }}>
+                                            Due dates have passed. Trigger instant WhatsApp or Email alerts to notify vendors or finance officers.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSendBatchOverdueReminders('whatsapp')}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            padding: '0.45rem 0.85rem',
+                                            borderRadius: '8px',
+                                            background: '#16A34A',
+                                            color: 'white',
+                                            border: 'none',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <MessageCircle size={14} /> Send WhatsApp Alert ({overdueRecurrings.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSendBatchOverdueReminders('email')}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            padding: '0.45rem 0.85rem',
+                                            borderRadius: '8px',
+                                            background: '#4F46E5',
+                                            color: 'white',
+                                            border: 'none',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Mail size={14} /> Send Email Trigger ({overdueRecurrings.length})
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Active Recurring bills & Subscriptions</h3>
+                                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '4px 0 0 0' }}>Manage monthly/annual subscriptions, automatic postings, and automated payment reminders.</p>
+                            </div>
+                            <button onClick={() => {
+                                setEditingRecurring(null);
+                                setNewRecurring({
+                                    subscription_name: '',
+                                    payee_name: '',
+                                    category_name: 'Rent',
+                                    expense_amount: '',
+                                    recurring_type: 'Monthly',
+                                    next_due_date: new Date().toISOString().split('T')[0],
+                                    auto_create: 'Active',
+                                    recurring_status: 'Active'
+                                });
+                                setRecurringAmountError('');
+                                setIsRecurringModalOpen(true);
+                            }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#3B82F6', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Subscription</button>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>ID / Name</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Vendor</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Name</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Frequency</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Next Due Date</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Auto-Post</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Recurring Cost</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {recurrings.map((rec) => {
+                                        const isOverdue = rec.next_due_date && rec.next_due_date < todayStr && rec.recurring_status === 'Active';
+
+                                        return (
+                                            <tr key={rec.id} style={{ borderBottom: '1px solid #F8FAFC', background: isOverdue ? 'rgba(254, 242, 242, 0.4)' : 'transparent' }}>
+                                                <td style={{ padding: '0.6rem 1rem' }}>
+                                                    <p style={{ fontWeight: '750', fontSize: '0.82rem', margin: 0 }}>REC-{rec.id}</p>
+                                                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{rec.subscription_name}</span>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 1rem', fontWeight: '600', fontSize: '0.8rem', color: '#475569' }}>{rec.payee_name}</td>
+                                                <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.8rem', color: '#1E293B' }}>{rec.category_name}</td>
+                                                <td style={{ padding: '0.6rem 1rem', textTransform: 'capitalize', fontSize: '0.8rem', color: '#475569' }}>{rec.recurring_type}</td>
+                                                <td style={{ padding: '0.6rem 1rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                        <span style={{ color: isOverdue ? '#DC2626' : '#BE185D', fontWeight: '800', fontSize: '0.8rem' }}>
+                                                            {rec.next_due_date}
+                                                        </span>
+                                                        {isOverdue && (
+                                                            <span style={{
+                                                                fontSize: '0.62rem',
+                                                                fontWeight: '900',
+                                                                background: '#FEE2E2',
+                                                                color: '#DC2626',
+                                                                padding: '0.12rem 0.4rem',
+                                                                borderRadius: '4px',
+                                                                letterSpacing: '0.03em'
+                                                            }}>
+                                                                EXCEEDED
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 1rem' }}>
+                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: rec.recurring_status === 'Active' ? '#E6F4EA' : '#FCE8E6', color: rec.recurring_status === 'Active' ? '#137333' : '#C5221F', fontWeight: '800', fontSize: '0.72rem' }}>
+                                                        {rec.recurring_status.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 1rem' }}>
+                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: rec.auto_create === 'Active' ? '#E8F0FE' : '#F1F5F9', color: rec.auto_create === 'Active' ? '#1A73E8' : '#475569', fontWeight: '800', fontSize: '0.72rem' }}>
+                                                        {rec.auto_create.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.85rem' }}>{formatCurrency(rec.amount)}</td>
+                                                <td style={{ padding: '0.6rem 1rem', textAlign: 'center' }}>
+                                                    <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                                        {/* WhatsApp Trigger */}
+                                                        <button 
+                                                            type="button"
+                                                            title="Send WhatsApp payment reminder"
+                                                            onClick={() => handleSendRecurringReminder(rec, 'whatsapp')}
+                                                            style={{ border: 'none', background: '#DCFCE7', padding: '4px 7px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', color: '#15803D', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                        >
+                                                            <MessageCircle size={13} /> WA
+                                                        </button>
+                                                        {/* Email Trigger */}
+                                                        <button 
+                                                            type="button"
+                                                            title="Send Email payment reminder"
+                                                            onClick={() => handleSendRecurringReminder(rec, 'email')}
+                                                            style={{ border: 'none', background: '#EEF2FF', padding: '4px 7px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', color: '#4338CA', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                        >
+                                                            <Mail size={13} /> Email
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const newStatus = rec.recurring_status === 'Active' ? 'Paused' : 'Active';
+                                                                updateRecurringMutation.mutate({
+                                                                    id: rec.id,
+                                                                    data: { ...rec, expense_amount: rec.amount, recurring_status: newStatus }
+                                                                });
+                                                            }}
+                                                            style={{ border: 'none', background: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#475569' }}
+                                                        >
+                                                            {rec.recurring_status === 'Active' ? 'Pause' : 'Resume'}
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                setEditingRecurring(rec);
+                                                                setNewRecurring({
+                                                                    subscription_name: rec.subscription_name,
+                                                                    payee_name: rec.payee_name,
+                                                                    category_name: rec.category_name,
+                                                                    expense_amount: rec.amount,
+                                                                    recurring_type: rec.recurring_type,
+                                                                    next_due_date: rec.next_due_date,
+                                                                    auto_create: rec.auto_create,
+                                                                    recurring_status: rec.recurring_status
+                                                                });
+                                                                setRecurringAmountError('');
+                                                                setIsRecurringModalOpen(true);
+                                                            }}
+                                                            style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (confirm("Are you sure you want to delete this subscription?")) {
+                                                                    deleteRecurringMutation.mutate(rec.id);
+                                                                }
+                                                            }}
+                                                            style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Tab 3: Department Budgets */}
             {activeTab === 'budget' && (() => {
@@ -2158,224 +2350,359 @@ const BusinessExpenses = ({ defaultTab }) => {
             )}
             </div>
             {/* Record Business Expense Modal */}
-            {isExpenseModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED' }}>Record Business Expense</h3>
-                            <button onClick={() => setIsExpenseModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
-                        </div>
+            {isExpenseModalOpen && (() => {
+                const rawAmt = parseFloat(newExpense.expense_amount) || 0;
+                const gst = parseFloat(newExpense.gst_percentage) || 0;
+                let sub = rawAmt;
+                let tax = 0;
+                let tot = rawAmt;
+                if (gst > 0) {
+                    if (newExpense.amount_type === 'inclusive') {
+                        tot = rawAmt;
+                        sub = Math.round((rawAmt / (1 + gst / 100)) * 100) / 100;
+                        tax = Math.round((tot - sub) * 100) / 100;
+                    } else {
+                        sub = rawAmt;
+                        tax = Math.round((rawAmt * (gst / 100)) * 100) / 100;
+                        tot = Math.round((sub + tax) * 100) / 100;
+                    }
+                }
+                const isEligible = gst > 0 && newExpense.itc_eligibility === 'eligible';
 
-                        <form onSubmit={handleCreateExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Category</label>
-                                <select 
-                                    value={newExpense.category_name} 
-                                    onChange={(e) => {
-                                        const cat = e.target.value;
-                                        const catLower = cat.trim().toLowerCase();
-                                        const isBlockedCat = catLower === 'rent' || catLower.includes('food') || catLower.includes('catering') || catLower.includes('welfare') || catLower.includes('personal');
-                                        setNewExpense({ 
-                                            ...newExpense, 
-                                            category_name: cat,
-                                            itc_eligibility: isBlockedCat ? 'ineligible' : 'eligible'
-                                        });
-                                    }} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                >
-                                    {categoryOptions.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Subcategory / Expense Description</label>
-                                <input required type="text" maxLength={100} value={newExpense.subcategory} onChange={(e) => setNewExpense({ ...newExpense, subcategory: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Office space rent" />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payee / Merchant Profile</label>
-                                <input required type="text" spellCheck="false" maxLength={50} value={newExpense.payee_name} onChange={(e) => setNewExpense({ ...newExpense, payee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Property Landlord / AWS" />
-                            </div>
-
-                            {/* Amount & Calculation Mode */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0 }}>
-                                        Expense Amount ({currency.symbol})
-                                    </label>
-                                    {/* Exclusive vs Inclusive Mode Switch */}
-                                    <div style={{ display: 'flex', background: '#F1F5F9', padding: '2px', borderRadius: '8px', gap: '2px' }}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewExpense({ ...newExpense, amount_type: 'exclusive' })}
-                                            style={{
-                                                padding: '3px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '800',
-                                                background: newExpense.amount_type === 'exclusive' ? '#7C3AED' : 'transparent',
-                                                color: newExpense.amount_type === 'exclusive' ? 'white' : '#64748B'
-                                            }}
-                                        >
-                                            + GST (Exclusive)
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewExpense({ ...newExpense, amount_type: 'inclusive' })}
-                                            style={{
-                                                padding: '3px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '800',
-                                                background: newExpense.amount_type === 'inclusive' ? '#7C3AED' : 'transparent',
-                                                color: newExpense.amount_type === 'inclusive' ? 'white' : '#64748B'
-                                            }}
-                                        >
-                                            Incl. GST (Total)
-                                        </button>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
-                                    <div>
-                                        <input 
-                                            required 
-                                            type="text" 
-                                            maxLength={10} 
-                                            value={newExpense.expense_amount} 
-                                            onChange={(e) => {
-                                                let val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                                if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                                setNewExpense({ ...newExpense, expense_amount: val });
-                                            }} 
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700', fontSize: '1rem' }} 
-                                            placeholder="e.g. 50000" 
-                                        />
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '820px', maxHeight: '92vh', borderRadius: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                            {/* Fixed Header */}
+                            <div style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAF5FF', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F3E8FF', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Receipt size={22} />
                                     </div>
                                     <div>
-                                        <select 
-                                            value={newExpense.gst_percentage} 
-                                            onChange={(e) => setNewExpense({ ...newExpense, gst_percentage: parseInt(e.target.value) })} 
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                        >
-                                            <option value="0">0% Excluded</option>
-                                            <option value="5">5% GST</option>
-                                            <option value="12">12% GST</option>
-                                            <option value="18">18% GST</option>
-                                            <option value="28">28% GST</option>
-                                        </select>
+                                        <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#581C87', margin: 0 }}>Record Business Expense</h3>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#7E22CE' }}>Track company operational expenditures, allocate unique categories, and manage GST ITC claims</p>
                                     </div>
                                 </div>
+                                <button type="button" onClick={() => setIsExpenseModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}><X size={20} /></button>
                             </div>
 
-                            {/* ITC Eligibility Selection if GST > 0 */}
-                            {newExpense.gst_percentage > 0 && (
-                                <div style={{ background: '#F8FAFC', padding: '0.9rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.4rem' }}>
-                                        Input Tax Credit (ITC) Eligibility
-                                    </label>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewExpense({ ...newExpense, itc_eligibility: 'ineligible' })}
-                                            style={{
-                                                flex: 1, padding: '0.5rem 0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800',
-                                                border: newExpense.itc_eligibility === 'ineligible' ? '1.5px solid #EF4444' : '1px solid #E2E8F0',
-                                                background: newExpense.itc_eligibility === 'ineligible' ? '#FEF2F2' : 'white',
-                                                color: newExpense.itc_eligibility === 'ineligible' ? '#B91C1C' : '#64748B'
-                                            }}
-                                        >
-                                            ⛔ Ineligible / Blocked (Sec 17(5))
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewExpense({ ...newExpense, itc_eligibility: 'eligible' })}
-                                            style={{
-                                                flex: 1, padding: '0.5rem 0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800',
-                                                border: newExpense.itc_eligibility === 'eligible' ? '1.5px solid #10B981' : '1px solid #E2E8F0',
-                                                background: newExpense.itc_eligibility === 'eligible' ? '#ECFDF5' : 'white',
-                                                color: newExpense.itc_eligibility === 'eligible' ? '#047857' : '#64748B'
-                                            }}
-                                        >
-                                            ✓ Eligible for ITC Claim
-                                        </button>
+                            {/* Scrollable Form Body with 2-Column Responsive Grid */}
+                            <form id="record-expense-form" onSubmit={handleCreateExpense} style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+                                    
+                                    {/* Column 1: Category & Details */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0 }}>
+                                                    Expense Category <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setIsAddingCustomCategory(!isAddingCustomCategory)}
+                                                    style={{ border: 'none', background: 'transparent', color: '#7C3AED', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                >
+                                                    <Plus size={12} /> {isAddingCustomCategory ? 'Select Existing' : '+ Custom Category'}
+                                                </button>
+                                            </div>
+
+                                            {!isAddingCustomCategory ? (
+                                                <div>
+                                                    <select 
+                                                        value={newExpense.category_name} 
+                                                        onChange={(e) => {
+                                                            const cat = e.target.value;
+                                                            if (cat === '__custom__') {
+                                                                setIsAddingCustomCategory(true);
+                                                                return;
+                                                            }
+                                                            const catLower = cat.trim().toLowerCase();
+                                                            const isBlockedCat = catLower === 'rent' || catLower.includes('food') || catLower.includes('catering') || catLower.includes('welfare') || catLower.includes('personal');
+                                                            setNewExpense({ 
+                                                                ...newExpense, 
+                                                                category_name: cat,
+                                                                itc_eligibility: isBlockedCat ? 'ineligible' : 'eligible'
+                                                            });
+                                                        }} 
+                                                        style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}
+                                                    >
+                                                        {categoryOptions.map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                        <option value="__custom__">+ Add Custom Company Expense...</option>
+                                                    </select>
+
+                                                    {/* Quick Suggestion Pills */}
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.45rem' }}>
+                                                        {['🏭 Factory & Machinery', '💻 Software & SaaS', '🚚 Freight & Logistics', '📣 Marketing & Ads', '⚖️ Legal & Audit'].map(preset => {
+                                                            const cleanPreset = preset.replace(/^[^\w\s]+\s*/, '');
+                                                            return (
+                                                                <button
+                                                                    key={preset}
+                                                                    type="button"
+                                                                    onClick={() => handleSaveCustomCategory(cleanPreset)}
+                                                                    style={{
+                                                                        fontSize: '0.68rem',
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: '999px',
+                                                                        border: newExpense.category_name === cleanPreset ? '1.5px solid #7C3AED' : '1px solid #E2E8F0',
+                                                                        background: newExpense.category_name === cleanPreset ? '#FAF5FF' : '#F8FAFC',
+                                                                        color: newExpense.category_name === cleanPreset ? '#7C3AED' : '#64748B',
+                                                                        cursor: 'pointer',
+                                                                        fontWeight: '700'
+                                                                    }}
+                                                                >
+                                                                    {preset}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ background: '#FAF5FF', border: '1px solid #E9D5FF', padding: '0.75rem', borderRadius: '12px' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '700', color: '#6B21A8', marginBottom: '0.3rem' }}>
+                                                        Unique Company Expense Category Name
+                                                    </label>
+                                                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                        <input 
+                                                            type="text" 
+                                                            value={customCategoryInput} 
+                                                            onChange={(e) => setCustomCategoryInput(e.target.value)} 
+                                                            placeholder="e.g. Machinery Maintenance" 
+                                                            style={{ flex: 1, padding: '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none' }}
+                                                            autoFocus
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleSaveCustomCategory()}
+                                                            style={{ padding: '0.65rem 1rem', borderRadius: '8px', border: 'none', background: '#7C3AED', color: 'white', fontWeight: '750', fontSize: '0.78rem', cursor: 'pointer' }}
+                                                        >
+                                                            Save
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                                Subcategory / Expense Description <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input required type="text" maxLength={100} value={newExpense.subcategory} onChange={(e) => setNewExpense({ ...newExpense, subcategory: e.target.value })} style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} placeholder="Example : Office space rent or Annual software license" />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                                Payee / Merchant Profile <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input required type="text" spellCheck="false" maxLength={50} value={newExpense.payee_name} onChange={(e) => setNewExpense({ ...newExpense, payee_name: e.target.value })} style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} placeholder="Example : Property Landlord / AWS / Vendor" />
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
+                                                <select value={newExpense.payment_mode} onChange={(e) => setNewExpense({ ...newExpense, payment_mode: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem' }}>
+                                                    <option>UPI</option>
+                                                    <option>Bank Transfer</option>
+                                                    <option>Cash</option>
+                                                    <option>Cheque</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Ref / UPI Reference</label>
+                                                <input type="text" maxLength={30} value={newExpense.transaction_reference} onChange={(e) => setNewExpense({ ...newExpense, transaction_reference: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.82rem' }} placeholder="e.g. UPI/12345678" />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p style={{ margin: 0, fontSize: '0.68rem', color: '#64748B', lineHeight: '1.4' }}>
-                                        {newExpense.itc_eligibility === 'ineligible' 
-                                            ? 'GST paid to vendor is absorbed as a direct expense cost in P&L. No tax credit is claimed (Rent without GST invoice, employee food, personal expenses).'
-                                            : 'Requires a valid GST Tax Invoice with your business GSTIN. You can offset this GST against output tax.'
-                                        }
-                                    </p>
-                                    {newExpense.category_name.toLowerCase() === 'rent' && (
-                                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.68rem', color: '#B45309', background: '#FEF3C7', padding: '0.3rem 0.5rem', borderRadius: '6px', fontWeight: '600' }}>
-                                            💡 Rent Note: Residential rent or rent paid to unregistered landlords has NO ITC. Select "Eligible" only if renting commercial premises from a GST-registered landlord.
-                                        </p>
+
+                                    {/* Column 2: Amount, GST, ITC & Breakdown */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0 }}>
+                                                    Expense Amount ({currency.symbol}) <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
+                                                {/* Exclusive vs Inclusive Mode Switch */}
+                                                <div style={{ display: 'flex', background: '#F1F5F9', padding: '2px', borderRadius: '8px', gap: '2px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setNewExpense({ ...newExpense, amount_type: 'exclusive' })}
+                                                        style={{
+                                                            padding: '3px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '800',
+                                                            background: newExpense.amount_type === 'exclusive' ? '#7C3AED' : 'transparent',
+                                                            color: newExpense.amount_type === 'exclusive' ? 'white' : '#64748B'
+                                                        }}
+                                                    >
+                                                        + GST (Exclusive)
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setNewExpense({ ...newExpense, amount_type: 'inclusive' })}
+                                                        style={{
+                                                            padding: '3px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '800',
+                                                            background: newExpense.amount_type === 'inclusive' ? '#7C3AED' : 'transparent',
+                                                            color: newExpense.amount_type === 'inclusive' ? 'white' : '#64748B'
+                                                        }}
+                                                    >
+                                                        Incl. GST (Total)
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                                                <div>
+                                                    <input 
+                                                        required 
+                                                        type="text" 
+                                                        maxLength={10} 
+                                                        value={newExpense.expense_amount} 
+                                                        onChange={(e) => {
+                                                            let val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                            if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                                            setNewExpense({ ...newExpense, expense_amount: val });
+                                                        }} 
+                                                        style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '750', fontSize: '0.98rem' }} 
+                                                        placeholder="e.g. 50000" 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <select 
+                                                        value={newExpense.gst_percentage} 
+                                                        onChange={(e) => setNewExpense({ ...newExpense, gst_percentage: parseInt(e.target.value) })} 
+                                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}
+                                                    >
+                                                        <option value="0">0% Excluded</option>
+                                                        <option value="5">5% GST</option>
+                                                        <option value="12">12% GST</option>
+                                                        <option value="18">18% GST</option>
+                                                        <option value="28">28% GST</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* ITC Eligibility Selection if GST > 0 */}
+                                        {newExpense.gst_percentage > 0 && (
+                                            <div style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.35rem' }}>
+                                                    Input Tax Credit (ITC) Eligibility
+                                                </label>
+                                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setNewExpense({ ...newExpense, itc_eligibility: 'ineligible' })}
+                                                        style={{
+                                                            flex: 1, padding: '0.45rem 0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: '800',
+                                                            border: newExpense.itc_eligibility === 'ineligible' ? '1.5px solid #EF4444' : '1px solid #E2E8F0',
+                                                            background: newExpense.itc_eligibility === 'ineligible' ? '#FEF2F2' : 'white',
+                                                            color: newExpense.itc_eligibility === 'ineligible' ? '#B91C1C' : '#64748B'
+                                                        }}
+                                                    >
+                                                        ⛔ Ineligible / Blocked (Sec 17(5))
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setNewExpense({ ...newExpense, itc_eligibility: 'eligible' })}
+                                                        style={{
+                                                            flex: 1, padding: '0.45rem 0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: '800',
+                                                            border: newExpense.itc_eligibility === 'eligible' ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+                                                            background: newExpense.itc_eligibility === 'eligible' ? '#ECFDF5' : 'white',
+                                                            color: newExpense.itc_eligibility === 'eligible' ? '#047857' : '#64748B'
+                                                        }}
+                                                    >
+                                                        ✓ Eligible for ITC Claim
+                                                    </button>
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: '0.67rem', color: '#64748B', lineHeight: '1.4' }}>
+                                                    {newExpense.itc_eligibility === 'ineligible' 
+                                                        ? 'GST paid to vendor is absorbed as direct expense in P&L. No tax credit claimed.'
+                                                        : 'Requires valid GST Tax Invoice with business GSTIN. Offsets against output tax.'
+                                                    }
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Live Calculation Breakdown Preview */}
+                                        {rawAmt > 0 && (
+                                            <div style={{ background: '#FAF5FF', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E9D5FF' }}>
+                                                <p style={{ margin: '0 0 0.35rem 0', fontSize: '0.7rem', fontWeight: '850', color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                                    Calculation Breakdown
+                                                </p>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#4B5563', marginBottom: '0.2rem' }}>
+                                                    <span>Base Subtotal (Expense):</span>
+                                                    <span style={{ fontWeight: '750' }}>{formatCurrency(sub)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#4B5563', marginBottom: '0.2rem' }}>
+                                                    <span>GST ({gst}%):</span>
+                                                    <span style={{ fontWeight: '750' }}>+{formatCurrency(tax)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: '#0F172A', fontWeight: '900', borderTop: '1px solid #E9D5FF', paddingTop: '0.3rem', marginTop: '0.2rem' }}>
+                                                    <span>Total Amount Payable:</span>
+                                                    <span style={{ color: '#7C3AED' }}>{formatCurrency(tot)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px dashed #E9D5FF' }}>
+                                                    <span style={{ fontWeight: '700', color: '#64748B' }}>ITC Claimable:</span>
+                                                    <span style={{ fontWeight: '800', color: isEligible ? '#059669' : '#DC2626' }}>
+                                                        {isEligible ? `✓ ${formatCurrency(tax)} (Eligible)` : `⛔ ${currency.symbol}0 (${gst > 0 ? 'Blocked Sec 17(5)' : 'Exempt'})`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </form>
+
+                            {/* Fixed Sticky Footer: ALWAYS VISIBLE */}
+                            <div style={{
+                                padding: '1rem 1.75rem',
+                                borderTop: '1px solid #F1F5F9',
+                                background: 'white',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                                gap: '1rem'
+                            }}>
+                                <div style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                                    {rawAmt > 0 && (
+                                        <span>Total Payable: <strong style={{ color: '#7C3AED', fontSize: '1.05rem', fontWeight: '900' }}>{formatCurrency(tot)}</strong></span>
                                     )}
                                 </div>
-                            )}
-
-                            {/* Live Calculation Breakdown Preview */}
-                            {parseFloat(newExpense.expense_amount) > 0 && (() => {
-                                const rawAmt = parseFloat(newExpense.expense_amount) || 0;
-                                const gst = parseFloat(newExpense.gst_percentage) || 0;
-                                let sub = rawAmt;
-                                let tax = 0;
-                                let tot = rawAmt;
-                                if (gst > 0) {
-                                    if (newExpense.amount_type === 'inclusive') {
-                                        tot = rawAmt;
-                                        sub = Math.round((rawAmt / (1 + gst / 100)) * 100) / 100;
-                                        tax = Math.round((tot - sub) * 100) / 100;
-                                    } else {
-                                        sub = rawAmt;
-                                        tax = Math.round((rawAmt * (gst / 100)) * 100) / 100;
-                                        tot = Math.round((sub + tax) * 100) / 100;
-                                    }
-                                }
-                                const isEligible = gst > 0 && newExpense.itc_eligibility === 'eligible';
-                                return (
-                                    <div style={{ background: '#FAF5FF', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E9D5FF' }}>
-                                        <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.72rem', fontWeight: '850', color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                                            Calculation Breakdown
-                                        </p>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563', marginBottom: '0.2rem' }}>
-                                            <span>Base Subtotal (Expense):</span>
-                                            <span style={{ fontWeight: '750' }}>{formatCurrency(sub)}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563', marginBottom: '0.2rem' }}>
-                                            <span>GST ({gst}%):</span>
-                                            <span style={{ fontWeight: '750' }}>+{formatCurrency(tax)}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#0F172A', fontWeight: '900', borderTop: '1px solid #E9D5FF', paddingTop: '0.3rem', marginTop: '0.2rem' }}>
-                                            <span>Total Amount Payable:</span>
-                                            <span style={{ color: '#7C3AED' }}>{formatCurrency(tot)}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px dashed #E9D5FF' }}>
-                                            <span style={{ fontWeight: '700', color: '#64748B' }}>ITC Claimable:</span>
-                                            <span style={{ fontWeight: '800', color: isEligible ? '#059669' : '#DC2626' }}>
-                                                {isEligible ? `✓ ${formatCurrency(tax)} (Eligible)` : `⛔ ${currency.symbol}0 (${gst > 0 ? 'Blocked Sec 17(5)' : 'Exempt'})`}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
-                                    <select value={newExpense.payment_mode} onChange={(e) => setNewExpense({ ...newExpense, payment_mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option>Bank Transfer</option>
-                                        <option>UPI</option>
-                                        <option>Cash</option>
-                                        <option>Cheque</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Ref / UPI reference</label>
-                                    <input type="text" maxLength={30} value={newExpense.transaction_reference} onChange={(e) => setNewExpense({ ...newExpense, transaction_reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : UPI/1234567890" />
+                                <div style={{ display: 'flex', gap: '0.65rem' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsExpenseModalOpen(false)} 
+                                        style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        form="record-expense-form" 
+                                        disabled={createExpenseMutation.isPending} 
+                                        style={{ 
+                                            padding: '0.65rem 1.6rem', 
+                                            borderRadius: '12px', 
+                                            background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                            color: 'white', 
+                                            border: 'none', 
+                                            fontWeight: '800', 
+                                            fontSize: '0.92rem', 
+                                            cursor: createExpenseMutation.isPending ? 'not-allowed' : 'pointer', 
+                                            opacity: createExpenseMutation.isPending ? 0.7 : 1, 
+                                            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)', 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.45rem' 
+                                        }}
+                                    >
+                                        {createExpenseMutation.isPending ? 'Posting...' : 'Settle & Post Expense'}
+                                    </button>
                                 </div>
                             </div>
-
-                            <button type="submit" disabled={createExpenseMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createExpenseMutation.isPending ? 'not-allowed' : 'pointer', opacity: createExpenseMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                {createExpenseMutation.isPending ? 'Posting...' : 'Settle & Post Expense'}
-                            </button>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Set Budget Limit Modal */}
             {isBudgetModalOpen && (
